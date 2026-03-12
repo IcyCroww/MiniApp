@@ -1,0 +1,13 @@
+﻿{
+  "name": "telegram-miniapp-sandbox",
+  "version": "1.0.0",
+  "description": "Mobile-first Telegram Mini App sandbox with map and mini games",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.21.2"
+  }
+}

@@ -1,0 +1,67 @@
+﻿<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#103026" />
+  <title>MiniApp Quest</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Nunito:wght@600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <header class="top-panel">
+      <p class="kicker">Telegram Mini App</p>
+      <h1 class="title">Карта проекта</h1>
+      <p class="subtitle">Нажмите на точку Италии: карта перейдет к городу, а снизу откроется загадка и ответ.</p>
+    </header>
+
+    <main class="view-stack">
+      <section class="view is-active" id="view-map" data-view="map">
+        <article class="card card-map">
+          <div class="card-head">
+            <h2>Карта Италии</h2>
+            <span id="completionBadge" class="badge">Точки: 0/10</span>
+          </div>
+
+          <div class="map-scene">
+            <div class="leaflet-map" id="worldMap" aria-label="Карта Италии"></div>
+            <div class="map-attrib">
+              <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">© OpenStreetMap contributors</a>
+              <span>•</span>
+              <a href="https://carto.com/attributions" target="_blank" rel="noopener noreferrer">CARTO</a>
+            </div>
+          </div>
+
+          <div class="row-actions map-actions">
+            <button class="btn ghost" id="resetMapBtn">Сбросить вид</button>
+          </div>
+
+          <section class="task-panel" id="taskPanel" aria-live="polite">
+            <div class="task-head">
+              <p class="task-kicker" id="taskKicker">Загадка города</p>
+              <button class="task-close" id="closeTaskBtn" aria-label="Закрыть загадку">×</button>
+            </div>
+            <h3 class="task-title" id="taskTitle">Выберите город</h3>
+            <p class="task-lore" id="taskLore"></p>
+            <p class="task-question" id="taskQuestion">Нажмите на точку карты, чтобы открыть вопрос.</p>
+            <div class="task-options" id="taskOptions"></div>
+            <p class="task-result" id="taskResult"></p>
+            <div class="task-answer" id="taskAnswer" hidden>
+              <p class="task-answer-label" id="taskAnswerLabel">Ключ</p>
+              <p class="task-answer-text" id="taskAnswerText"></p>
+            </div>
+          </section>
+        </article>
+      </section>
+    </main>
+  </div>
+
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script type="module" src="./app.js"></script>
+</body>
+</html>
