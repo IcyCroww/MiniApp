@@ -27,7 +27,22 @@ $env:MINI_APP_URL="https://ВАШ_PUBLIC_HTTPS_URL"
 python miniapp_bot.py
 ```
 
-## Cloudflare Tunnel (когда будете готовы)
+## Деплой на Surge (бесплатно)
+
+```powershell
+cd "c:\Users\pavel\Desktop\Новая папка\MiniApp"
+npm run deploy:surge
+```
+
+При первом запуске Surge попросит `email/password`.
+
+После логина можно сразу задать домен:
+
+```powershell
+npx surge public miniapp-2uq.surge.sh
+```
+
+## Cloudflare Tunnel (опционально)
 
 ```powershell
 cloudflared tunnel --url http://localhost:3000
