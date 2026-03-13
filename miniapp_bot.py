@@ -8,8 +8,8 @@ from aiogram.filters import Command
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, Message, WebAppInfo
 
 # Local fallback values for IDE run (PyCharm). Keep empty when committing.
-LOCAL_BOT_TOKEN = '8776383520:AAGvLivwHXWYFuamTzQPHGlnBl734H4bsG8'
-LOCAL_MINI_APP_URL = 'https://miniapp-2uq.surge.sh'
+LOCAL_BOT_TOKEN = ''
+LOCAL_MINI_APP_URL = 'https://miniapp-quest-qgnz.onrender.com'
 
 BOT_TOKEN = os.getenv('MINI_APP_BOT_TOKEN') or LOCAL_BOT_TOKEN
 MINI_APP_URL = os.getenv('MINI_APP_URL') or LOCAL_MINI_APP_URL
