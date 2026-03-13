@@ -114,6 +114,34 @@ const points = [
     }
   },
   {
+    id: 'turin',
+    title: 'Турин',
+    text: 'Зал овального стола.',
+    lat: 45.0703,
+    lng: 7.6869,
+    zoom: 9,
+    markerColor: '#b9822d',
+    task: {
+      kind: 'slider',
+      kicker: 'Досье Турина',
+      title: 'Турин: овальный зал',
+      lore: 'В этом городе сохранился самый эффектный макет переговорного зала: полированное дерево, кольцо кресел и пустой центр для символа мира. Нужно собрать схему стола из фрагментов.',
+      question: 'Соберите пятнашки 3x3 так, чтобы снова получился цельный овальный стол.',
+      success: 'Макет восстановлен: зал снова читается как единая схема.',
+      answerLabel: 'Ключ',
+      answerText: 'Бонусная улика: овальный стол собран.',
+      slider: {
+        size: 3,
+        freeMove: true,
+        solved: [1, 2, 3, 4, 0, 5, 6, 7, 8],
+        labels: {},
+        image: {
+          src: 'assets/slider/oval-table.svg'
+        }
+      }
+    }
+  },
+  {
     id: 'florence',
     title: 'Флоренция',
     text: 'Стиль переговоров.',
@@ -1127,7 +1155,8 @@ function attachSliderDrag(tileButton, point, tileId, boardNode) {
 
 function renderSliderBoard(point) {
   const board = getSliderBoard(point);
-  const { size, labels, freeMove } = point.task.slider;
+  const { size, labels, freeMove, image } = point.task.slider;
+  const solvedOrder = point.task.slider.solved || [];
 
   const wrap = document.createElement('div');
   wrap.className = 'slider-wrap';
@@ -1141,6 +1170,9 @@ function renderSliderBoard(point) {
 
   const boardNode = document.createElement('div');
   boardNode.className = 'slider-board';
+  if (image?.src) {
+    boardNode.classList.add('has-image');
+  }
   boardNode.style.gridTemplateColumns = `repeat(${size}, minmax(0, 1fr))`;
 
   const emptyIndex = board.indexOf(0);
@@ -1160,7 +1192,23 @@ function renderSliderBoard(point) {
     tileButton.type = 'button';
     tileButton.className = 'slider-tile';
     tileButton.textContent = labels[tileId] || String(tileId);
+    tileButton.setAttribute('aria-label', `Фрагмент ${tileId}`);
     tileButton.disabled = mapState.solved.has(point.id);
+
+    if (image?.src) {
+      const solvedIndex = solvedOrder.indexOf(tileId);
+      const solvedRow = Math.floor(solvedIndex / size);
+      const solvedCol = solvedIndex % size;
+      const xPercent = size > 1 ? (solvedCol / (size - 1)) * 100 : 0;
+      const yPercent = size > 1 ? (solvedRow / (size - 1)) * 100 : 0;
+
+      tileButton.classList.add('has-image');
+      tileButton.textContent = '';
+      tileButton.style.backgroundImage = `url("${image.src}")`;
+      tileButton.style.backgroundSize = `${size * 100}% ${size * 100}%`;
+      tileButton.style.backgroundPosition = `${xPercent}% ${yPercent}%`;
+      tileButton.style.backgroundRepeat = 'no-repeat';
+    }
 
     if (!mapState.solved.has(point.id) && (freeMove || isNeighbor)) {
       tileButton.classList.add('is-movable');

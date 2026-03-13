@@ -32,6 +32,7 @@ const POINT_LABELS = {
   rome: 'Рим',
   venice: 'Венеция',
   milan: 'Милан',
+  turin: 'Турин',
   florence: 'Флоренция',
   naples: 'Неаполь',
   bologna: 'Болонья',
