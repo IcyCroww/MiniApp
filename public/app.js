@@ -301,6 +301,10 @@ const STORAGE_KEYS = {
   deviceId: 'miniapp.deviceId'
 };
 
+const TEAM_NAME_ALIASES = {
+  'Новое поколение': 'ОУИ'
+};
+
 const API_BASE = (() => {
   try {
     const fromQuery = new URLSearchParams(window.location.search).get('api');
@@ -399,6 +403,11 @@ function safeStorageSet(key, value) {
   } catch (_) {
     // No-op.
   }
+}
+
+function normalizeClientTeamName(raw = '') {
+  const prepared = String(raw || '').trim();
+  return TEAM_NAME_ALIASES[prepared] || prepared;
 }
 
 function getOrCreateDeviceId() {
@@ -539,8 +548,9 @@ function showTriggerNotice(triggers = []) {
 
 async function registerTeam(teamName, existingSessionId = '') {
   const telegramUserId = tg?.initDataUnsafe?.user?.id || null;
+  const normalizedTeamName = normalizeClientTeamName(teamName);
   const payload = {
-    teamName,
+    teamName: normalizedTeamName,
     sessionId: existingSessionId || undefined,
     deviceId: state.deviceId,
     telegramUserId
@@ -642,13 +652,13 @@ async function initTeamState() {
       'Ювента',
       'Орион',
       'Вика',
-      'Новое поколение'
+      'ОУИ'
     ];
   }
 
   renderTeamOptions(state.teamList);
 
-  const storedTeam = safeStorageGet(STORAGE_KEYS.teamName);
+  const storedTeam = normalizeClientTeamName(safeStorageGet(STORAGE_KEYS.teamName));
   const storedSessionId = safeStorageGet(STORAGE_KEYS.sessionId);
 
   if (!storedTeam) {

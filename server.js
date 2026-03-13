@@ -20,8 +20,12 @@ const TEAM_NAMES = [
   'Ювента',
   'Орион',
   'Вика',
-  'Новое поколение'
+  'ОУИ'
 ];
+
+const TEAM_NAME_ALIASES = {
+  'новое поколение': 'ОУИ'
+};
 
 app.use(express.json({ limit: '1mb' }));
 
@@ -46,7 +50,9 @@ function nowIso() {
 
 function normalizeTeamName(raw) {
   const prepared = String(raw || '').trim();
-  return TEAM_NAMES.find((team) => team.toLowerCase() === prepared.toLowerCase()) || null;
+  const normalized = prepared.toLowerCase();
+  const canonical = TEAM_NAME_ALIASES[normalized] || prepared;
+  return TEAM_NAMES.find((team) => team.toLowerCase() === canonical.toLowerCase()) || null;
 }
 
 function createDefaultDb() {
