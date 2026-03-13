@@ -30,7 +30,7 @@ const points = [
       answerText: 'Ключ 1: форма стола - ОВАЛ.',
       slider: {
         size: 3,
-        freeMove: true,
+        freeMove: false,
         solved: [1, 2, 3, 4, 0, 5, 6, 7, 8],
         labels: {
           1: '◜',
@@ -132,7 +132,7 @@ const points = [
       answerText: 'Бонусная улика: овальный стол собран.',
       slider: {
         size: 3,
-        freeMove: true,
+        freeMove: false,
         solved: [1, 2, 3, 4, 0, 5, 6, 7, 8],
         labels: {},
         image: {
@@ -1175,7 +1175,7 @@ function renderSliderBoard(point) {
   note.className = 'task-mini-note';
   note.textContent = freeMove
     ? 'Перетаскивайте любую плитку в пустую ячейку.'
-    : 'Перетаскивайте только зеленые плитки в пустую ячейку.';
+    : 'Перетаскивайте только плитку рядом с пустой ячейкой.';
   wrap.appendChild(note);
 
   const boardNode = document.createElement('div');

@@ -108,6 +108,10 @@ body {
   padding: 14px;
 }
 
+.card-map {
+  display: block;
+}
+
 .card-head {
   display: flex;
   justify-content: space-between;
@@ -881,6 +885,105 @@ body {
 
   .city-poi-list {
     grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 980px) {
+  body {
+    padding: 24px;
+  }
+
+  .app-shell {
+    width: min(1240px, 100%);
+    min-height: min(92vh, 980px);
+    border-radius: 34px;
+  }
+
+  .top-panel {
+    padding: 24px 28px 18px;
+  }
+
+  .title {
+    font-size: 38px;
+  }
+
+  .subtitle {
+    max-width: 760px;
+    font-size: 15px;
+  }
+
+  .team-strip {
+    font-size: 13px;
+  }
+
+  .view-stack {
+    padding: 18px;
+  }
+
+  .card-map {
+    display: grid;
+    grid-template-columns: minmax(0, 1.2fr) minmax(380px, 0.8fr);
+    grid-template-areas:
+      "head head"
+      "gate gate"
+      "map task"
+      "actions task";
+    align-items: start;
+    column-gap: 18px;
+    row-gap: 14px;
+    min-height: calc(92vh - 180px);
+  }
+
+  .card-head {
+    grid-area: head;
+    margin-bottom: 0;
+  }
+
+  .team-gate {
+    grid-area: gate;
+    margin: 0;
+  }
+
+  .map-scene {
+    grid-area: map;
+  }
+
+  .map-actions {
+    grid-area: actions;
+    margin-top: 0;
+  }
+
+  .task-panel {
+    grid-area: task;
+    margin-top: 0;
+    height: 100%;
+  }
+
+  .leaflet-map {
+    height: clamp(500px, 68vh, 760px);
+  }
+
+  .card-map.has-task .leaflet-map {
+    height: clamp(500px, 68vh, 760px);
+  }
+
+  .card-map.has-task.city-focus .leaflet-map {
+    height: clamp(520px, 70vh, 780px);
+  }
+
+  .card-map.has-task .task-panel {
+    max-height: clamp(500px, 68vh, 760px);
+  }
+
+  .task-title {
+    font-size: 24px;
+  }
+
+  .task-lore,
+  .task-question,
+  .task-result,
+  .task-answer-text {
+    font-size: 14px;
   }
 }
 
