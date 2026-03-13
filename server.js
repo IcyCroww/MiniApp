@@ -27,6 +27,25 @@ const TEAM_NAME_ALIASES = {
   'новое поколение': 'ОУИ'
 };
 
+const POINT_LABELS = {
+  vatican: 'Ватикан',
+  rome: 'Рим',
+  venice: 'Венеция',
+  milan: 'Милан',
+  florence: 'Флоренция',
+  naples: 'Неаполь',
+  bologna: 'Болонья',
+  verona: 'Верона',
+  pisa: 'Пиза',
+  palermo: 'Палермо'
+};
+
+const PISA_POI_LABELS = {
+  pizzeria: 'Пиццерия',
+  coffee: 'Кофейня',
+  cityhall: 'Мэрия'
+};
+
 app.use(express.json({ limit: '1mb' }));
 
 app.use((req, res, next) => {
@@ -94,6 +113,32 @@ function readDb() {
   if (!Array.isArray(parsed.teams) || parsed.teams.length === 0) {
     parsed.teams = TEAM_NAMES.slice();
   }
+  Object.values(parsed.statsByTeam).forEach((stats) => {
+    if (!Array.isArray(stats.uniquePointIds)) {
+      stats.uniquePointIds = [];
+    }
+    if (!Array.isArray(stats.solvedPointIds)) {
+      stats.solvedPointIds = [];
+    }
+    if (!stats.poiVisitsByPoint || typeof stats.poiVisitsByPoint !== 'object') {
+      stats.poiVisitsByPoint = {};
+    }
+    if (!Array.isArray(stats.triggersFired)) {
+      stats.triggersFired = [];
+    }
+    if (!Array.isArray(stats.triggerLog)) {
+      stats.triggerLog = [];
+    }
+    if (!Array.isArray(stats.deliveredTriggerIds)) {
+      stats.deliveredTriggerIds = [];
+    }
+    if (!Array.isArray(stats.routeLog)) {
+      stats.routeLog = [];
+    }
+    if (typeof stats.currentPointId !== 'string') {
+      stats.currentPointId = '';
+    }
+  });
 
   return parsed;
 }
@@ -113,6 +158,9 @@ function ensureTeamStats(db, teamName) {
       poiVisitsByPoint: {},
       triggersFired: [],
       triggerLog: [],
+      deliveredTriggerIds: [],
+      routeLog: [],
+      currentPointId: '',
       updatedAt: nowIso()
     };
   }
@@ -129,7 +177,53 @@ function ensureUniquePush(items, value) {
   }
 }
 
-function fireTrigger(stats, triggerId, text, out) {
+function pointLabel(pointId) {
+  return POINT_LABELS[pointId] || pointId || '';
+}
+
+function describeRouteEvent(eventType, pointId, meta = {}) {
+  const city = pointLabel(pointId);
+
+  if (eventType === 'travel') {
+    return `Переход: ${city}`;
+  }
+
+  if (eventType === 'task-solved') {
+    return `Решили точку: ${city}`;
+  }
+
+  if (eventType === 'city-poi') {
+    const poiLabel = PISA_POI_LABELS[meta.poiId] || meta.poiId || 'точка города';
+    return `${city}: ${poiLabel}`;
+  }
+
+  return city || eventType;
+}
+
+function appendRouteLog(stats, eventType, pointId, meta = {}) {
+  const label = describeRouteEvent(eventType, pointId, meta);
+  if (!label) {
+    return;
+  }
+
+  stats.routeLog.push({
+    id: crypto.randomUUID(),
+    type: eventType,
+    pointId,
+    label,
+    at: nowIso()
+  });
+
+  if (stats.routeLog.length > 25) {
+    stats.routeLog.splice(0, stats.routeLog.length - 25);
+  }
+
+  if (pointId) {
+    stats.currentPointId = pointId;
+  }
+}
+
+function fireTrigger(stats, triggerId, text, out, options = {}) {
   if (stats.triggersFired.includes(triggerId)) {
     return;
   }
@@ -137,7 +231,8 @@ function fireTrigger(stats, triggerId, text, out) {
   const item = {
     id: triggerId,
     text,
-    at: nowIso()
+    at: nowIso(),
+    requiresDelivery: Boolean(options.requiresDelivery)
   };
 
   stats.triggersFired.push(triggerId);
@@ -148,6 +243,11 @@ function fireTrigger(stats, triggerId, text, out) {
 function collectPoiCount(stats, pointId) {
   const list = stats.poiVisitsByPoint[pointId] || [];
   return list.length;
+}
+
+function getPendingTriggers(stats) {
+  const delivered = new Set(stats.deliveredTriggerIds || []);
+  return (stats.triggerLog || []).filter((item) => item.requiresDelivery && !delivered.has(item.id));
 }
 
 function evaluateTriggers(stats) {
@@ -171,6 +271,16 @@ function evaluateTriggers(stats) {
     fireTrigger(stats, 'pisa_citymap_done', 'Пиза закрыта: отмечены все точки города.', fresh);
   }
 
+  if ((stats.solvedPointIds || []).includes('naples')) {
+    fireTrigger(
+      stats,
+      'clue_after_naples',
+      'После Неаполя нужно принести этой команде улику.',
+      fresh,
+      { requiresDelivery: true }
+    );
+  }
+
   return fresh;
 }
 
@@ -181,6 +291,8 @@ function publicStats(stats) {
     uniquePointCount: Array.isArray(stats.uniquePointIds) ? stats.uniquePointIds.length : 0,
     solvedCount: Array.isArray(stats.solvedPointIds) ? stats.solvedPointIds.length : 0,
     pisaPoiCount: collectPoiCount(stats, 'pisa'),
+    currentPointId: stats.currentPointId || '',
+    currentPointLabel: pointLabel(stats.currentPointId || ''),
     updatedAt: stats.updatedAt || nowIso()
   };
 }
@@ -296,6 +408,10 @@ app.post('/api/event', (req, res) => {
       ensureUniquePush(stats.poiVisitsByPoint[pointId], String(meta.poiId));
     }
 
+    if (pointId && (eventType === 'travel' || eventType === 'task-solved' || eventType === 'city-poi')) {
+      appendRouteLog(stats, eventType, pointId, meta);
+    }
+
     const event = {
       id: crypto.randomUUID(),
       sessionId,
@@ -351,6 +467,8 @@ app.get('/api/admin/summary', (_, res) => {
       return {
         teamName,
         ...publicStats(stats),
+        recentRoute: (stats.routeLog || []).slice(-8).reverse(),
+        pendingTriggers: getPendingTriggers(stats),
         latestTrigger
       };
     });
@@ -363,6 +481,44 @@ app.get('/api/admin/summary', (_, res) => {
     });
   } catch (error) {
     res.status(500).json({ ok: false, error: 'summary_failed', detail: String(error?.message || error) });
+  }
+});
+
+app.post('/api/admin/team/:teamName/ack-trigger', (req, res) => {
+  try {
+    const db = readDb();
+    const teamName = normalizeTeamName(req.params.teamName);
+    const triggerId = String(req.body?.triggerId || '').trim();
+
+    if (!teamName) {
+      res.status(404).json({ ok: false, error: 'team_not_found' });
+      return;
+    }
+
+    if (!triggerId) {
+      res.status(400).json({ ok: false, error: 'trigger_required' });
+      return;
+    }
+
+    const stats = ensureTeamStats(db, teamName);
+    const exists = (stats.triggerLog || []).some((item) => item.id === triggerId && item.requiresDelivery);
+    if (!exists) {
+      res.status(404).json({ ok: false, error: 'trigger_not_found' });
+      return;
+    }
+
+    ensureUniquePush(stats.deliveredTriggerIds, triggerId);
+    stats.updatedAt = nowIso();
+    writeDb(db);
+
+    res.json({
+      ok: true,
+      teamName,
+      pendingTriggers: getPendingTriggers(stats),
+      stats: publicStats(stats)
+    });
+  } catch (error) {
+    res.status(500).json({ ok: false, error: 'ack_failed', detail: String(error?.message || error) });
   }
 });
 

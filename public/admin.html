@@ -59,21 +59,58 @@
     }
     .ok { color: var(--ok); font-weight: 700; }
     .warn { color: var(--warn); font-weight: 700; }
+    .current {
+      font-weight: 700;
+      color: #2d4a40;
+    }
+    .route-list,
+    .trigger-list {
+      display: grid;
+      gap: 6px;
+    }
+    .route-item,
+    .trigger-item {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 6px 8px;
+      background: #fbfcf8;
+    }
+    .route-time,
+    .trigger-time {
+      display: block;
+      margin-top: 3px;
+      font-size: 11px;
+      color: var(--muted);
+    }
+    .ack-btn {
+      margin-top: 6px;
+      border: 1px solid #b36d2e;
+      border-radius: 999px;
+      background: #fff4e8;
+      color: #7e4d14;
+      font-size: 12px;
+      font-weight: 700;
+      padding: 6px 10px;
+      cursor: pointer;
+    }
+    .empty {
+      color: var(--muted);
+      font-size: 12px;
+    }
   </style>
 </head>
 <body>
   <div class="wrap">
-    <h1>Teams Monitor</h1>
+    <h1>Admin Monitor</h1>
     <p id="meta" class="meta">Loading...</p>
     <table>
       <thead>
         <tr>
-          <th>Team</th>
-          <th>Moves</th>
-          <th>Cities</th>
-          <th>Solved</th>
-          <th>Pisa POI</th>
-          <th>Latest Trigger</th>
+          <th>Команда</th>
+          <th>Перемещения</th>
+          <th>Сейчас</th>
+          <th>Маршрут</th>
+          <th>Улики / действия</th>
         </tr>
       </thead>
       <tbody id="rows"></tbody>
@@ -84,27 +121,83 @@
     const rowsNode = document.getElementById('rows');
     const metaNode = document.getElementById('meta');
 
+    function escapeHtml(text) {
+      return String(text || '')
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;');
+    }
+
+    function renderRoute(route) {
+      if (!Array.isArray(route) || route.length === 0) {
+        return '<span class="empty">Пока нет перемещений</span>';
+      }
+
+      return `<div class="route-list">${route.map((item) => `
+        <div class="route-item">
+          <div>${escapeHtml(item.label)}</div>
+          <span class="route-time">${escapeHtml(item.at)}</span>
+        </div>
+      `).join('')}</div>`;
+    }
+
+    function renderTriggers(teamName, triggers) {
+      if (!Array.isArray(triggers) || triggers.length === 0) {
+        return '<span class="empty">Пока ничего не выдавать</span>';
+      }
+
+      return `<div class="trigger-list">${triggers.map((item) => `
+        <div class="trigger-item">
+          <div>${escapeHtml(item.text)}</div>
+          <span class="trigger-time">${escapeHtml(item.at)}</span>
+          <button
+            type="button"
+            class="ack-btn"
+            data-team-name="${escapeHtml(teamName)}"
+            data-trigger-id="${escapeHtml(item.id)}"
+          >Улика выдана</button>
+        </div>
+      `).join('')}</div>`;
+    }
+
     function render(rows, meta) {
       rowsNode.innerHTML = '';
       rows.forEach((team) => {
         const tr = document.createElement('tr');
-
-        const triggerText = team.latestTrigger ? `${team.latestTrigger.text} (${team.latestTrigger.at})` : '-';
-        const pisaClass = team.pisaPoiCount >= 3 ? 'ok' : 'warn';
+        const currentLabel = team.currentPointLabel || 'Еще не начали';
+        const currentClass = team.currentPointLabel ? 'current' : 'empty';
 
         tr.innerHTML = `
           <td><strong>${team.teamName}</strong></td>
-          <td>${team.moveCount}</td>
-          <td>${team.uniquePointCount}</td>
-          <td>${team.solvedCount}</td>
-          <td class="${pisaClass}">${team.pisaPoiCount}/3</td>
-          <td>${triggerText}</td>
+          <td>
+            <div><strong>${team.moveCount}</strong></div>
+            <div class="empty">Города: ${team.uniquePointCount} | Решено: ${team.solvedCount}</div>
+          </td>
+          <td class="${currentClass}">${currentLabel}</td>
+          <td>${renderRoute(team.recentRoute)}</td>
+          <td>${renderTriggers(team.teamName, team.pendingTriggers)}</td>
         `;
 
         rowsNode.appendChild(tr);
       });
 
-      metaNode.textContent = `Updated: ${meta.updatedAt} | Events: ${meta.eventsTotal}`;
+      metaNode.textContent = `Обновлено: ${meta.updatedAt} | Событий: ${meta.eventsTotal}`;
+    }
+
+    async function ackTrigger(teamName, triggerId) {
+      const response = await fetch(`/api/admin/team/${encodeURIComponent(teamName)}/ack-trigger`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ triggerId })
+      });
+
+      const payload = await response.json();
+      if (!response.ok || payload.ok === false) {
+        throw new Error(payload.error || 'ack_failed');
+      }
     }
 
     async function refresh() {
@@ -116,9 +209,33 @@
         }
         render(payload.teams || [], payload);
       } catch (error) {
-        metaNode.textContent = `Load error: ${error.message}`;
+        metaNode.textContent = `Ошибка загрузки: ${error.message}`;
       }
     }
+
+    rowsNode.addEventListener('click', async (event) => {
+      const button = event.target.closest('.ack-btn');
+      if (!button) {
+        return;
+      }
+
+      const teamName = button.dataset.teamName;
+      const triggerId = button.dataset.triggerId;
+      if (!teamName || !triggerId) {
+        return;
+      }
+
+      button.disabled = true;
+      button.textContent = 'Отмечаем...';
+      try {
+        await ackTrigger(teamName, triggerId);
+        await refresh();
+      } catch (error) {
+        button.disabled = false;
+        button.textContent = 'Ошибка';
+        metaNode.textContent = `Не удалось отметить улику: ${error.message}`;
+      }
+    });
 
     refresh();
     setInterval(refresh, 5000);
