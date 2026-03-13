@@ -285,6 +285,41 @@ const points = [
       question: 'Вы фиксируете финальные штрихи досье перед публичным разбором.',
       info: 'Финальный намек: ищите не только правила, но и тех, кто меняет их в тени.'
     }
+  },
+  {
+    id: 'genoa_media',
+    title: 'Генуя: медиа-точка',
+    text: 'Тест фото, видео и аудио.',
+    lat: 44.4056,
+    lng: 8.9463,
+    zoom: 9,
+    markerColor: '#8f5bff',
+    task: {
+      kind: 'empty',
+      kicker: 'Медиа-досье',
+      title: 'Генуя: тест медиа',
+      lore: 'Эта точка сделана как проверка: здесь можно показать фото-улику, видеофрагмент и аудиозапись прямо в карточке города.',
+      question: 'Откройте материалы ниже и проверьте, как они выглядят в Mini App.',
+      info: 'Тестовая точка без ключа. Позже сюда можно подставить ваши реальные файлы.',
+      media: [
+        {
+          type: 'image',
+          title: 'Фото-улика',
+          src: 'assets/media/test-photo.svg',
+          alt: 'Тестовая фото-улика'
+        },
+        {
+          type: 'video',
+          title: 'Видео-фрагмент',
+          src: 'https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4'
+        },
+        {
+          type: 'audio',
+          title: 'Аудио-запись',
+          src: 'assets/media/test-audio.wav'
+        }
+      ]
+    }
   }
 ];
 
@@ -765,11 +800,12 @@ function markerStyle(pointId) {
   const isVisited = mapState.visited.has(pointId);
   const isSolved = mapState.solved.has(pointId);
   const isEmpty = point?.task.kind === 'empty';
+  const customColor = point?.markerColor || '';
 
-  let fillColor = isEmpty ? '#4f93e6' : '#ff7a18';
+  let fillColor = customColor || (isEmpty ? '#4f93e6' : '#ff7a18');
 
   if (isVisited) {
-    fillColor = isEmpty ? '#2d6ab4' : '#e26704';
+    fillColor = customColor ? '#6e3de1' : (isEmpty ? '#2d6ab4' : '#e26704');
   }
 
   if (isSolved) {
@@ -778,7 +814,7 @@ function markerStyle(pointId) {
 
   const strokeColor = isActive
     ? '#f2f7ff'
-    : (isEmpty ? '#b9d4ff' : '#ffd9b5');
+    : (customColor ? '#ddcbff' : (isEmpty ? '#b9d4ff' : '#ffd9b5'));
 
   return {
     radius: isActive ? 12 : 9,
@@ -1634,6 +1670,54 @@ function renderCityMapTask(point) {
   updateCityMapTaskStatus(point, progressNode, statusNode, poiList);
 }
 
+function renderTaskMedia(point) {
+  const items = Array.isArray(point.task?.media) ? point.task.media : [];
+  if (items.length === 0) {
+    return;
+  }
+
+  const wrap = document.createElement('div');
+  wrap.className = 'task-media';
+
+  items.forEach((item) => {
+    const card = document.createElement('div');
+    card.className = 'task-media-card';
+
+    const title = document.createElement('p');
+    title.className = 'task-media-title';
+    title.textContent = item.title || 'Медиа';
+    card.appendChild(title);
+
+    if (item.type === 'image') {
+      const image = document.createElement('img');
+      image.className = 'task-media-image';
+      image.src = item.src;
+      image.alt = item.alt || item.title || 'Изображение';
+      image.loading = 'lazy';
+      card.appendChild(image);
+    } else if (item.type === 'video') {
+      const video = document.createElement('video');
+      video.className = 'task-media-video';
+      video.src = item.src;
+      video.controls = true;
+      video.preload = 'metadata';
+      video.playsInline = true;
+      card.appendChild(video);
+    } else if (item.type === 'audio') {
+      const audio = document.createElement('audio');
+      audio.className = 'task-media-audio';
+      audio.src = item.src;
+      audio.controls = true;
+      audio.preload = 'metadata';
+      card.appendChild(audio);
+    }
+
+    wrap.appendChild(card);
+  });
+
+  taskOptionsNode.appendChild(wrap);
+}
+
 function renderTask(point) {
   taskKickerNode.textContent = point.task.kicker;
   taskTitleNode.textContent = point.task.title || `${point.title}: загадка`;
@@ -1645,6 +1729,7 @@ function renderTask(point) {
 
   if (point.task.kind === 'empty') {
     setTaskResult(point.task.info || 'В этой точке нет активной загадки.', 'info');
+    renderTaskMedia(point);
     if (point.task.cityMap) {
       renderCityMapTask(point);
     }
@@ -1653,6 +1738,7 @@ function renderTask(point) {
   }
 
   if (point.task.kind === 'slider') {
+    renderTaskMedia(point);
     renderSliderBoard(point);
     if (mapState.solved.has(point.id)) {
       setTaskResult(point.task.success || 'Загадка уже решена.', 'ok');
@@ -1662,6 +1748,7 @@ function renderTask(point) {
   }
 
   if (point.task.kind === 'caesar') {
+    renderTaskMedia(point);
     renderCaesarTask(point);
     if (mapState.solved.has(point.id)) {
       setTaskResult(point.task.success || 'Загадка уже решена.', 'ok');
@@ -1671,6 +1758,7 @@ function renderTask(point) {
   }
 
   if (point.task.kind === 'match') {
+    renderTaskMedia(point);
     renderMatchTask(point);
     if (mapState.solved.has(point.id)) {
       setTaskResult(point.task.success || 'Загадка уже решена.', 'ok');
@@ -1679,6 +1767,7 @@ function renderTask(point) {
     return;
   }
 
+  renderTaskMedia(point);
   point.task.options.forEach((optionText, index) => {
     const button = document.createElement('button');
     button.type = 'button';

@@ -1,0 +1,15 @@
+﻿<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720" fill="none">
+  <rect width="1280" height="720" rx="40" fill="#102521"/>
+  <rect x="48" y="48" width="1184" height="624" rx="28" fill="#efe8d9"/>
+  <circle cx="195" cy="182" r="74" fill="#8F5BFF" fill-opacity="0.18"/>
+  <circle cx="1080" cy="540" r="98" fill="#D27B2D" fill-opacity="0.18"/>
+  <rect x="120" y="128" width="420" height="320" rx="22" fill="#17352F"/>
+  <path d="M170 380L260 280L330 340L420 220L490 380" stroke="#F4F1E7" stroke-width="18" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="250" cy="220" r="42" fill="#F0B95B"/>
+  <text x="590" y="210" fill="#17352F" font-size="54" font-family="Segoe UI, Arial, sans-serif" font-weight="700">Фото-улика</text>
+  <text x="590" y="290" fill="#35594F" font-size="28" font-family="Segoe UI, Arial, sans-serif">Тестовая карточка для Mini App</text>
+  <text x="590" y="338" fill="#35594F" font-size="28" font-family="Segoe UI, Arial, sans-serif">Сюда потом можно подставить реальное фото</text>
+  <text x="590" y="432" fill="#8F5BFF" font-size="34" font-family="Segoe UI, Arial, sans-serif" font-weight="700">Фиолетовая медиа-точка активна</text>
+  <rect x="590" y="492" width="286" height="76" rx="18" fill="#17352F"/>
+  <text x="636" y="540" fill="#F5F2EA" font-size="30" font-family="Segoe UI, Arial, sans-serif" font-weight="700">PHOTO EVIDENCE</text>
+</svg>
