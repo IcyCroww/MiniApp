@@ -79,12 +79,10 @@ const DELIVERY_CLUES = {
   clue_naples: {
     clueNumber: 6,
     actionLabel: 'Выдать улику №6'
-  },
-  clue_after_naples: {
-    clueNumber: 7,
-    actionLabel: 'Выдать улику №7'
   }
 };
+
+const LEGACY_TRIGGER_IDS = new Set(['clue_after_naples']);
 
 app.use(express.json({ limit: '1mb' }));
 
@@ -182,9 +180,15 @@ function readDb() {
     if (!Array.isArray(stats.triggerLog)) {
       stats.triggerLog = [];
     }
+    stats.triggerLog = stats.triggerLog.filter((item) => !LEGACY_TRIGGER_IDS.has(item.id));
     if (!Array.isArray(stats.deliveredTriggerIds)) {
       stats.deliveredTriggerIds = [];
     }
+    stats.deliveredTriggerIds = stats.deliveredTriggerIds.filter((id) => !LEGACY_TRIGGER_IDS.has(id));
+    if (!Array.isArray(stats.triggersFired)) {
+      stats.triggersFired = [];
+    }
+    stats.triggersFired = stats.triggersFired.filter((id) => !LEGACY_TRIGGER_IDS.has(id));
     const deliveredIds = new Set(stats.deliveredTriggerIds);
     stats.triggerLog.forEach((item) => {
       if (!deliveredIds.has(item.id)) {
@@ -196,6 +200,7 @@ function readDb() {
         ensureUniquePush(stats.issuedClueNumbers, clueNumber);
       }
     });
+    stats.issuedClueNumbers = stats.issuedClueNumbers.filter((number) => Number(number) !== 7);
     stats.issuedClueNumbers.sort((a, b) => Number(a) - Number(b));
     if (!Array.isArray(stats.routeLog)) {
       stats.routeLog = [];
@@ -409,20 +414,6 @@ function evaluateTriggers(stats) {
       }
     );
   });
-
-  if ((stats.solvedPointIds || []).includes('naples')) {
-    fireTrigger(
-      stats,
-      'clue_after_naples',
-      'После Неаполя нужно принести этой команде улику.',
-      fresh,
-      {
-        requiresDelivery: true,
-        clueNumber: DELIVERY_CLUES.clue_after_naples.clueNumber,
-        actionLabel: DELIVERY_CLUES.clue_after_naples.actionLabel
-      }
-    );
-  }
 
   return fresh;
 }
