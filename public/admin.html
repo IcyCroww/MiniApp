@@ -1,0 +1,127 @@
+﻿<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MiniApp Admin</title>
+  <style>
+    :root {
+      --bg: #0f1716;
+      --card: #f3f5ef;
+      --line: #ccd7cd;
+      --text: #21312a;
+      --muted: #5a6c63;
+      --ok: #2f8e61;
+      --warn: #b36d2e;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Manrope", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      padding: 18px;
+    }
+    .wrap {
+      max-width: 980px;
+      margin: 0 auto;
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 16px;
+    }
+    h1 {
+      margin: 0 0 10px;
+      font-size: 24px;
+    }
+    .meta {
+      margin: 0 0 12px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    th, td {
+      border-bottom: 1px solid var(--line);
+      padding: 8px 6px;
+      text-align: left;
+      vertical-align: top;
+    }
+    th {
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--muted);
+    }
+    .ok { color: var(--ok); font-weight: 700; }
+    .warn { color: var(--warn); font-weight: 700; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Teams Monitor</h1>
+    <p id="meta" class="meta">Loading...</p>
+    <table>
+      <thead>
+        <tr>
+          <th>Team</th>
+          <th>Moves</th>
+          <th>Cities</th>
+          <th>Solved</th>
+          <th>Pisa POI</th>
+          <th>Latest Trigger</th>
+        </tr>
+      </thead>
+      <tbody id="rows"></tbody>
+    </table>
+  </div>
+
+  <script>
+    const rowsNode = document.getElementById('rows');
+    const metaNode = document.getElementById('meta');
+
+    function render(rows, meta) {
+      rowsNode.innerHTML = '';
+      rows.forEach((team) => {
+        const tr = document.createElement('tr');
+
+        const triggerText = team.latestTrigger ? `${team.latestTrigger.text} (${team.latestTrigger.at})` : '-';
+        const pisaClass = team.pisaPoiCount >= 3 ? 'ok' : 'warn';
+
+        tr.innerHTML = `
+          <td><strong>${team.teamName}</strong></td>
+          <td>${team.moveCount}</td>
+          <td>${team.uniquePointCount}</td>
+          <td>${team.solvedCount}</td>
+          <td class="${pisaClass}">${team.pisaPoiCount}/3</td>
+          <td>${triggerText}</td>
+        `;
+
+        rowsNode.appendChild(tr);
+      });
+
+      metaNode.textContent = `Updated: ${meta.updatedAt} | Events: ${meta.eventsTotal}`;
+    }
+
+    async function refresh() {
+      try {
+        const response = await fetch('/api/admin/summary');
+        const payload = await response.json();
+        if (!payload.ok) {
+          throw new Error(payload.error || 'summary_failed');
+        }
+        render(payload.teams || [], payload);
+      } catch (error) {
+        metaNode.textContent = `Load error: ${error.message}`;
+      }
+    }
+
+    refresh();
+    setInterval(refresh, 5000);
+  </script>
+</body>
+</html>

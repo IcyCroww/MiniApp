@@ -7,8 +7,12 @@ from aiogram import Bot, Dispatcher
 from aiogram.filters import Command
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, Message, WebAppInfo
 
-BOT_TOKEN = os.getenv('MINI_APP_BOT_TOKEN', '')
-MINI_APP_URL = os.getenv('MINI_APP_URL', 'https://your-public-url.example')
+# Local fallback values for IDE run (PyCharm). Keep empty when committing.
+LOCAL_BOT_TOKEN = '8776383520:AAGvLivwHXWYFuamTzQPHGlnBl734H4bsG8'
+LOCAL_MINI_APP_URL = 'https://miniapp-2uq.surge.sh'
+
+BOT_TOKEN = os.getenv('MINI_APP_BOT_TOKEN') or LOCAL_BOT_TOKEN
+MINI_APP_URL = os.getenv('MINI_APP_URL') or LOCAL_MINI_APP_URL
 
 
 def build_keyboard() -> InlineKeyboardMarkup:
@@ -50,6 +54,8 @@ async def main() -> None:
     dp = create_dispatcher()
 
     try:
+        # Ensure polling mode has exclusive access to updates.
+        await bot.delete_webhook(drop_pending_updates=True)
         await dp.start_polling(bot)
     finally:
         await bot.session.close()

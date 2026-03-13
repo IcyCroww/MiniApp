@@ -219,11 +219,55 @@ const points = [
     zoom: 9,
     task: {
       kind: 'empty',
-      kicker: 'Архив Пизы',
-      title: 'Пиза: наклоненный след',
-      lore: 'След красивый, но кривой, как местная башня. В черновике совет: "иногда смысл прячется не в строке подряд, а в каждом третьем знаке".',
-      question: 'Вы находите только фрагменты, но метод чтения становится узнаваемым.',
-      info: 'Улик мало, зато становится понятнее логика шифровок.'
+      kicker: 'Досье Пизы',
+      title: 'Пиза: карта города',
+      lore: 'Полевой этап: в Пизе вы работаете уже на уровне улиц. Чем ближе масштаб, тем больше деталей: русло реки видно четко, а нужные точки можно проверить ногами.',
+      question: 'Двигайтесь по карте города и отметьте 3 точки: пиццерия, кофейня, мэрия.',
+      info: 'Это исследовательская точка без ключа: собираете ориентиры для очного этапа.',
+      cityMap: {
+        center: [43.7177, 10.4021],
+        zoom: 14,
+        minZoom: 13,
+        maxZoom: 18,
+        note: 'Масштаб города: перемещайте карту, увеличивайте и открывайте точки.',
+        progressLabel: 'Отмечено точек',
+        completeText: 'Маршрут Пизы собран. Можно выдавать следующую улику офлайн.',
+        riverPath: [
+          [43.7233, 10.3746],
+          [43.7228, 10.3821],
+          [43.7216, 10.3895],
+          [43.7201, 10.3967],
+          [43.7184, 10.4034],
+          [43.7168, 10.4102],
+          [43.7152, 10.4177]
+        ],
+        pois: [
+          {
+            id: 'pizzeria',
+            title: 'Пиццерия',
+            lat: 43.7171,
+            lng: 10.3973,
+            color: '#c87137',
+            hint: 'Шумная точка: здесь любят быстрые решения, но в протоколе спешка часто ломает логику.'
+          },
+          {
+            id: 'coffee',
+            title: 'Кофейня',
+            lat: 43.7189,
+            lng: 10.4038,
+            color: '#4f85bd',
+            hint: 'Тихая точка: в блокноте бариста пометки идут короткими группами по 3 символа.'
+          },
+          {
+            id: 'cityhall',
+            title: 'Мэрия',
+            lat: 43.7158,
+            lng: 10.4015,
+            color: '#9a6fb6',
+            hint: 'Официальная точка: все формулировки сухие, как в ваших правилах саммита.'
+          }
+        ]
+      }
     }
   },
   {
@@ -251,14 +295,46 @@ const defaultTaskState = {
   question: 'Нажмите на точку на карте Италии, чтобы открыть локацию.'
 };
 
+const STORAGE_KEYS = {
+  teamName: 'miniapp.teamName',
+  sessionId: 'miniapp.sessionId',
+  deviceId: 'miniapp.deviceId'
+};
+
+const API_BASE = (() => {
+  try {
+    const fromQuery = new URLSearchParams(window.location.search).get('api');
+    if (!fromQuery) {
+      return '';
+    }
+    return String(fromQuery).replace(/\/+$/, '');
+  } catch (_) {
+    return '';
+  }
+})();
+
 const state = {
   selectedPointId: null,
-  cityMode: false
+  cityMode: false,
+  teamReady: false,
+  teamName: '',
+  sessionId: '',
+  deviceId: '',
+  teamMoveCount: 0,
+  teamList: [],
+  shownTriggerIds: new Set(),
+  teamPollTimer: null
 };
 
 const cardMap = document.querySelector('.card-map');
 const completionNode = document.getElementById('completionBadge');
 const resetMapBtn = document.getElementById('resetMapBtn');
+const changeTeamBtn = document.getElementById('changeTeamBtn');
+const teamStripNode = document.getElementById('teamStrip');
+const teamGateNode = document.getElementById('teamGate');
+const teamSelectNode = document.getElementById('teamSelect');
+const teamConfirmBtn = document.getElementById('teamConfirmBtn');
+const teamGateStatusNode = document.getElementById('teamGateStatus');
 
 const taskKickerNode = document.getElementById('taskKicker');
 const taskTitleNode = document.getElementById('taskTitle');
@@ -280,6 +356,11 @@ const mapState = {
   caesarInputs: new Map(),
   matchLinks: new Map(),
   matchActiveFacts: new Map(),
+  cityVisits: new Map(),
+  cityHints: new Map(),
+  cityOverlayLayer: null,
+  cityOverlayPointId: null,
+  cityPoiMarkers: new Map(),
   bounds: null
 };
 
@@ -302,6 +383,292 @@ function triggerHaptic(type = 'light') {
   }
 
   tg.HapticFeedback.impactOccurred(type);
+}
+
+function safeStorageGet(key) {
+  try {
+    return window.localStorage.getItem(key) || '';
+  } catch (_) {
+    return '';
+  }
+}
+
+function safeStorageSet(key, value) {
+  try {
+    window.localStorage.setItem(key, String(value));
+  } catch (_) {
+    // No-op.
+  }
+}
+
+function getOrCreateDeviceId() {
+  const stored = safeStorageGet(STORAGE_KEYS.deviceId);
+  if (stored) {
+    return stored;
+  }
+
+  let nextId = '';
+  if (window.crypto?.randomUUID) {
+    nextId = window.crypto.randomUUID();
+  } else {
+    nextId = `device-${Date.now()}-${Math.floor(Math.random() * 100000)}`;
+  }
+
+  safeStorageSet(STORAGE_KEYS.deviceId, nextId);
+  return nextId;
+}
+
+async function apiRequest(url, options = {}) {
+  const targetUrl = API_BASE ? `${API_BASE}${url}` : url;
+  const response = await fetch(targetUrl, {
+    headers: {
+      'Content-Type': 'application/json',
+      ...(options.headers || {})
+    },
+    ...options
+  });
+
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok || payload.ok === false) {
+    const reason = payload?.error || response.statusText || 'request_failed';
+    throw new Error(reason);
+  }
+
+  return payload;
+}
+
+function setTeamStripText() {
+  if (!teamStripNode) {
+    return;
+  }
+
+  if (!state.teamReady) {
+    teamStripNode.textContent = 'Команда: не выбрана';
+    return;
+  }
+
+  teamStripNode.textContent = `Команда: ${state.teamName}`;
+}
+
+function setTeamGateStatus(text = '') {
+  if (!teamGateStatusNode) {
+    return;
+  }
+
+  teamGateStatusNode.textContent = text;
+}
+
+function openTeamGate(text = '') {
+  if (!teamGateNode) {
+    return;
+  }
+
+  teamGateNode.hidden = false;
+  setTeamGateStatus(text || 'Выберите команду и подтвердите вход.');
+}
+
+function closeTeamGate() {
+  if (!teamGateNode) {
+    return;
+  }
+
+  teamGateNode.hidden = true;
+  setTeamGateStatus('');
+}
+
+function renderTeamOptions(teams = []) {
+  if (!teamSelectNode) {
+    return;
+  }
+
+  teamSelectNode.innerHTML = '';
+  const placeholder = document.createElement('option');
+  placeholder.value = '';
+  placeholder.textContent = 'Выберите команду...';
+  teamSelectNode.appendChild(placeholder);
+
+  teams.forEach((teamName) => {
+    const option = document.createElement('option');
+    option.value = teamName;
+    option.textContent = teamName;
+    teamSelectNode.appendChild(option);
+  });
+
+  if (state.teamName) {
+    teamSelectNode.value = state.teamName;
+  }
+}
+
+function showTriggerNotice(triggers = []) {
+  if (!Array.isArray(triggers) || triggers.length === 0) {
+    return;
+  }
+
+  const fresh = triggers.filter((trigger) => {
+    if (!trigger?.id) {
+      return false;
+    }
+
+    if (state.shownTriggerIds.has(trigger.id)) {
+      return false;
+    }
+
+    state.shownTriggerIds.add(trigger.id);
+    return true;
+  });
+
+  if (fresh.length === 0) {
+    return;
+  }
+
+  const latest = fresh[fresh.length - 1];
+  const text = latest?.text || 'Новый триггер команды.';
+
+  if (state.cityMode) {
+    setTaskResult(`Триггер: ${text}`, 'info');
+  }
+
+  if (tg?.showAlert) {
+    try {
+      tg.showAlert(text);
+    } catch (_) {
+      // Ignore unsupported clients.
+    }
+  }
+}
+
+async function registerTeam(teamName, existingSessionId = '') {
+  const telegramUserId = tg?.initDataUnsafe?.user?.id || null;
+  const payload = {
+    teamName,
+    sessionId: existingSessionId || undefined,
+    deviceId: state.deviceId,
+    telegramUserId
+  };
+
+  const data = await apiRequest('/api/register', {
+    method: 'POST',
+    body: JSON.stringify(payload)
+  });
+
+  if (state.teamName !== data.teamName) {
+    state.shownTriggerIds = new Set();
+  }
+
+  state.teamReady = true;
+  state.teamName = data.teamName;
+  state.sessionId = data.sessionId;
+  state.teamMoveCount = Number(data?.stats?.moveCount || 0);
+
+  safeStorageSet(STORAGE_KEYS.teamName, state.teamName);
+  safeStorageSet(STORAGE_KEYS.sessionId, state.sessionId);
+
+  setTeamStripText();
+  updateBadge();
+  closeTeamGate();
+  showTriggerNotice(data.triggers || []);
+}
+
+function stopTeamPolling() {
+  if (state.teamPollTimer) {
+    window.clearInterval(state.teamPollTimer);
+    state.teamPollTimer = null;
+  }
+}
+
+async function syncTeamStatus() {
+  if (!state.teamReady || !state.teamName) {
+    return;
+  }
+
+  try {
+    const data = await apiRequest(`/api/team/${encodeURIComponent(state.teamName)}/status`);
+    state.teamMoveCount = Number(data?.stats?.moveCount || 0);
+    updateBadge();
+    showTriggerNotice(data.triggers || []);
+  } catch (_) {
+    // No-op: do not block UI if status call fails.
+  }
+}
+
+function startTeamPolling() {
+  stopTeamPolling();
+  state.teamPollTimer = window.setInterval(() => {
+    syncTeamStatus();
+  }, 5000);
+}
+
+async function postTeamEvent(type, pointId = '', meta = {}) {
+  if (!state.teamReady || !state.sessionId) {
+    return;
+  }
+
+  try {
+    const data = await apiRequest('/api/event', {
+      method: 'POST',
+      body: JSON.stringify({
+        sessionId: state.sessionId,
+        teamName: state.teamName,
+        deviceId: state.deviceId,
+        telegramUserId: tg?.initDataUnsafe?.user?.id || null,
+        type,
+        pointId,
+        meta
+      })
+    });
+
+    state.teamMoveCount = Number(data?.stats?.moveCount || state.teamMoveCount);
+    updateBadge();
+    showTriggerNotice(data.triggers || []);
+  } catch (_) {
+    // No-op.
+  }
+}
+
+async function initTeamState() {
+  state.deviceId = getOrCreateDeviceId();
+  setTeamStripText();
+
+  try {
+    const config = await apiRequest('/api/config');
+    state.teamList = config.teams || [];
+  } catch (_) {
+    state.teamList = [
+      'Новый Вавилон',
+      'Эльдорадо',
+      'Счастливое государство',
+      'Юксайленд',
+      'Атлантида',
+      'Ювента',
+      'Орион',
+      'Вика',
+      'Новое поколение'
+    ];
+  }
+
+  renderTeamOptions(state.teamList);
+
+  const storedTeam = safeStorageGet(STORAGE_KEYS.teamName);
+  const storedSessionId = safeStorageGet(STORAGE_KEYS.sessionId);
+
+  if (!storedTeam) {
+    openTeamGate('Сначала выберите команду.');
+    return;
+  }
+
+  try {
+    await registerTeam(storedTeam, storedSessionId);
+    startTeamPolling();
+    void syncTeamStatus();
+  } catch (_) {
+    state.teamReady = false;
+    state.teamName = '';
+    state.sessionId = '';
+    state.teamMoveCount = 0;
+    setTeamStripText();
+    updateBadge();
+    openTeamGate('Сессия не восстановилась. Выберите команду снова.');
+  }
 }
 
 function setTaskResult(text, tone = '') {
@@ -333,7 +700,35 @@ function setTaskAnswer(text = '', label = 'Ключ') {
   taskAnswerNode.hidden = false;
 }
 
+function destroyCityTaskMap() {
+  if (mapState.cityOverlayLayer && mapState.map) {
+    mapState.map.removeLayer(mapState.cityOverlayLayer);
+  }
+
+  mapState.cityOverlayLayer = null;
+  mapState.cityOverlayPointId = null;
+  mapState.cityPoiMarkers.clear();
+  cardMap.classList.remove('city-focus');
+
+  if (mapState.map) {
+    mapState.map.setMinZoom(2);
+    mapState.map.setMaxZoom(19);
+  }
+}
+
+function getCityVisitSet(pointId) {
+  let visitedSet = mapState.cityVisits.get(pointId);
+
+  if (!visitedSet) {
+    visitedSet = new Set();
+    mapState.cityVisits.set(pointId, visitedSet);
+  }
+
+  return visitedSet;
+}
+
 function setTaskPlaceholder() {
+  destroyCityTaskMap();
   taskKickerNode.textContent = defaultTaskState.kicker;
   taskTitleNode.textContent = defaultTaskState.title;
   setTaskLore(defaultTaskState.lore);
@@ -344,6 +739,17 @@ function setTaskPlaceholder() {
 }
 
 function markerStyle(pointId) {
+  if (mapState.cityOverlayPointId) {
+    return {
+      radius: 9,
+      color: 'transparent',
+      weight: 0,
+      fillColor: '#000000',
+      fillOpacity: 0,
+      opacity: 0
+    };
+  }
+
   const point = pointsById.get(pointId);
   const isActive = state.selectedPointId === pointId;
   const isVisited = mapState.visited.has(pointId);
@@ -381,14 +787,22 @@ function refreshMarkers() {
     }
 
     marker.setStyle(markerStyle(point.id));
+    marker.closeTooltip();
+
+    if (mapState.cityOverlayPointId) {
+      return;
+    }
+
     if (state.selectedPointId === point.id) {
       marker.bringToFront();
+      marker.openTooltip();
     }
   });
 }
 
 function updateBadge() {
-  completionNode.textContent = `Точки: ${mapState.visited.size}/${points.length} • Ключи: ${mapState.solved.size}/${totalQuestCount}`;
+  const moveCount = state.teamReady ? state.teamMoveCount : 0;
+  completionNode.textContent = `Точки: ${mapState.visited.size}/${points.length} • Ключи: ${mapState.solved.size}/${totalQuestCount} • Перемещения: ${moveCount}`;
 }
 
 function setMapInteractionsEnabled(enabled) {
@@ -415,13 +829,15 @@ function setCityMode(enabled) {
   state.cityMode = enabled;
 
   cardMap.classList.toggle('has-task', enabled);
-  setMapInteractionsEnabled(!enabled);
+  const selectedPoint = pointsById.get(state.selectedPointId);
+  const keepMapInteractive = !enabled || Boolean(selectedPoint?.task?.cityMap);
+  setMapInteractionsEnabled(keepMapInteractive);
 
-  if (mapState.map) {
-    window.setTimeout(() => {
+  window.setTimeout(() => {
+    if (mapState.map) {
       mapState.map.invalidateSize();
-    }, 340);
-  }
+    }
+  }, 340);
 }
 
 function completeTask(point) {
@@ -433,6 +849,7 @@ function completeTask(point) {
   updateBadge();
   refreshMarkers();
   triggerHaptic('success');
+  void postTeamEvent('task-solved', point.id, { kind: point.task.kind });
 }
 
 function checkTaskAnswer(point, selectedIndex) {
@@ -1033,6 +1450,180 @@ function renderMatchTask(point) {
   taskOptionsNode.appendChild(wrap);
 }
 
+function cityPoiMarkerStyle(poi, isVisited) {
+  if (isVisited) {
+    return {
+      radius: 9,
+      color: '#ffffff',
+      weight: 2,
+      fillColor: poi.color || '#4f85bd',
+      fillOpacity: 0.95
+    };
+  }
+
+  return {
+    radius: 8,
+    color: poi.color || '#4f85bd',
+    weight: 2,
+    fillColor: '#ffffff',
+    fillOpacity: 0.86
+  };
+}
+
+function refreshCityPoiMarkers(point) {
+  const config = point.task.cityMap || {};
+  const pois = config.pois || [];
+  const visitedSet = getCityVisitSet(point.id);
+
+  mapState.cityPoiMarkers.forEach((marker, poiId) => {
+    const poi = pois.find((item) => item.id === poiId);
+    if (!poi) {
+      return;
+    }
+    marker.setStyle(cityPoiMarkerStyle(poi, visitedSet.has(poiId)));
+  });
+}
+
+function activateCityOverlay(point) {
+  const config = point.task.cityMap || {};
+  if (!mapState.map) {
+    return;
+  }
+
+  destroyCityTaskMap();
+  cardMap.classList.add('city-focus');
+
+  const layer = window.L.layerGroup().addTo(mapState.map);
+  mapState.cityOverlayLayer = layer;
+  mapState.cityOverlayPointId = point.id;
+  refreshMarkers();
+
+  const visitedSet = getCityVisitSet(point.id);
+  const pois = config.pois || [];
+
+  pois.forEach((poi) => {
+    const marker = window.L.circleMarker([poi.lat, poi.lng], cityPoiMarkerStyle(poi, visitedSet.has(poi.id)));
+    marker.addTo(layer);
+    marker.bindTooltip(poi.title, {
+      className: 'leaflet-label',
+      direction: 'top',
+      offset: [0, -8]
+    });
+
+    marker.on('click', () => {
+      const wasVisited = visitedSet.has(poi.id);
+      if (!wasVisited) {
+        visitedSet.add(poi.id);
+      }
+
+      mapState.cityHints.set(point.id, poi.hint || `Отмечена точка: ${poi.title}.`);
+      refreshCityPoiMarkers(point);
+      renderTask(point);
+
+      if (!wasVisited) {
+        void postTeamEvent('city-poi', point.id, { poiId: poi.id });
+        triggerHaptic('light');
+      }
+    });
+
+    mapState.cityPoiMarkers.set(poi.id, marker);
+  });
+
+  const center = config.center || [point.lat, point.lng];
+  const zoom = Number(config.zoom) || 14;
+  mapState.map.setMinZoom(Number(config.minZoom) || 12);
+  mapState.map.setMaxZoom(Number(config.maxZoom) || 19);
+  mapState.map.flyTo(center, zoom, {
+    animate: true,
+    duration: 0.8
+  });
+}
+
+function updateCityMapTaskStatus(point, progressNode, statusNode, listNode) {
+  const config = point.task.cityMap || {};
+  const pois = config.pois || [];
+  const visitedSet = getCityVisitSet(point.id);
+  const progressLabel = config.progressLabel || 'Отмечено точек';
+  const completeText = config.completeText || 'Все точки города отмечены.';
+
+  progressNode.textContent = `${progressLabel}: ${visitedSet.size}/${pois.length}`;
+
+  listNode.querySelectorAll('[data-poi-id]').forEach((itemNode) => {
+    const poiId = itemNode.dataset.poiId;
+    const isVisited = visitedSet.has(poiId);
+    itemNode.classList.toggle('is-visited', isVisited);
+  });
+
+  if (pois.length > 0 && visitedSet.size >= pois.length) {
+    statusNode.textContent = completeText;
+    statusNode.classList.add('is-complete');
+    setTaskResult(completeText, 'info');
+    return;
+  }
+
+  statusNode.classList.remove('is-complete');
+  statusNode.textContent = mapState.cityHints.get(point.id) || 'Нажмите на метку на карте или кнопку в списке.';
+}
+
+function renderCityMapTask(point) {
+  const config = point.task.cityMap || {};
+  const pois = config.pois || [];
+
+  if (mapState.cityOverlayPointId !== point.id) {
+    activateCityOverlay(point);
+  }
+
+  const wrap = document.createElement('div');
+  wrap.className = 'city-task-wrap';
+
+  const note = document.createElement('p');
+  note.className = 'task-mini-note';
+  note.textContent = config.note || 'Карта города открыта сверху: перемещайтесь и отмечайте точки.';
+  wrap.appendChild(note);
+
+  const progressNode = document.createElement('p');
+  progressNode.className = 'city-task-progress';
+  wrap.appendChild(progressNode);
+
+  const statusNode = document.createElement('p');
+  statusNode.className = 'city-task-status';
+  wrap.appendChild(statusNode);
+
+  const poiList = document.createElement('div');
+  poiList.className = 'city-poi-list';
+
+  pois.forEach((poi) => {
+    const poiBtn = document.createElement('button');
+    poiBtn.type = 'button';
+    poiBtn.className = 'city-poi-chip';
+    poiBtn.dataset.poiId = poi.id;
+    poiBtn.textContent = poi.title;
+    poiBtn.addEventListener('click', () => {
+      if (!mapState.map || mapState.cityOverlayPointId !== point.id) {
+        return;
+      }
+
+      const marker = mapState.cityPoiMarkers.get(poi.id);
+      if (!marker) {
+        return;
+      }
+
+      mapState.map.flyTo([poi.lat, poi.lng], Math.max(mapState.map.getZoom(), 15), {
+        animate: true,
+        duration: 0.45
+      });
+      marker.fire('click');
+      triggerHaptic('light');
+    });
+    poiList.appendChild(poiBtn);
+  });
+
+  wrap.appendChild(poiList);
+  taskOptionsNode.appendChild(wrap);
+
+  updateCityMapTaskStatus(point, progressNode, statusNode, poiList);
+}
+
 function renderTask(point) {
   taskKickerNode.textContent = point.task.kicker;
   taskTitleNode.textContent = point.task.title || `${point.title}: загадка`;
@@ -1044,6 +1635,9 @@ function renderTask(point) {
 
   if (point.task.kind === 'empty') {
     setTaskResult(point.task.info || 'В этой точке нет активной загадки.', 'info');
+    if (point.task.cityMap) {
+      renderCityMapTask(point);
+    }
     setTaskAnswer('');
     return;
   }
@@ -1107,18 +1701,29 @@ function focusPoint(point) {
     return;
   }
 
+  if (!state.teamReady) {
+    openTeamGate('Сначала выберите команду, затем начинайте маршрут.');
+    return;
+  }
+
+  destroyCityTaskMap();
   state.selectedPointId = point.id;
   mapState.visited.add(point.id);
 
-  mapState.map.flyTo([point.lat, point.lng], point.zoom, {
-    animate: true,
-    duration: 1.05,
-    easeLinearity: 0.2
-  });
+  const hasCityMap = Boolean(point.task.cityMap);
+  if (hasCityMap) {
+    activateCityOverlay(point);
+  } else {
+    mapState.map.flyTo([point.lat, point.lng], point.zoom, {
+      animate: true,
+      duration: 1.05,
+      easeLinearity: 0.2
+    });
 
-  mapState.map.once('moveend', () => {
-    mapState.map.setView([point.lat, point.lng], point.zoom, { animate: false });
-  });
+    mapState.map.once('moveend', () => {
+      mapState.map.setView([point.lat, point.lng], point.zoom, { animate: false });
+    });
+  }
 
   const marker = mapState.markers.get(point.id);
   if (marker) {
@@ -1129,9 +1734,11 @@ function focusPoint(point) {
   refreshMarkers();
   renderTask(point);
   setCityMode(true);
+  void postTeamEvent('travel', point.id, { source: hasCityMap ? 'city-entry' : 'point' });
 }
 
 function closeCityMode() {
+  destroyCityTaskMap();
   state.selectedPointId = null;
   refreshMarkers();
   setCityMode(false);
@@ -1143,6 +1750,7 @@ function resetMapView() {
     return;
   }
 
+  destroyCityTaskMap();
   state.selectedPointId = null;
   refreshMarkers();
 
@@ -1163,6 +1771,54 @@ function resetMapView() {
   closeCityMode();
 }
 
+function addBaseTileLayerWithFallback(map) {
+  const providers = [
+    {
+      url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+      options: { subdomains: 'abc', maxZoom: 19 }
+    },
+    {
+      url: 'https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png',
+      options: { subdomains: 'abc', maxZoom: 19 }
+    },
+    {
+      url: 'https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png',
+      options: { subdomains: 'abcd', maxZoom: 19 }
+    }
+  ];
+
+  let providerIndex = -1;
+  let activeLayer = null;
+  let errorCount = 0;
+
+  const switchProvider = () => {
+    providerIndex += 1;
+
+    if (activeLayer) {
+      activeLayer.off('tileerror');
+      map.removeLayer(activeLayer);
+      activeLayer = null;
+    }
+
+    if (providerIndex >= providers.length) {
+      setTaskResult('Подложка карты не загрузилась. Работаем по точкам без фона.', 'info');
+      return;
+    }
+
+    const current = providers[providerIndex];
+    errorCount = 0;
+    activeLayer = window.L.tileLayer(current.url, current.options).addTo(map);
+    activeLayer.on('tileerror', () => {
+      errorCount += 1;
+      if (errorCount >= 10) {
+        switchProvider();
+      }
+    });
+  };
+
+  switchProvider();
+}
+
 function initMap() {
   if (!window.L) {
     setTaskPlaceholder();
@@ -1174,16 +1830,13 @@ function initMap() {
     zoomControl: false,
     attributionControl: false,
     minZoom: 2,
-    maxZoom: 12,
+    maxZoom: 19,
     worldCopyJump: false
   });
 
   window.L.control.zoom({ position: 'topright' }).addTo(mapState.map);
 
-  window.L.tileLayer('https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png', {
-    subdomains: 'abcd',
-    maxZoom: 19
-  }).addTo(mapState.map);
+  addBaseTileLayerWithFallback(mapState.map);
 
   mapState.map.setView([42.5, 12.5], 5);
 
@@ -1216,6 +1869,49 @@ function bindEvents() {
     triggerHaptic('light');
   });
 
+  changeTeamBtn.addEventListener('click', () => {
+    if (state.teamName) {
+      teamSelectNode.value = state.teamName;
+    }
+    openTeamGate('Смена команды сбросит только текущую сессию на этом телефоне.');
+    triggerHaptic('light');
+  });
+
+  teamConfirmBtn.addEventListener('click', async () => {
+    const selectedTeam = String(teamSelectNode.value || '').trim();
+    if (!selectedTeam) {
+      setTeamGateStatus('Выберите команду из списка.');
+      triggerHaptic('error');
+      return;
+    }
+
+    teamConfirmBtn.disabled = true;
+    setTeamGateStatus('Подключаем команду...');
+    try {
+      await registerTeam(selectedTeam);
+      startTeamPolling();
+      void syncTeamStatus();
+      setTeamGateStatus('Команда подключена.');
+      triggerHaptic('success');
+    } catch (error) {
+      state.teamReady = false;
+      setTeamStripText();
+      const reason = String(error?.message || '');
+      if (reason === 'unknown_team') {
+        setTeamGateStatus('Команда не найдена в базе. Проверьте список.');
+      } else if (reason === 'team_required' || reason === 'missing_fields') {
+        setTeamGateStatus('Некорректные данные регистрации. Повторите вход.');
+      } else if (reason.includes('Failed to fetch')) {
+        setTeamGateStatus('Сервер недоступен: проверьте backend URL (?api=...) и интернет.');
+      } else {
+        setTeamGateStatus(`Не удалось подключить команду: ${reason || 'unknown_error'}.`);
+      }
+      triggerHaptic('error');
+    } finally {
+      teamConfirmBtn.disabled = false;
+    }
+  });
+
   closeTaskBtn.addEventListener('click', () => {
     closeCityMode();
     triggerHaptic('light');
@@ -1228,11 +1924,12 @@ function bindEvents() {
   });
 }
 
-function init() {
+async function init() {
   initMap();
   bindEvents();
   updateBadge();
   setTaskPlaceholder();
+  await initTeamState();
 }
 
-init();
+void init();

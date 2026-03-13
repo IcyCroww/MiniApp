@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "description": "Mobile-first Telegram Mini App sandbox with map and mini games",
   "main": "server.js",
+  "engines": {
+    "node": "20.x"
+  },
   "scripts": {
     "start": "node server.js",
     "dev": "node server.js",

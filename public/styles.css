@@ -76,6 +76,13 @@ body {
   color: rgba(255, 255, 255, 0.82);
 }
 
+.team-strip {
+  margin: 8px 0 0;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.9);
+  font-weight: 700;
+}
+
 .view-stack {
   flex: 1;
   position: relative;
@@ -145,11 +152,14 @@ body {
 
 .card-map.has-task .leaflet-map {
   height: clamp(170px, 28vh, 220px);
-  pointer-events: none;
 }
 
 .card-map.has-task .map-scene {
   border-color: #6f857f;
+}
+
+.card-map.has-task.city-focus .leaflet-map {
+  height: clamp(245px, 40vh, 320px);
 }
 
 .leaflet-map .leaflet-control-zoom {
@@ -226,6 +236,51 @@ body {
 .btn.ghost {
   color: #2f4a3e;
   background: #e8f0e4;
+}
+
+.btn.primary {
+  color: #f8fff8;
+  background: #1b6a52;
+}
+
+.team-gate {
+  margin: 0 0 10px;
+  border: 1px solid #cad8cb;
+  border-radius: 14px;
+  background: #f5faf5;
+  padding: 10px;
+}
+
+.team-gate-title {
+  margin: 0 0 4px;
+  font-size: 14px;
+  font-weight: 800;
+  color: #2d4b40;
+}
+
+.team-gate-note {
+  margin: 0 0 8px;
+  font-size: 12px;
+  color: #496558;
+}
+
+.team-select {
+  width: 100%;
+  border: 1px solid #b8cdbd;
+  border-radius: 10px;
+  background: #ffffff;
+  color: #213a31;
+  font-size: 14px;
+  font-weight: 700;
+  padding: 8px 10px;
+  margin: 0 0 8px;
+}
+
+.team-gate-status {
+  margin: 8px 0 0;
+  font-size: 12px;
+  color: #4a6258;
+  min-height: 16px;
 }
 
 .task-panel {
@@ -373,6 +428,58 @@ body {
 .slider-empty {
   border: 1px dashed #bed0c0;
   background: #edf4ee;
+}
+
+.city-task-wrap {
+  border: 1px solid #c9d9ce;
+  border-radius: 14px;
+  background: #f4faf6;
+  padding: 10px;
+}
+
+.city-task-progress {
+  margin: 0 0 7px;
+  font-size: 12px;
+  line-height: 1.35;
+  color: #3f5f51;
+  font-weight: 700;
+}
+
+.city-task-status {
+  margin: 0 0 8px;
+  font-size: 12px;
+  line-height: 1.4;
+  color: #4a6658;
+}
+
+.city-task-status.is-complete {
+  color: #2d6f53;
+  font-weight: 700;
+}
+
+.city-poi-list {
+  margin-top: 8px;
+  display: grid;
+  gap: 7px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.city-poi-chip {
+  border: 1px solid #c8d5d0;
+  border-radius: 999px;
+  background: #f8fbfa;
+  color: #39564a;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 7px 10px;
+  text-align: center;
+  cursor: pointer;
+}
+
+.city-poi-chip.is-visited {
+  border-color: #7095bd;
+  background: #eaf2fc;
+  color: #2f4f72;
 }
 
 .caesar-wrap {
@@ -705,6 +812,10 @@ body {
   .match-grid {
     grid-template-columns: 1fr 1fr;
     align-items: start;
+  }
+
+  .city-poi-list {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
 
