@@ -1085,12 +1085,22 @@ function attachSliderDrag(tileButton, point, tileId, boardNode) {
     if (emptyNode) {
       const tileRect = tileButton.getBoundingClientRect();
       const emptyRect = emptyNode.getBoundingClientRect();
-      const deltaX = (tileRect.left + tileRect.width / 2) - (emptyRect.left + emptyRect.width / 2);
-      const deltaY = (tileRect.top + tileRect.height / 2) - (emptyRect.top + emptyRect.height / 2);
-      const distance = Math.hypot(deltaX, deltaY);
-      const threshold = Math.max(emptyRect.width, emptyRect.height) * 0.72;
+      const tileCenterX = tileRect.left + tileRect.width / 2;
+      const tileCenterY = tileRect.top + tileRect.height / 2;
+      const centerInsideEmpty = (
+        tileCenterX >= emptyRect.left &&
+        tileCenterX <= emptyRect.right &&
+        tileCenterY >= emptyRect.top &&
+        tileCenterY <= emptyRect.bottom
+      );
+      const overlapWidth = Math.max(0, Math.min(tileRect.right, emptyRect.right) - Math.max(tileRect.left, emptyRect.left));
+      const overlapHeight = Math.max(0, Math.min(tileRect.bottom, emptyRect.bottom) - Math.max(tileRect.top, emptyRect.top));
+      const overlapEnough = (
+        overlapWidth >= emptyRect.width * 0.55 &&
+        overlapHeight >= emptyRect.height * 0.55
+      );
 
-      if (distance <= threshold) {
+      if (centerInsideEmpty && overlapEnough) {
         moved = moveSliderTile(point, tileId);
       }
     }
