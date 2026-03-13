@@ -97,6 +97,20 @@
       color: var(--muted);
       font-size: 12px;
     }
+    .clue-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    .clue-pill {
+      border: 1px solid #c7d4c8;
+      border-radius: 999px;
+      background: #f7faf5;
+      padding: 4px 8px;
+      font-size: 12px;
+      font-weight: 700;
+      color: #35554b;
+    }
   </style>
 </head>
 <body>
@@ -108,6 +122,7 @@
         <tr>
           <th>Команда</th>
           <th>Перемещения</th>
+          <th>Собрано</th>
           <th>Сейчас</th>
           <th>Маршрут</th>
           <th>Улики / действия</th>
@@ -149,7 +164,7 @@
 
       return `<div class="trigger-list">${triggers.map((item) => `
         <div class="trigger-item">
-          <div>${escapeHtml(item.text)}</div>
+          <div><strong>${escapeHtml(item.actionLabel || item.text)}</strong></div>
           <span class="trigger-time">${escapeHtml(item.at)}</span>
           <button
             type="button"
@@ -158,6 +173,16 @@
             data-trigger-id="${escapeHtml(item.id)}"
           >Улика выдана</button>
         </div>
+      `).join('')}</div>`;
+    }
+
+    function renderCollectedClues(clues) {
+      if (!Array.isArray(clues) || clues.length === 0) {
+        return '<span class="empty">Пока ничего не собрано</span>';
+      }
+
+      return `<div class="clue-list">${clues.map((number) => `
+        <span class="clue-pill">Улика №${escapeHtml(number)}</span>
       `).join('')}</div>`;
     }
 
@@ -174,6 +199,7 @@
             <div><strong>${team.moveCount}</strong></div>
             <div class="empty">Города: ${team.uniquePointCount} | Решено: ${team.solvedCount}</div>
           </td>
+          <td>${renderCollectedClues(team.collectedClueNumbers)}</td>
           <td class="${currentClass}">${currentLabel}</td>
           <td>${renderRoute(team.recentRoute)}</td>
           <td>${renderTriggers(team.teamName, team.pendingTriggers)}</td>

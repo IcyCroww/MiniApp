@@ -46,6 +46,22 @@ const PISA_POI_LABELS = {
   cityhall: 'Мэрия'
 };
 
+const POINT_CLUE_NUMBERS = {
+  vatican: 1,
+  rome: 2,
+  venice: 3,
+  milan: 4,
+  florence: 5,
+  naples: 6
+};
+
+const DELIVERY_CLUES = {
+  clue_after_naples: {
+    clueNumber: 7,
+    actionLabel: 'Выдать улику №7'
+  }
+};
+
 app.use(express.json({ limit: '1mb' }));
 
 app.use((req, res, next) => {
@@ -120,6 +136,16 @@ function readDb() {
     if (!Array.isArray(stats.solvedPointIds)) {
       stats.solvedPointIds = [];
     }
+    if (!Array.isArray(stats.collectedClueNumbers)) {
+      stats.collectedClueNumbers = [];
+    }
+    stats.solvedPointIds.forEach((pointId) => {
+      const clueNumber = POINT_CLUE_NUMBERS[pointId];
+      if (clueNumber) {
+        ensureUniquePush(stats.collectedClueNumbers, clueNumber);
+      }
+    });
+    stats.collectedClueNumbers.sort((a, b) => Number(a) - Number(b));
     if (!stats.poiVisitsByPoint || typeof stats.poiVisitsByPoint !== 'object') {
       stats.poiVisitsByPoint = {};
     }
@@ -155,6 +181,7 @@ function ensureTeamStats(db, teamName) {
       moveCount: 0,
       uniquePointIds: [],
       solvedPointIds: [],
+      collectedClueNumbers: [],
       poiVisitsByPoint: {},
       triggersFired: [],
       triggerLog: [],
@@ -223,6 +250,29 @@ function appendRouteLog(stats, eventType, pointId, meta = {}) {
   }
 }
 
+function collectClueForPoint(stats, pointId) {
+  const clueNumber = POINT_CLUE_NUMBERS[pointId];
+  if (!clueNumber) {
+    return;
+  }
+
+  if (!Array.isArray(stats.collectedClueNumbers)) {
+    stats.collectedClueNumbers = [];
+  }
+
+  ensureUniquePush(stats.collectedClueNumbers, clueNumber);
+  stats.collectedClueNumbers.sort((a, b) => Number(a) - Number(b));
+}
+
+function enrichTriggerItem(item) {
+  const delivery = DELIVERY_CLUES[item.id] || null;
+  return {
+    ...item,
+    clueNumber: item.clueNumber || delivery?.clueNumber || null,
+    actionLabel: item.actionLabel || delivery?.actionLabel || item.text
+  };
+}
+
 function fireTrigger(stats, triggerId, text, out, options = {}) {
   if (stats.triggersFired.includes(triggerId)) {
     return;
@@ -232,12 +282,14 @@ function fireTrigger(stats, triggerId, text, out, options = {}) {
     id: triggerId,
     text,
     at: nowIso(),
-    requiresDelivery: Boolean(options.requiresDelivery)
+    requiresDelivery: Boolean(options.requiresDelivery),
+    clueNumber: options.clueNumber || null,
+    actionLabel: options.actionLabel || null
   };
 
   stats.triggersFired.push(triggerId);
   stats.triggerLog.push(item);
-  out.push(item);
+  out.push(enrichTriggerItem(item));
 }
 
 function collectPoiCount(stats, pointId) {
@@ -247,7 +299,9 @@ function collectPoiCount(stats, pointId) {
 
 function getPendingTriggers(stats) {
   const delivered = new Set(stats.deliveredTriggerIds || []);
-  return (stats.triggerLog || []).filter((item) => item.requiresDelivery && !delivered.has(item.id));
+  return (stats.triggerLog || [])
+    .filter((item) => item.requiresDelivery && !delivered.has(item.id))
+    .map((item) => enrichTriggerItem(item));
 }
 
 function evaluateTriggers(stats) {
@@ -277,7 +331,11 @@ function evaluateTriggers(stats) {
       'clue_after_naples',
       'После Неаполя нужно принести этой команде улику.',
       fresh,
-      { requiresDelivery: true }
+      {
+        requiresDelivery: true,
+        clueNumber: DELIVERY_CLUES.clue_after_naples.clueNumber,
+        actionLabel: DELIVERY_CLUES.clue_after_naples.actionLabel
+      }
     );
   }
 
@@ -290,6 +348,7 @@ function publicStats(stats) {
     moveCount: Number(stats.moveCount) || 0,
     uniquePointCount: Array.isArray(stats.uniquePointIds) ? stats.uniquePointIds.length : 0,
     solvedCount: Array.isArray(stats.solvedPointIds) ? stats.solvedPointIds.length : 0,
+    collectedClueNumbers: Array.isArray(stats.collectedClueNumbers) ? stats.collectedClueNumbers.slice() : [],
     pisaPoiCount: collectPoiCount(stats, 'pisa'),
     currentPointId: stats.currentPointId || '',
     currentPointLabel: pointLabel(stats.currentPointId || ''),
@@ -399,6 +458,7 @@ app.post('/api/event', (req, res) => {
 
     if (eventType === 'task-solved' && pointId) {
       ensureUniquePush(stats.solvedPointIds, pointId);
+      collectClueForPoint(stats, pointId);
     }
 
     if (meta.poiId && pointId) {
