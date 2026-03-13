@@ -2,6 +2,7 @@
 const path = require('path');
 const crypto = require('crypto');
 const express = require('express');
+const { Pool } = require('pg');
 
 const app = express();
 
@@ -10,6 +11,16 @@ const HOST = process.env.HOST || '0.0.0.0';
 const DATA_DIR = path.join(__dirname, 'data');
 const DB_FILE = path.join(DATA_DIR, 'miniapp-db.json');
 const MAX_EVENTS = 10000;
+const DATABASE_URL = String(process.env.DATABASE_URL || '').trim();
+const DATABASE_SSL = ['1', 'true', 'yes'].includes(String(process.env.DATABASE_SSL || '').trim().toLowerCase());
+const USE_POSTGRES = Boolean(DATABASE_URL);
+const pool = USE_POSTGRES
+  ? new Pool({
+      connectionString: DATABASE_URL,
+      ssl: DATABASE_SSL ? { rejectUnauthorized: false } : false
+    })
+  : null;
+let storageInitPromise = null;
 
 const TEAM_NAMES = [
   'Новый Вавилон',
@@ -38,7 +49,8 @@ const POINT_LABELS = {
   bologna: 'Болонья',
   verona: 'Верона',
   pisa: 'Пиза',
-  palermo: 'Палермо'
+  palermo: 'Палермо',
+  genoa_media: 'Генуя'
 };
 
 const PISA_POI_LABELS = {
@@ -135,10 +147,10 @@ function ensureDbExists() {
   }
 }
 
-function readDb() {
-  ensureDbExists();
-  const raw = fs.readFileSync(DB_FILE, 'utf8');
-  const parsed = JSON.parse(raw);
+function normalizeDb(rawDb) {
+  const parsed = rawDb && typeof rawDb === 'object'
+    ? rawDb
+    : createDefaultDb();
 
   if (!parsed.sessions || typeof parsed.sessions !== 'object') {
     parsed.sessions = {};
@@ -223,9 +235,120 @@ function readDb() {
   return parsed;
 }
 
-function writeDb(db) {
+function readFileDb() {
+  ensureDbExists();
+  const raw = fs.readFileSync(DB_FILE, 'utf8');
+  return normalizeDb(JSON.parse(raw));
+}
+
+function writeFileDb(db) {
   db.updatedAt = nowIso();
   fs.writeFileSync(DB_FILE, JSON.stringify(db, null, 2), 'utf8');
+}
+
+async function initStorage() {
+  if (storageInitPromise) {
+    return storageInitPromise;
+  }
+
+  storageInitPromise = (async () => {
+    if (!USE_POSTGRES) {
+      ensureDbExists();
+      return;
+    }
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS app_state (
+        id INTEGER PRIMARY KEY,
+        data JSONB NOT NULL,
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      )
+    `);
+
+    const existing = await pool.query('SELECT data FROM app_state WHERE id = 1');
+    if (existing.rowCount === 0) {
+      let seed = createDefaultDb();
+
+      if (fs.existsSync(DB_FILE)) {
+        try {
+          seed = normalizeDb(JSON.parse(fs.readFileSync(DB_FILE, 'utf8')));
+        } catch (_) {
+          seed = createDefaultDb();
+        }
+      }
+
+      await pool.query(
+        'INSERT INTO app_state (id, data, updated_at) VALUES (1, $1::jsonb, NOW())',
+        [seed]
+      );
+      return;
+    }
+
+    const normalized = normalizeDb(existing.rows[0].data);
+    await pool.query(
+      'UPDATE app_state SET data = $1::jsonb, updated_at = NOW() WHERE id = 1',
+      [normalized]
+    );
+  })();
+
+  return storageInitPromise;
+}
+
+async function readDb() {
+  await initStorage();
+
+  if (!USE_POSTGRES) {
+    return readFileDb();
+  }
+
+  const result = await pool.query('SELECT data FROM app_state WHERE id = 1');
+  return normalizeDb(result.rows[0]?.data);
+}
+
+async function writeDb(db) {
+  db.updatedAt = nowIso();
+  await initStorage();
+
+  if (!USE_POSTGRES) {
+    writeFileDb(db);
+    return;
+  }
+
+  await pool.query(
+    'UPDATE app_state SET data = $1::jsonb, updated_at = NOW() WHERE id = 1',
+    [db]
+  );
+}
+
+async function mutateDb(mutator) {
+  await initStorage();
+
+  if (!USE_POSTGRES) {
+    const db = readFileDb();
+    const result = await mutator(db);
+    writeFileDb(db);
+    return result;
+  }
+
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const locked = await client.query('SELECT data FROM app_state WHERE id = 1 FOR UPDATE');
+    const db = normalizeDb(locked.rows[0]?.data);
+    const result = await mutator(db);
+    db.updatedAt = nowIso();
+    await client.query(
+      'UPDATE app_state SET data = $1::jsonb, updated_at = NOW() WHERE id = 1',
+      [db]
+    );
+    await client.query('COMMIT');
+    return result;
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
+  }
 }
 
 function ensureTeamStats(db, teamName) {
@@ -513,192 +636,206 @@ app.get('/api/config', (_, res) => {
   });
 });
 
-app.post('/api/register', (req, res) => {
+app.post('/api/register', async (req, res) => {
   try {
-    const db = readDb();
-    const teamName = normalizeTeamName(req.body?.teamName);
+    const result = await mutateDb(async (db) => {
+      const teamName = normalizeTeamName(req.body?.teamName);
 
-    if (!teamName) {
-      res.status(400).json({ ok: false, error: 'unknown_team' });
+      if (!teamName) {
+        return { error: 'unknown_team', status: 400 };
+      }
+
+      const sessionId = String(req.body?.sessionId || crypto.randomUUID());
+      const telegramUserId = req.body?.telegramUserId ? String(req.body.telegramUserId) : null;
+      const deviceId = req.body?.deviceId ? String(req.body.deviceId) : null;
+
+      db.sessions[sessionId] = {
+        sessionId,
+        teamName,
+        telegramUserId,
+        deviceId,
+        updatedAt: nowIso(),
+        createdAt: db.sessions[sessionId]?.createdAt || nowIso()
+      };
+
+      const stats = ensureTeamStats(db, teamName);
+      stats.updatedAt = nowIso();
+
+      return {
+        ok: true,
+        sessionId,
+        teamName,
+        stats: publicStats(stats),
+        triggers: (stats.triggerLog || []).slice(-5)
+      };
+    });
+
+    if (result?.error) {
+      res.status(result.status || 400).json({ ok: false, error: result.error });
       return;
     }
 
-    const sessionId = String(req.body?.sessionId || crypto.randomUUID());
-    const telegramUserId = req.body?.telegramUserId ? String(req.body.telegramUserId) : null;
-    const deviceId = req.body?.deviceId ? String(req.body.deviceId) : null;
-
-    db.sessions[sessionId] = {
-      sessionId,
-      teamName,
-      telegramUserId,
-      deviceId,
-      updatedAt: nowIso(),
-      createdAt: db.sessions[sessionId]?.createdAt || nowIso()
-    };
-
-    const stats = ensureTeamStats(db, teamName);
-    stats.updatedAt = nowIso();
-
-    writeDb(db);
-
-    res.json({
-      ok: true,
-      sessionId,
-      teamName,
-      stats: publicStats(stats),
-      triggers: (stats.triggerLog || []).slice(-5)
-    });
+    res.json(result);
   } catch (error) {
     res.status(500).json({ ok: false, error: 'register_failed', detail: String(error?.message || error) });
   }
 });
 
-app.post('/api/event', (req, res) => {
+app.post('/api/event', async (req, res) => {
   try {
-    const db = readDb();
-    const body = req.body || {};
-    const sessionId = String(body.sessionId || '').trim();
-    const eventType = String(body.type || '').trim();
-    const pointId = String(body.pointId || '').trim();
-    const meta = body.meta && typeof body.meta === 'object' ? body.meta : {};
+    const result = await mutateDb(async (db) => {
+      const body = req.body || {};
+      const sessionId = String(body.sessionId || '').trim();
+      const eventType = String(body.type || '').trim();
+      const pointId = String(body.pointId || '').trim();
+      const meta = body.meta && typeof body.meta === 'object' ? body.meta : {};
 
-    if (!sessionId || !eventType) {
-      res.status(400).json({ ok: false, error: 'missing_fields' });
-      return;
-    }
-
-    const existingSession = db.sessions[sessionId] || null;
-    const teamName = normalizeTeamName(body.teamName || existingSession?.teamName);
-    if (!teamName) {
-      res.status(400).json({ ok: false, error: 'team_required' });
-      return;
-    }
-
-    db.sessions[sessionId] = {
-      sessionId,
-      teamName,
-      telegramUserId: existingSession?.telegramUserId || (body.telegramUserId ? String(body.telegramUserId) : null),
-      deviceId: existingSession?.deviceId || (body.deviceId ? String(body.deviceId) : null),
-      updatedAt: nowIso(),
-      createdAt: existingSession?.createdAt || nowIso()
-    };
-
-    const stats = ensureTeamStats(db, teamName);
-    stats.updatedAt = nowIso();
-
-    if (eventType === 'travel' || eventType === 'city-poi') {
-      stats.moveCount += 1;
-    }
-
-    if (pointId) {
-      ensureUniquePush(stats.uniquePointIds, pointId);
-    }
-
-    if (eventType === 'task-solved' && pointId) {
-      ensureUniquePush(stats.solvedPointIds, pointId);
-      collectClueForPoint(stats, pointId);
-    }
-
-    if (meta.poiId && pointId) {
-      if (!Array.isArray(stats.poiVisitsByPoint[pointId])) {
-        stats.poiVisitsByPoint[pointId] = [];
+      if (!sessionId || !eventType) {
+        return { error: 'missing_fields', status: 400 };
       }
-      ensureUniquePush(stats.poiVisitsByPoint[pointId], String(meta.poiId));
-    }
 
-    if (pointId && (eventType === 'travel' || eventType === 'task-solved' || eventType === 'city-poi')) {
-      appendRouteLog(stats, eventType, pointId, meta);
-    }
+      const existingSession = db.sessions[sessionId] || null;
+      const teamName = normalizeTeamName(body.teamName || existingSession?.teamName);
+      if (!teamName) {
+        return { error: 'team_required', status: 400 };
+      }
 
-    const event = {
-      id: crypto.randomUUID(),
-      sessionId,
-      teamName,
-      type: eventType,
-      pointId,
-      meta,
-      at: nowIso()
-    };
+      db.sessions[sessionId] = {
+        sessionId,
+        teamName,
+        telegramUserId: existingSession?.telegramUserId || (body.telegramUserId ? String(body.telegramUserId) : null),
+        deviceId: existingSession?.deviceId || (body.deviceId ? String(body.deviceId) : null),
+        updatedAt: nowIso(),
+        createdAt: existingSession?.createdAt || nowIso()
+      };
 
-    pushEvent(db, event);
-    const freshTriggers = evaluateTriggers(stats);
-    writeDb(db);
+      const stats = ensureTeamStats(db, teamName);
+      stats.updatedAt = nowIso();
 
-    res.json({
-      ok: true,
-      event,
-      stats: publicStats(stats),
-      triggers: freshTriggers
+      if (eventType === 'travel' || eventType === 'city-poi') {
+        stats.moveCount += 1;
+      }
+
+      if (pointId) {
+        ensureUniquePush(stats.uniquePointIds, pointId);
+      }
+
+      if (eventType === 'task-solved' && pointId) {
+        ensureUniquePush(stats.solvedPointIds, pointId);
+        collectClueForPoint(stats, pointId);
+      }
+
+      if (meta.poiId && pointId) {
+        if (!Array.isArray(stats.poiVisitsByPoint[pointId])) {
+          stats.poiVisitsByPoint[pointId] = [];
+        }
+        ensureUniquePush(stats.poiVisitsByPoint[pointId], String(meta.poiId));
+      }
+
+      if (pointId && (eventType === 'travel' || eventType === 'task-solved' || eventType === 'city-poi')) {
+        appendRouteLog(stats, eventType, pointId, meta);
+      }
+
+      const event = {
+        id: crypto.randomUUID(),
+        sessionId,
+        teamName,
+        type: eventType,
+        pointId,
+        meta,
+        at: nowIso()
+      };
+
+      pushEvent(db, event);
+      const freshTriggers = evaluateTriggers(stats);
+
+      return {
+        ok: true,
+        event,
+        stats: publicStats(stats),
+        triggers: freshTriggers
+      };
     });
+
+    if (result?.error) {
+      res.status(result.status || 400).json({ ok: false, error: result.error });
+      return;
+    }
+
+    res.json(result);
   } catch (error) {
     res.status(500).json({ ok: false, error: 'event_failed', detail: String(error?.message || error) });
   }
 });
 
-app.post('/api/final-answer', (req, res) => {
+app.post('/api/final-answer', async (req, res) => {
   try {
-    const db = readDb();
-    const body = req.body || {};
-    const sessionId = String(body.sessionId || '').trim();
-    const answer = String(body.answer || '').trim().slice(0, 400);
+    const result = await mutateDb(async (db) => {
+      const body = req.body || {};
+      const sessionId = String(body.sessionId || '').trim();
+      const answer = String(body.answer || '').trim().slice(0, 400);
 
-    if (!sessionId || !answer) {
-      res.status(400).json({ ok: false, error: 'final_answer_required' });
+      if (!sessionId || !answer) {
+        return { error: 'final_answer_required', status: 400 };
+      }
+
+      const existingSession = db.sessions[sessionId] || null;
+      const teamName = normalizeTeamName(body.teamName || existingSession?.teamName);
+      if (!teamName) {
+        return { error: 'team_required', status: 400 };
+      }
+
+      db.sessions[sessionId] = {
+        sessionId,
+        teamName,
+        telegramUserId: existingSession?.telegramUserId || (body.telegramUserId ? String(body.telegramUserId) : null),
+        deviceId: existingSession?.deviceId || (body.deviceId ? String(body.deviceId) : null),
+        updatedAt: nowIso(),
+        createdAt: existingSession?.createdAt || nowIso()
+      };
+
+      const stats = ensureTeamStats(db, teamName);
+      stats.finalAnswerText = answer;
+      stats.finalAnswerAt = nowIso();
+      stats.finalAnswerMoveCount = Number(stats.moveCount) || 0;
+      stats.updatedAt = nowIso();
+
+      pushEvent(db, {
+        id: crypto.randomUUID(),
+        sessionId,
+        teamName,
+        type: 'final-answer',
+        pointId: '',
+        meta: { answer },
+        at: stats.finalAnswerAt
+      });
+
+      return {
+        ok: true,
+        teamName,
+        finalAnswer: {
+          text: stats.finalAnswerText,
+          at: stats.finalAnswerAt,
+          moveCount: stats.finalAnswerMoveCount
+        },
+        stats: publicStats(stats)
+      };
+    });
+
+    if (result?.error) {
+      res.status(result.status || 400).json({ ok: false, error: result.error });
       return;
     }
 
-    const existingSession = db.sessions[sessionId] || null;
-    const teamName = normalizeTeamName(body.teamName || existingSession?.teamName);
-    if (!teamName) {
-      res.status(400).json({ ok: false, error: 'team_required' });
-      return;
-    }
-
-    db.sessions[sessionId] = {
-      sessionId,
-      teamName,
-      telegramUserId: existingSession?.telegramUserId || (body.telegramUserId ? String(body.telegramUserId) : null),
-      deviceId: existingSession?.deviceId || (body.deviceId ? String(body.deviceId) : null),
-      updatedAt: nowIso(),
-      createdAt: existingSession?.createdAt || nowIso()
-    };
-
-    const stats = ensureTeamStats(db, teamName);
-    stats.finalAnswerText = answer;
-    stats.finalAnswerAt = nowIso();
-    stats.finalAnswerMoveCount = Number(stats.moveCount) || 0;
-    stats.updatedAt = nowIso();
-
-    pushEvent(db, {
-      id: crypto.randomUUID(),
-      sessionId,
-      teamName,
-      type: 'final-answer',
-      pointId: '',
-      meta: { answer },
-      at: stats.finalAnswerAt
-    });
-
-    writeDb(db);
-
-    res.json({
-      ok: true,
-      teamName,
-      finalAnswer: {
-        text: stats.finalAnswerText,
-        at: stats.finalAnswerAt,
-        moveCount: stats.finalAnswerMoveCount
-      },
-      stats: publicStats(stats)
-    });
+    res.json(result);
   } catch (error) {
     res.status(500).json({ ok: false, error: 'final_answer_failed', detail: String(error?.message || error) });
   }
 });
 
-app.get('/api/team/:teamName/status', (req, res) => {
+app.get('/api/team/:teamName/status', async (req, res) => {
   try {
-    const db = readDb();
+    const db = await readDb();
     const teamName = normalizeTeamName(req.params.teamName);
     if (!teamName) {
       res.status(404).json({ ok: false, error: 'team_not_found' });
@@ -717,14 +854,14 @@ app.get('/api/team/:teamName/status', (req, res) => {
   }
 });
 
-app.get('/api/admin/summary', (_, res) => {
+app.get('/api/admin/summary', async (_, res) => {
   try {
-    const db = readDb();
+    const db = await readDb();
     const { rows, dirty } = buildAdminRows(db);
     const finalAnswers = buildFinalAnswers(rows);
 
     if (dirty) {
-      writeDb(db);
+      await writeDb(db);
     }
 
     res.json({
@@ -739,13 +876,13 @@ app.get('/api/admin/summary', (_, res) => {
   }
 });
 
-app.get('/api/admin/export/teams.csv', (_, res) => {
+app.get('/api/admin/export/teams.csv', async (_, res) => {
   try {
-    const db = readDb();
+    const db = await readDb();
     const { rows, dirty } = buildAdminRows(db);
 
     if (dirty) {
-      writeDb(db);
+      await writeDb(db);
     }
 
     const csv = makeCsv(
@@ -785,9 +922,9 @@ app.get('/api/admin/export/teams.csv', (_, res) => {
   }
 });
 
-app.get('/api/admin/export/events.csv', (_, res) => {
+app.get('/api/admin/export/events.csv', async (_, res) => {
   try {
-    const db = readDb();
+    const db = await readDb();
     const csv = makeCsv(
       ['Время', 'Команда', 'Тип', 'Точка', 'Данные'],
       (db.events || []).map((event) => [
@@ -807,45 +944,49 @@ app.get('/api/admin/export/events.csv', (_, res) => {
   }
 });
 
-app.post('/api/admin/team/:teamName/ack-trigger', (req, res) => {
+app.post('/api/admin/team/:teamName/ack-trigger', async (req, res) => {
   try {
-    const db = readDb();
-    const teamName = normalizeTeamName(req.params.teamName);
-    const triggerId = String(req.body?.triggerId || '').trim();
+    const result = await mutateDb(async (db) => {
+      const teamName = normalizeTeamName(req.params.teamName);
+      const triggerId = String(req.body?.triggerId || '').trim();
 
-    if (!teamName) {
-      res.status(404).json({ ok: false, error: 'team_not_found' });
-      return;
-    }
+      if (!teamName) {
+        return { error: 'team_not_found', status: 404 };
+      }
 
-    if (!triggerId) {
-      res.status(400).json({ ok: false, error: 'trigger_required' });
-      return;
-    }
+      if (!triggerId) {
+        return { error: 'trigger_required', status: 400 };
+      }
 
-    const stats = ensureTeamStats(db, teamName);
-    const exists = (stats.triggerLog || []).some((item) => item.id === triggerId && item.requiresDelivery);
-    if (!exists) {
-      res.status(404).json({ ok: false, error: 'trigger_not_found' });
-      return;
-    }
+      const stats = ensureTeamStats(db, teamName);
+      const exists = (stats.triggerLog || []).some((item) => item.id === triggerId && item.requiresDelivery);
+      if (!exists) {
+        return { error: 'trigger_not_found', status: 404 };
+      }
 
-    ensureUniquePush(stats.deliveredTriggerIds, triggerId);
-    const triggerItem = (stats.triggerLog || []).find((item) => item.id === triggerId) || null;
-    if (triggerItem) {
-      triggerItem.deliveredAt = nowIso();
-    }
-    collectIssuedClue(stats, triggerItem?.clueNumber || DELIVERY_CLUES[triggerId]?.clueNumber || null);
-    stats.updatedAt = nowIso();
-    writeDb(db);
+      ensureUniquePush(stats.deliveredTriggerIds, triggerId);
+      const triggerItem = (stats.triggerLog || []).find((item) => item.id === triggerId) || null;
+      if (triggerItem) {
+        triggerItem.deliveredAt = nowIso();
+      }
+      collectIssuedClue(stats, triggerItem?.clueNumber || DELIVERY_CLUES[triggerId]?.clueNumber || null);
+      stats.updatedAt = nowIso();
 
-    res.json({
-      ok: true,
-      teamName,
-      pendingTriggers: getPendingTriggers(stats),
-      issuedTriggers: getIssuedTriggers(stats),
-      stats: publicStats(stats)
+      return {
+        ok: true,
+        teamName,
+        pendingTriggers: getPendingTriggers(stats),
+        issuedTriggers: getIssuedTriggers(stats),
+        stats: publicStats(stats)
+      };
     });
+
+    if (result?.error) {
+      res.status(result.status || 400).json({ ok: false, error: result.error });
+      return;
+    }
+
+    res.json(result);
   } catch (error) {
     res.status(500).json({ ok: false, error: 'ack_failed', detail: String(error?.message || error) });
   }
@@ -863,7 +1004,11 @@ app.get('*', (_, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-app.listen(PORT, HOST, () => {
-  ensureDbExists();
-  console.log(`[miniapp] http://${HOST}:${PORT}`);
+app.listen(PORT, HOST, async () => {
+  try {
+    await initStorage();
+    console.log(`[miniapp] http://${HOST}:${PORT} (${USE_POSTGRES ? 'postgres' : 'json'})`);
+  } catch (error) {
+    console.error('[miniapp] storage init failed', error);
+  }
 });

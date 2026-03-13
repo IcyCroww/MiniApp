@@ -1,3 +1,7 @@
+databases:
+  - name: miniapp-quest-db
+    plan: free
+
 services:
   - type: web
     name: miniapp-quest
@@ -6,3 +10,8 @@ services:
     buildCommand: npm install
     startCommand: npm start
     healthCheckPath: /health
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: miniapp-quest-db
+          property: connectionString
