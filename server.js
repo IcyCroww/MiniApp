@@ -56,6 +56,30 @@ const POINT_CLUE_NUMBERS = {
 };
 
 const DELIVERY_CLUES = {
+  clue_vatican: {
+    clueNumber: 1,
+    actionLabel: 'Выдать улику №1'
+  },
+  clue_rome: {
+    clueNumber: 2,
+    actionLabel: 'Выдать улику №2'
+  },
+  clue_venice: {
+    clueNumber: 3,
+    actionLabel: 'Выдать улику №3'
+  },
+  clue_milan: {
+    clueNumber: 4,
+    actionLabel: 'Выдать улику №4'
+  },
+  clue_florence: {
+    clueNumber: 5,
+    actionLabel: 'Выдать улику №5'
+  },
+  clue_naples: {
+    clueNumber: 6,
+    actionLabel: 'Выдать улику №6'
+  },
   clue_after_naples: {
     clueNumber: 7,
     actionLabel: 'Выдать улику №7'
@@ -333,6 +357,19 @@ function getPendingTriggers(stats) {
     .map((item) => enrichTriggerItem(item));
 }
 
+function getIssuedTriggers(stats) {
+  const delivered = new Set(stats.deliveredTriggerIds || []);
+  return (stats.triggerLog || [])
+    .filter((item) => item.requiresDelivery && delivered.has(item.id))
+    .map((item) => enrichTriggerItem(item))
+    .map((item) => ({
+      ...item,
+      deliveredAt: item.deliveredAt || item.at,
+      doneLabel: item.clueNumber ? `Улика №${item.clueNumber} выдана` : 'Улика выдана'
+    }))
+    .sort((left, right) => String(right.deliveredAt).localeCompare(String(left.deliveredAt)));
+}
+
 function evaluateTriggers(stats) {
   const fresh = [];
 
@@ -353,6 +390,25 @@ function evaluateTriggers(stats) {
   if (collectPoiCount(stats, 'pisa') >= 3) {
     fireTrigger(stats, 'pisa_citymap_done', 'Пиза закрыта: отмечены все точки города.', fresh);
   }
+
+  (stats.solvedPointIds || []).forEach((pointId) => {
+    const clueNumber = POINT_CLUE_NUMBERS[pointId];
+    if (!clueNumber) {
+      return;
+    }
+
+    fireTrigger(
+      stats,
+      `clue_${pointId}`,
+      `После точки ${pointLabel(pointId)} нужно выдать улику №${clueNumber}.`,
+      fresh,
+      {
+        requiresDelivery: true,
+        clueNumber,
+        actionLabel: `Выдать улику №${clueNumber}`
+      }
+    );
+  });
 
   if ((stats.solvedPointIds || []).includes('naples')) {
     fireTrigger(
@@ -551,17 +607,27 @@ app.get('/api/team/:teamName/status', (req, res) => {
 app.get('/api/admin/summary', (_, res) => {
   try {
     const db = readDb();
+    let dirty = false;
     const rows = TEAM_NAMES.map((teamName) => {
       const stats = ensureTeamStats(db, teamName);
+      const fresh = evaluateTriggers(stats);
+      if (fresh.length > 0) {
+        dirty = true;
+      }
       const latestTrigger = (stats.triggerLog || [])[stats.triggerLog.length - 1] || null;
       return {
         teamName,
         ...publicStats(stats),
         recentRoute: (stats.routeLog || []).slice(-8).reverse(),
         pendingTriggers: getPendingTriggers(stats),
+        issuedTriggers: getIssuedTriggers(stats),
         latestTrigger
       };
     });
+
+    if (dirty) {
+      writeDb(db);
+    }
 
     res.json({
       ok: true,
@@ -599,6 +665,9 @@ app.post('/api/admin/team/:teamName/ack-trigger', (req, res) => {
 
     ensureUniquePush(stats.deliveredTriggerIds, triggerId);
     const triggerItem = (stats.triggerLog || []).find((item) => item.id === triggerId) || null;
+    if (triggerItem) {
+      triggerItem.deliveredAt = nowIso();
+    }
     collectIssuedClue(stats, triggerItem?.clueNumber || DELIVERY_CLUES[triggerId]?.clueNumber || null);
     stats.updatedAt = nowIso();
     writeDb(db);
@@ -607,6 +676,7 @@ app.post('/api/admin/team/:teamName/ack-trigger', (req, res) => {
       ok: true,
       teamName,
       pendingTriggers: getPendingTriggers(stats),
+      issuedTriggers: getIssuedTriggers(stats),
       stats: publicStats(stats)
     });
   } catch (error) {
