@@ -381,6 +381,7 @@ const API_BASE = (() => {
 })();
 
 const state = {
+  activeView: 'map',
   selectedPointId: null,
   cityMode: false,
   teamReady: false,
@@ -398,7 +399,12 @@ const state = {
 };
 
 const cardMap = document.querySelector('.card-map');
+const viewMapNode = document.getElementById('view-map');
+const viewAnswerNode = document.getElementById('view-answer');
+const tabMapBtn = document.getElementById('tabMapBtn');
+const tabAnswerBtn = document.getElementById('tabAnswerBtn');
 const completionNode = document.getElementById('completionBadge');
+const answerMoveBadgeNode = document.getElementById('answerMoveBadge');
 const resetMapBtn = document.getElementById('resetMapBtn');
 const changeTeamBtn = document.getElementById('changeTeamBtn');
 const teamStripNode = document.getElementById('teamStrip');
@@ -540,6 +546,21 @@ function setTeamGateStatus(text = '') {
   teamGateStatusNode.textContent = text;
 }
 
+function setActiveView(viewName = 'map') {
+  state.activeView = viewName === 'answer' ? 'answer' : 'map';
+
+  viewMapNode?.classList.toggle('is-active', state.activeView === 'map');
+  viewAnswerNode?.classList.toggle('is-active', state.activeView === 'answer');
+  tabMapBtn?.classList.toggle('is-active', state.activeView === 'map');
+  tabAnswerBtn?.classList.toggle('is-active', state.activeView === 'answer');
+
+  if (state.activeView === 'map' && mapState.map) {
+    window.setTimeout(() => {
+      mapState.map.invalidateSize();
+    }, 120);
+  }
+}
+
 function formatUiDate(value = '') {
   if (!value) {
     return '';
@@ -558,17 +579,27 @@ function renderFinalAnswerPanel() {
     return;
   }
 
-  finalAnswerPanelNode.hidden = !state.teamReady;
-
   if (!state.teamReady) {
-    finalAnswerStatusNode.textContent = '';
+    finalAnswerInputNode.disabled = true;
+    submitFinalAnswerBtn.disabled = true;
+    finalAnswerStatusNode.textContent = 'Сначала выберите команду на вкладке карты.';
     finalAnswerLastNode.hidden = true;
-    finalAnswerInputNode.value = '';
+    finalAnswerInputNode.value = state.finalAnswerDraft || '';
+    if (answerMoveBadgeNode) {
+      answerMoveBadgeNode.textContent = 'Перемещения: 0';
+    }
     return;
   }
 
+  finalAnswerInputNode.disabled = false;
+  submitFinalAnswerBtn.disabled = false;
+
   if (document.activeElement !== finalAnswerInputNode) {
     finalAnswerInputNode.value = state.finalAnswerDraft || '';
+  }
+
+  if (answerMoveBadgeNode) {
+    answerMoveBadgeNode.textContent = `Перемещения: ${state.teamMoveCount}`;
   }
 
   if (state.finalAnswerText && state.finalAnswerAt) {
@@ -1980,6 +2011,7 @@ function focusPoint(point) {
   }
 
   destroyCityTaskMap();
+  setActiveView('map');
   state.selectedPointId = point.id;
   mapState.visited.add(point.id);
 
@@ -2137,6 +2169,16 @@ function initMap() {
 }
 
 function bindEvents() {
+  tabMapBtn?.addEventListener('click', () => {
+    setActiveView('map');
+    triggerHaptic('light');
+  });
+
+  tabAnswerBtn?.addEventListener('click', () => {
+    setActiveView('answer');
+    triggerHaptic('light');
+  });
+
   resetMapBtn.addEventListener('click', () => {
     resetMapView();
     triggerHaptic('light');
@@ -2215,6 +2257,7 @@ function bindEvents() {
 }
 
 async function init() {
+  setActiveView('map');
   initMap();
   bindEvents();
   updateBadge();

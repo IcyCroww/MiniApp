@@ -16,9 +16,14 @@
     <header class="top-panel">
       <p class="kicker">Telegram Mini App</p>
       <h1 class="title">Карта проекта</h1>
-      <p class="subtitle">Нажмите на точку Италии: карта перейдет к городу, а снизу откроется загадка и ответ.</p>
+      <p class="subtitle">Нажмите на точку Италии: карта перейдет к городу, загадка откроется здесь, а итоговый ответ отправляется в отдельной вкладке.</p>
       <p class="team-strip" id="teamStrip">Команда: не выбрана</p>
     </header>
+
+    <nav class="view-tabs" aria-label="Разделы Mini App">
+      <button class="view-tab is-active" id="tabMapBtn" data-view-target="map" type="button">Карта</button>
+      <button class="view-tab" id="tabAnswerBtn" data-view-target="answer" type="button">Итоговый ответ</button>
+    </nav>
 
     <main class="view-stack">
       <section class="view is-active" id="view-map" data-view="map">
@@ -66,21 +71,30 @@
                 <p class="task-answer-text" id="taskAnswerText"></p>
               </div>
             </section>
-
-            <section class="final-answer-panel" id="finalAnswerPanel" hidden>
-              <p class="task-kicker">Итоговый ответ</p>
-              <p class="final-answer-note">Когда команда собрала версию дела, отправьте здесь общий итоговый ответ.</p>
-              <textarea class="final-answer-input" id="finalAnswerInput" rows="3" placeholder="Введите итоговый ответ команды"></textarea>
-              <div class="row-actions">
-                <button class="btn primary" id="submitFinalAnswerBtn">Отправить итоговый ответ</button>
-              </div>
-              <p class="final-answer-status" id="finalAnswerStatus"></p>
-              <div class="task-answer final-answer-last" id="finalAnswerLast" hidden>
-                <p class="task-answer-label">Последний отправленный ответ</p>
-                <p class="task-answer-text" id="finalAnswerLastText"></p>
-              </div>
-            </section>
           </div>
+        </article>
+      </section>
+
+      <section class="view" id="view-answer" data-view="answer">
+        <article class="card card-answer">
+          <div class="card-head">
+            <h2>Итоговый ответ</h2>
+            <span class="badge" id="answerMoveBadge">Перемещения: 0</span>
+          </div>
+
+          <section class="final-answer-panel" id="finalAnswerPanel">
+            <p class="task-kicker">Итоговый ответ команды</p>
+            <p class="final-answer-note">Когда команда собрала версию дела, отправьте здесь общий итоговый ответ.</p>
+            <textarea class="final-answer-input" id="finalAnswerInput" rows="4" placeholder="Введите итоговый ответ команды"></textarea>
+            <div class="row-actions">
+              <button class="btn primary" id="submitFinalAnswerBtn">Отправить итоговый ответ</button>
+            </div>
+            <p class="final-answer-status" id="finalAnswerStatus"></p>
+            <div class="task-answer final-answer-last" id="finalAnswerLast" hidden>
+              <p class="task-answer-label">Последний отправленный ответ</p>
+              <p class="task-answer-text" id="finalAnswerLastText"></p>
+            </div>
+          </section>
         </article>
       </section>
     </main>

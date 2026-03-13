@@ -83,6 +83,31 @@ body {
   font-weight: 700;
 }
 
+.view-tabs {
+  display: flex;
+  gap: 8px;
+  padding: 10px 12px 0;
+}
+
+.view-tab {
+  border: 1px solid rgba(213, 225, 215, 0.18);
+  border-bottom: 0;
+  border-radius: 16px 16px 0 0;
+  background: rgba(242, 246, 239, 0.12);
+  color: rgba(255, 255, 255, 0.78);
+  padding: 10px 14px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.view-tab.is-active {
+  background: #edf2e8;
+  color: #244035;
+  border-color: rgba(213, 225, 215, 0.42);
+}
+
 .view-stack {
   flex: 1;
   position: relative;
@@ -110,6 +135,10 @@ body {
 
 .card-map {
   display: block;
+}
+
+.card-answer {
+  min-height: 100%;
 }
 
 .card-head {
@@ -321,10 +350,6 @@ body {
   padding: 12px;
 }
 
-.final-answer-panel[hidden] {
-  display: none;
-}
-
 .final-answer-note {
   margin: 8px 0 10px;
   font-size: 13px;
@@ -344,6 +369,11 @@ body {
   font-size: 14px;
   line-height: 1.45;
   padding: 10px 12px;
+}
+
+.final-answer-input:disabled {
+  background: #f1f5ef;
+  color: #708277;
 }
 
 .final-answer-status {
@@ -952,6 +982,10 @@ body {
     padding: 24px 28px 18px;
   }
 
+  .view-tabs {
+    padding: 12px 18px 0;
+  }
+
   .title {
     font-size: 38px;
   }
@@ -967,6 +1001,10 @@ body {
 
   .view-stack {
     padding: 18px;
+  }
+
+  .card-answer {
+    max-width: 760px;
   }
 
   .card-map {
