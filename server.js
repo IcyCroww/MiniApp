@@ -139,6 +139,9 @@ function readDb() {
     if (!Array.isArray(stats.collectedClueNumbers)) {
       stats.collectedClueNumbers = [];
     }
+    if (!Array.isArray(stats.issuedClueNumbers)) {
+      stats.issuedClueNumbers = [];
+    }
     stats.solvedPointIds.forEach((pointId) => {
       const clueNumber = POINT_CLUE_NUMBERS[pointId];
       if (clueNumber) {
@@ -158,6 +161,18 @@ function readDb() {
     if (!Array.isArray(stats.deliveredTriggerIds)) {
       stats.deliveredTriggerIds = [];
     }
+    const deliveredIds = new Set(stats.deliveredTriggerIds);
+    stats.triggerLog.forEach((item) => {
+      if (!deliveredIds.has(item.id)) {
+        return;
+      }
+
+      const clueNumber = item.clueNumber || DELIVERY_CLUES[item.id]?.clueNumber || null;
+      if (clueNumber) {
+        ensureUniquePush(stats.issuedClueNumbers, clueNumber);
+      }
+    });
+    stats.issuedClueNumbers.sort((a, b) => Number(a) - Number(b));
     if (!Array.isArray(stats.routeLog)) {
       stats.routeLog = [];
     }
@@ -182,6 +197,7 @@ function ensureTeamStats(db, teamName) {
       uniquePointIds: [],
       solvedPointIds: [],
       collectedClueNumbers: [],
+      issuedClueNumbers: [],
       poiVisitsByPoint: {},
       triggersFired: [],
       triggerLog: [],
@@ -262,6 +278,19 @@ function collectClueForPoint(stats, pointId) {
 
   ensureUniquePush(stats.collectedClueNumbers, clueNumber);
   stats.collectedClueNumbers.sort((a, b) => Number(a) - Number(b));
+}
+
+function collectIssuedClue(stats, clueNumber) {
+  if (!clueNumber) {
+    return;
+  }
+
+  if (!Array.isArray(stats.issuedClueNumbers)) {
+    stats.issuedClueNumbers = [];
+  }
+
+  ensureUniquePush(stats.issuedClueNumbers, clueNumber);
+  stats.issuedClueNumbers.sort((a, b) => Number(a) - Number(b));
 }
 
 function enrichTriggerItem(item) {
@@ -349,6 +378,7 @@ function publicStats(stats) {
     uniquePointCount: Array.isArray(stats.uniquePointIds) ? stats.uniquePointIds.length : 0,
     solvedCount: Array.isArray(stats.solvedPointIds) ? stats.solvedPointIds.length : 0,
     collectedClueNumbers: Array.isArray(stats.collectedClueNumbers) ? stats.collectedClueNumbers.slice() : [],
+    issuedClueNumbers: Array.isArray(stats.issuedClueNumbers) ? stats.issuedClueNumbers.slice() : [],
     pisaPoiCount: collectPoiCount(stats, 'pisa'),
     currentPointId: stats.currentPointId || '',
     currentPointLabel: pointLabel(stats.currentPointId || ''),
@@ -568,6 +598,8 @@ app.post('/api/admin/team/:teamName/ack-trigger', (req, res) => {
     }
 
     ensureUniquePush(stats.deliveredTriggerIds, triggerId);
+    const triggerItem = (stats.triggerLog || []).find((item) => item.id === triggerId) || null;
+    collectIssuedClue(stats, triggerItem?.clueNumber || DELIVERY_CLUES[triggerId]?.clueNumber || null);
     stats.updatedAt = nowIso();
     writeDb(db);
 

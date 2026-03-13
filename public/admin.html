@@ -93,6 +93,20 @@
       padding: 6px 10px;
       cursor: pointer;
     }
+    .toggle-btn {
+      border: 1px solid #8fa99b;
+      border-radius: 999px;
+      background: #edf4ef;
+      color: #2f4b40;
+      font-size: 12px;
+      font-weight: 700;
+      padding: 6px 10px;
+      cursor: pointer;
+    }
+    .toggle-btn[aria-expanded="true"] {
+      background: #dcebe2;
+      border-color: #6f9480;
+    }
     .empty {
       color: var(--muted);
       font-size: 12px;
@@ -110,6 +124,17 @@
       font-size: 12px;
       font-weight: 700;
       color: #35554b;
+    }
+    .issued-wrap {
+      display: grid;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+    .issued-panel {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: #fbfcf8;
+      padding: 8px;
     }
   </style>
 </head>
@@ -135,6 +160,9 @@
   <script>
     const rowsNode = document.getElementById('rows');
     const metaNode = document.getElementById('meta');
+    const issuedOpenByTeam = {};
+    let latestTeams = [];
+    let latestMeta = null;
 
     function escapeHtml(text) {
       return String(text || '')
@@ -186,7 +214,30 @@
       `).join('')}</div>`;
     }
 
+    function renderIssuedClues(teamName, clues) {
+      const safeTeamName = escapeHtml(teamName);
+      const count = Array.isArray(clues) ? clues.length : 0;
+      const isOpen = Boolean(issuedOpenByTeam[teamName]);
+      const panel = isOpen
+        ? `<div class="issued-panel">${count > 0 ? renderCollectedClues(clues) : '<span class="empty">Пока нет выданных улик</span>'}</div>`
+        : '';
+
+      return `
+        <div class="issued-wrap">
+          <button
+            type="button"
+            class="toggle-btn issued-toggle"
+            data-team-name="${safeTeamName}"
+            aria-expanded="${isOpen ? 'true' : 'false'}"
+          >Какие улики выданы: ${count}</button>
+          ${panel}
+        </div>
+      `;
+    }
+
     function render(rows, meta) {
+      latestTeams = Array.isArray(rows) ? rows : [];
+      latestMeta = meta || null;
       rowsNode.innerHTML = '';
       rows.forEach((team) => {
         const tr = document.createElement('tr');
@@ -202,7 +253,7 @@
           <td>${renderCollectedClues(team.collectedClueNumbers)}</td>
           <td class="${currentClass}">${currentLabel}</td>
           <td>${renderRoute(team.recentRoute)}</td>
-          <td>${renderTriggers(team.teamName, team.pendingTriggers)}</td>
+          <td>${renderIssuedClues(team.teamName, team.issuedClueNumbers)}${renderTriggers(team.teamName, team.pendingTriggers)}</td>
         `;
 
         rowsNode.appendChild(tr);
@@ -240,6 +291,16 @@
     }
 
     rowsNode.addEventListener('click', async (event) => {
+      const toggleButton = event.target.closest('.issued-toggle');
+      if (toggleButton) {
+        const teamName = toggleButton.dataset.teamName;
+        if (teamName) {
+          issuedOpenByTeam[teamName] = !issuedOpenByTeam[teamName];
+          render(latestTeams, latestMeta);
+        }
+        return;
+      }
+
       const button = event.target.closest('.ack-btn');
       if (!button) {
         return;
