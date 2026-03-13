@@ -388,6 +388,10 @@ const state = {
   sessionId: '',
   deviceId: '',
   teamMoveCount: 0,
+  finalAnswerText: '',
+  finalAnswerAt: '',
+  finalAnswerMoveCount: 0,
+  finalAnswerDraft: '',
   teamList: [],
   shownTriggerIds: new Set(),
   teamPollTimer: null
@@ -413,6 +417,12 @@ const taskAnswerNode = document.getElementById('taskAnswer');
 const taskAnswerLabelNode = document.getElementById('taskAnswerLabel');
 const taskAnswerTextNode = document.getElementById('taskAnswerText');
 const closeTaskBtn = document.getElementById('closeTaskBtn');
+const finalAnswerPanelNode = document.getElementById('finalAnswerPanel');
+const finalAnswerInputNode = document.getElementById('finalAnswerInput');
+const submitFinalAnswerBtn = document.getElementById('submitFinalAnswerBtn');
+const finalAnswerStatusNode = document.getElementById('finalAnswerStatus');
+const finalAnswerLastNode = document.getElementById('finalAnswerLast');
+const finalAnswerLastTextNode = document.getElementById('finalAnswerLastText');
 
 const mapState = {
   map: null,
@@ -530,6 +540,63 @@ function setTeamGateStatus(text = '') {
   teamGateStatusNode.textContent = text;
 }
 
+function formatUiDate(value = '') {
+  if (!value) {
+    return '';
+  }
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+
+  return date.toLocaleString('ru-RU');
+}
+
+function renderFinalAnswerPanel() {
+  if (!finalAnswerPanelNode || !finalAnswerInputNode || !submitFinalAnswerBtn) {
+    return;
+  }
+
+  finalAnswerPanelNode.hidden = !state.teamReady;
+
+  if (!state.teamReady) {
+    finalAnswerStatusNode.textContent = '';
+    finalAnswerLastNode.hidden = true;
+    finalAnswerInputNode.value = '';
+    return;
+  }
+
+  if (document.activeElement !== finalAnswerInputNode) {
+    finalAnswerInputNode.value = state.finalAnswerDraft || '';
+  }
+
+  if (state.finalAnswerText && state.finalAnswerAt) {
+    finalAnswerStatusNode.textContent = `Ответ принят: ${formatUiDate(state.finalAnswerAt)} • Перемещения: ${state.finalAnswerMoveCount}`;
+    finalAnswerLastTextNode.textContent = state.finalAnswerText;
+    finalAnswerLastNode.hidden = false;
+  } else {
+    finalAnswerStatusNode.textContent = 'Итоговый ответ ещё не отправлен.';
+    finalAnswerLastNode.hidden = true;
+  }
+}
+
+function applyTeamStats(stats = {}) {
+  const previousFinalAnswer = state.finalAnswerText;
+
+  state.teamMoveCount = Number(stats?.moveCount || 0);
+  state.finalAnswerText = String(stats?.finalAnswerText || '');
+  state.finalAnswerAt = String(stats?.finalAnswerAt || '');
+  state.finalAnswerMoveCount = Number(stats?.finalAnswerMoveCount || 0);
+
+  if (!state.finalAnswerDraft || state.finalAnswerDraft === previousFinalAnswer || document.activeElement !== finalAnswerInputNode) {
+    state.finalAnswerDraft = state.finalAnswerText;
+  }
+
+  updateBadge();
+  renderFinalAnswerPanel();
+}
+
 function openTeamGate(text = '') {
   if (!teamGateNode) {
     return;
@@ -631,13 +698,12 @@ async function registerTeam(teamName, existingSessionId = '') {
   state.teamReady = true;
   state.teamName = data.teamName;
   state.sessionId = data.sessionId;
-  state.teamMoveCount = Number(data?.stats?.moveCount || 0);
 
   safeStorageSet(STORAGE_KEYS.teamName, state.teamName);
   safeStorageSet(STORAGE_KEYS.sessionId, state.sessionId);
 
   setTeamStripText();
-  updateBadge();
+  applyTeamStats(data?.stats || {});
   closeTeamGate();
   showTriggerNotice(data.triggers || []);
 }
@@ -656,8 +722,7 @@ async function syncTeamStatus() {
 
   try {
     const data = await apiRequest(`/api/team/${encodeURIComponent(state.teamName)}/status`);
-    state.teamMoveCount = Number(data?.stats?.moveCount || 0);
-    updateBadge();
+    applyTeamStats(data?.stats || {});
     showTriggerNotice(data.triggers || []);
   } catch (_) {
     // No-op: do not block UI if status call fails.
@@ -690,11 +755,57 @@ async function postTeamEvent(type, pointId = '', meta = {}) {
       })
     });
 
-    state.teamMoveCount = Number(data?.stats?.moveCount || state.teamMoveCount);
-    updateBadge();
+    applyTeamStats(data?.stats || {});
     showTriggerNotice(data.triggers || []);
   } catch (_) {
     // No-op.
+  }
+}
+
+async function submitFinalAnswer() {
+  if (!state.teamReady || !state.sessionId) {
+    setTeamGateStatus('Сначала подключите команду.');
+    openTeamGate('Сначала выберите команду.');
+    return;
+  }
+
+  const answer = String(state.finalAnswerDraft || '').trim();
+  if (!answer) {
+    finalAnswerStatusNode.textContent = 'Введите итоговый ответ перед отправкой.';
+    triggerHaptic('error');
+    return;
+  }
+
+  submitFinalAnswerBtn.disabled = true;
+  finalAnswerStatusNode.textContent = 'Отправляем итоговый ответ...';
+
+  try {
+    const data = await apiRequest('/api/final-answer', {
+      method: 'POST',
+      body: JSON.stringify({
+        sessionId: state.sessionId,
+        teamName: state.teamName,
+        deviceId: state.deviceId,
+        telegramUserId: tg?.initDataUnsafe?.user?.id || null,
+        answer
+      })
+    });
+
+    applyTeamStats(data?.stats || {});
+    state.finalAnswerDraft = state.finalAnswerText;
+    renderFinalAnswerPanel();
+    finalAnswerStatusNode.textContent = `Ответ принят: ${formatUiDate(state.finalAnswerAt)} • Перемещения: ${state.finalAnswerMoveCount}`;
+    triggerHaptic('success');
+  } catch (error) {
+    const reason = String(error?.message || '');
+    if (reason === 'final_answer_required') {
+      finalAnswerStatusNode.textContent = 'Ответ пустой. Введите текст и повторите.';
+    } else {
+      finalAnswerStatusNode.textContent = `Не удалось отправить ответ: ${reason || 'unknown_error'}`;
+    }
+    triggerHaptic('error');
+  } finally {
+    submitFinalAnswerBtn.disabled = false;
   }
 }
 
@@ -738,8 +849,13 @@ async function initTeamState() {
     state.teamName = '';
     state.sessionId = '';
     state.teamMoveCount = 0;
+    state.finalAnswerText = '';
+    state.finalAnswerAt = '';
+    state.finalAnswerMoveCount = 0;
+    state.finalAnswerDraft = '';
     setTeamStripText();
     updateBadge();
+    renderFinalAnswerPanel();
     openTeamGate('Сессия не восстановилась. Выберите команду снова.');
   }
 }
@@ -2052,7 +2168,16 @@ function bindEvents() {
       triggerHaptic('success');
     } catch (error) {
       state.teamReady = false;
+      state.teamName = '';
+      state.sessionId = '';
+      state.teamMoveCount = 0;
+      state.finalAnswerText = '';
+      state.finalAnswerAt = '';
+      state.finalAnswerMoveCount = 0;
+      state.finalAnswerDraft = '';
       setTeamStripText();
+      updateBadge();
+      renderFinalAnswerPanel();
       const reason = String(error?.message || '');
       if (reason === 'unknown_team') {
         setTeamGateStatus('Команда не найдена в базе. Проверьте список.');
@@ -2074,6 +2199,14 @@ function bindEvents() {
     triggerHaptic('light');
   });
 
+  finalAnswerInputNode?.addEventListener('input', () => {
+    state.finalAnswerDraft = finalAnswerInputNode.value;
+  });
+
+  submitFinalAnswerBtn?.addEventListener('click', () => {
+    submitFinalAnswer();
+  });
+
   window.addEventListener('resize', () => {
     if (mapState.map) {
       mapState.map.invalidateSize();
@@ -2086,6 +2219,7 @@ async function init() {
   bindEvents();
   updateBadge();
   setTaskPlaceholder();
+  renderFinalAnswerPanel();
   await initTeamState();
 }
 

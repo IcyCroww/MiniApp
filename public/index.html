@@ -50,21 +50,37 @@
             <button class="btn ghost" id="changeTeamBtn">Сменить команду</button>
           </div>
 
-          <section class="task-panel" id="taskPanel" aria-live="polite">
-            <div class="task-head">
-              <p class="task-kicker" id="taskKicker">Загадка города</p>
-              <button class="task-close" id="closeTaskBtn" aria-label="Закрыть загадку">×</button>
-            </div>
-            <h3 class="task-title" id="taskTitle">Выберите город</h3>
-            <p class="task-lore" id="taskLore"></p>
-            <p class="task-question" id="taskQuestion">Нажмите на точку карты, чтобы открыть вопрос.</p>
-            <div class="task-options" id="taskOptions"></div>
-            <p class="task-result" id="taskResult"></p>
-            <div class="task-answer" id="taskAnswer" hidden>
-              <p class="task-answer-label" id="taskAnswerLabel">Ключ</p>
-              <p class="task-answer-text" id="taskAnswerText"></p>
-            </div>
-          </section>
+          <div class="side-panel-stack">
+            <section class="task-panel" id="taskPanel" aria-live="polite">
+              <div class="task-head">
+                <p class="task-kicker" id="taskKicker">Загадка города</p>
+                <button class="task-close" id="closeTaskBtn" aria-label="Закрыть загадку">×</button>
+              </div>
+              <h3 class="task-title" id="taskTitle">Выберите город</h3>
+              <p class="task-lore" id="taskLore"></p>
+              <p class="task-question" id="taskQuestion">Нажмите на точку карты, чтобы открыть вопрос.</p>
+              <div class="task-options" id="taskOptions"></div>
+              <p class="task-result" id="taskResult"></p>
+              <div class="task-answer" id="taskAnswer" hidden>
+                <p class="task-answer-label" id="taskAnswerLabel">Ключ</p>
+                <p class="task-answer-text" id="taskAnswerText"></p>
+              </div>
+            </section>
+
+            <section class="final-answer-panel" id="finalAnswerPanel" hidden>
+              <p class="task-kicker">Итоговый ответ</p>
+              <p class="final-answer-note">Когда команда собрала версию дела, отправьте здесь общий итоговый ответ.</p>
+              <textarea class="final-answer-input" id="finalAnswerInput" rows="3" placeholder="Введите итоговый ответ команды"></textarea>
+              <div class="row-actions">
+                <button class="btn primary" id="submitFinalAnswerBtn">Отправить итоговый ответ</button>
+              </div>
+              <p class="final-answer-status" id="finalAnswerStatus"></p>
+              <div class="task-answer final-answer-last" id="finalAnswerLast" hidden>
+                <p class="task-answer-label">Последний отправленный ответ</p>
+                <p class="task-answer-text" id="finalAnswerLastText"></p>
+              </div>
+            </section>
+          </div>
         </article>
       </section>
     </main>

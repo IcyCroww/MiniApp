@@ -40,6 +40,61 @@
       color: var(--muted);
       font-size: 13px;
     }
+    .toolbar {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin: 0 0 14px;
+    }
+    .toolbar-btn {
+      border: 1px solid #b8c9bb;
+      border-radius: 999px;
+      background: #f7faf5;
+      color: #284138;
+      padding: 8px 12px;
+      font-size: 12px;
+      font-weight: 700;
+      text-decoration: none;
+      cursor: pointer;
+    }
+    .toolbar-btn.primary {
+      background: #edf7f0;
+      border-color: #9dc8ac;
+    }
+    .final-answers {
+      margin: 0 0 16px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: #fafcf8;
+      padding: 12px;
+    }
+    .final-answers[hidden] {
+      display: none;
+    }
+    .final-answers-title {
+      margin: 0 0 10px;
+      font-size: 14px;
+      font-weight: 800;
+    }
+    .final-answers-list {
+      display: grid;
+      gap: 8px;
+    }
+    .final-answer-item {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: #ffffff;
+      padding: 10px;
+    }
+    .final-answer-item strong {
+      display: block;
+      margin-bottom: 4px;
+    }
+    .final-answer-meta {
+      margin-top: 6px;
+      font-size: 12px;
+      color: var(--muted);
+    }
     table {
       width: 100%;
       border-collapse: collapse;
@@ -142,6 +197,15 @@
   <div class="wrap">
     <h1>Admin Monitor</h1>
     <p id="meta" class="meta">Loading...</p>
+    <div class="toolbar">
+      <button type="button" class="toolbar-btn primary" id="toggleAnswersBtn">Показать итоговые ответы</button>
+      <a class="toolbar-btn" href="/api/admin/export/teams.csv">Скачать команды CSV</a>
+      <a class="toolbar-btn" href="/api/admin/export/events.csv">Скачать события CSV</a>
+    </div>
+    <section class="final-answers" id="finalAnswersSection" hidden>
+      <p class="final-answers-title">Итоговые ответы команд</p>
+      <div class="final-answers-list" id="finalAnswersList"></div>
+    </section>
     <table>
       <thead>
         <tr>
@@ -160,6 +224,10 @@
   <script>
     const rowsNode = document.getElementById('rows');
     const metaNode = document.getElementById('meta');
+    const toggleAnswersBtn = document.getElementById('toggleAnswersBtn');
+    const finalAnswersSection = document.getElementById('finalAnswersSection');
+    const finalAnswersList = document.getElementById('finalAnswersList');
+    let finalAnswersOpen = false;
 
     function escapeHtml(text) {
       return String(text || '')
@@ -248,6 +316,21 @@
       `).join('')}</div>`;
     }
 
+    function renderFinalAnswers(items) {
+      if (!Array.isArray(items) || items.length === 0) {
+        finalAnswersList.innerHTML = '<span class="empty">Пока никто не отправил итоговый ответ.</span>';
+        return;
+      }
+
+      finalAnswersList.innerHTML = items.map((item) => `
+        <div class="final-answer-item">
+          <strong>${escapeHtml(item.teamName)}</strong>
+          <div>${escapeHtml(item.answer)}</div>
+          <div class="final-answer-meta">Отправлено: ${escapeHtml(item.answeredAt)} | Перемещения: ${escapeHtml(item.moveCountAtAnswer)}</div>
+        </div>
+      `).join('');
+    }
+
     function render(rows, meta) {
       rowsNode.innerHTML = '';
       rows.forEach((team) => {
@@ -271,6 +354,9 @@
       });
 
       metaNode.textContent = `Обновлено: ${meta.updatedAt} | Событий: ${meta.eventsTotal}`;
+      renderFinalAnswers(meta.finalAnswers || []);
+      finalAnswersSection.hidden = !finalAnswersOpen;
+      toggleAnswersBtn.textContent = finalAnswersOpen ? 'Скрыть итоговые ответы' : 'Показать итоговые ответы';
     }
 
     async function ackTrigger(teamName, triggerId) {
@@ -323,6 +409,12 @@
         button.textContent = 'Ошибка';
         metaNode.textContent = `Не удалось отметить улику: ${error.message}`;
       }
+    });
+
+    toggleAnswersBtn.addEventListener('click', () => {
+      finalAnswersOpen = !finalAnswersOpen;
+      finalAnswersSection.hidden = !finalAnswersOpen;
+      toggleAnswersBtn.textContent = finalAnswersOpen ? 'Скрыть итоговые ответы' : 'Показать итоговые ответы';
     });
 
     refresh();

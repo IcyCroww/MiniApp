@@ -165,6 +165,15 @@ function readDb() {
     if (!Array.isArray(stats.issuedClueNumbers)) {
       stats.issuedClueNumbers = [];
     }
+    if (typeof stats.finalAnswerText !== 'string') {
+      stats.finalAnswerText = '';
+    }
+    if (typeof stats.finalAnswerAt !== 'string') {
+      stats.finalAnswerAt = '';
+    }
+    if (typeof stats.finalAnswerMoveCount !== 'number') {
+      stats.finalAnswerMoveCount = 0;
+    }
     stats.solvedPointIds.forEach((pointId) => {
       const clueNumber = POINT_CLUE_NUMBERS[pointId];
       if (clueNumber) {
@@ -228,6 +237,9 @@ function ensureTeamStats(db, teamName) {
       solvedPointIds: [],
       collectedClueNumbers: [],
       issuedClueNumbers: [],
+      finalAnswerText: '',
+      finalAnswerAt: '',
+      finalAnswerMoveCount: 0,
       poiVisitsByPoint: {},
       triggersFired: [],
       triggerLog: [],
@@ -427,6 +439,9 @@ function publicStats(stats) {
     solvedCount: Array.isArray(stats.solvedPointIds) ? stats.solvedPointIds.length : 0,
     collectedClueNumbers: Array.isArray(stats.collectedClueNumbers) ? stats.collectedClueNumbers.slice() : [],
     issuedClueNumbers: Array.isArray(stats.issuedClueNumbers) ? stats.issuedClueNumbers.slice() : [],
+    finalAnswerText: typeof stats.finalAnswerText === 'string' ? stats.finalAnswerText : '',
+    finalAnswerAt: typeof stats.finalAnswerAt === 'string' ? stats.finalAnswerAt : '',
+    finalAnswerMoveCount: Number(stats.finalAnswerMoveCount) || 0,
     pisaPoiCount: collectPoiCount(stats, 'pisa'),
     currentPointId: stats.currentPointId || '',
     currentPointLabel: pointLabel(stats.currentPointId || ''),
@@ -439,6 +454,51 @@ function pushEvent(db, event) {
   if (db.events.length > MAX_EVENTS) {
     db.events.splice(0, db.events.length - MAX_EVENTS);
   }
+}
+
+function buildAdminRows(db) {
+  let dirty = false;
+  const rows = TEAM_NAMES.map((teamName) => {
+    const stats = ensureTeamStats(db, teamName);
+    const fresh = evaluateTriggers(stats);
+    if (fresh.length > 0) {
+      dirty = true;
+    }
+    const latestTrigger = (stats.triggerLog || [])[stats.triggerLog.length - 1] || null;
+    return {
+      teamName,
+      ...publicStats(stats),
+      recentRoute: (stats.routeLog || []).slice(-8).reverse(),
+      pendingTriggers: getPendingTriggers(stats),
+      issuedTriggers: getIssuedTriggers(stats),
+      latestTrigger
+    };
+  });
+
+  return { rows, dirty };
+}
+
+function buildFinalAnswers(rows) {
+  return rows
+    .filter((team) => team.finalAnswerText && team.finalAnswerAt)
+    .map((team) => ({
+      teamName: team.teamName,
+      answer: team.finalAnswerText,
+      answeredAt: team.finalAnswerAt,
+      moveCountAtAnswer: Number(team.finalAnswerMoveCount) || 0
+    }))
+    .sort((left, right) => String(right.answeredAt).localeCompare(String(left.answeredAt)));
+}
+
+function csvEscape(value) {
+  const text = String(value ?? '');
+  return `"${text.replace(/"/g, '""')}"`;
+}
+
+function makeCsv(headers, rows) {
+  const headerLine = headers.map((header) => csvEscape(header)).join(';');
+  const rowLines = rows.map((row) => row.map((cell) => csvEscape(cell)).join(';'));
+  return `\uFEFF${headerLine}\r\n${rowLines.join('\r\n')}`;
 }
 
 app.get('/health', (_, res) => {
@@ -575,6 +635,67 @@ app.post('/api/event', (req, res) => {
   }
 });
 
+app.post('/api/final-answer', (req, res) => {
+  try {
+    const db = readDb();
+    const body = req.body || {};
+    const sessionId = String(body.sessionId || '').trim();
+    const answer = String(body.answer || '').trim().slice(0, 400);
+
+    if (!sessionId || !answer) {
+      res.status(400).json({ ok: false, error: 'final_answer_required' });
+      return;
+    }
+
+    const existingSession = db.sessions[sessionId] || null;
+    const teamName = normalizeTeamName(body.teamName || existingSession?.teamName);
+    if (!teamName) {
+      res.status(400).json({ ok: false, error: 'team_required' });
+      return;
+    }
+
+    db.sessions[sessionId] = {
+      sessionId,
+      teamName,
+      telegramUserId: existingSession?.telegramUserId || (body.telegramUserId ? String(body.telegramUserId) : null),
+      deviceId: existingSession?.deviceId || (body.deviceId ? String(body.deviceId) : null),
+      updatedAt: nowIso(),
+      createdAt: existingSession?.createdAt || nowIso()
+    };
+
+    const stats = ensureTeamStats(db, teamName);
+    stats.finalAnswerText = answer;
+    stats.finalAnswerAt = nowIso();
+    stats.finalAnswerMoveCount = Number(stats.moveCount) || 0;
+    stats.updatedAt = nowIso();
+
+    pushEvent(db, {
+      id: crypto.randomUUID(),
+      sessionId,
+      teamName,
+      type: 'final-answer',
+      pointId: '',
+      meta: { answer },
+      at: stats.finalAnswerAt
+    });
+
+    writeDb(db);
+
+    res.json({
+      ok: true,
+      teamName,
+      finalAnswer: {
+        text: stats.finalAnswerText,
+        at: stats.finalAnswerAt,
+        moveCount: stats.finalAnswerMoveCount
+      },
+      stats: publicStats(stats)
+    });
+  } catch (error) {
+    res.status(500).json({ ok: false, error: 'final_answer_failed', detail: String(error?.message || error) });
+  }
+});
+
 app.get('/api/team/:teamName/status', (req, res) => {
   try {
     const db = readDb();
@@ -599,23 +720,8 @@ app.get('/api/team/:teamName/status', (req, res) => {
 app.get('/api/admin/summary', (_, res) => {
   try {
     const db = readDb();
-    let dirty = false;
-    const rows = TEAM_NAMES.map((teamName) => {
-      const stats = ensureTeamStats(db, teamName);
-      const fresh = evaluateTriggers(stats);
-      if (fresh.length > 0) {
-        dirty = true;
-      }
-      const latestTrigger = (stats.triggerLog || [])[stats.triggerLog.length - 1] || null;
-      return {
-        teamName,
-        ...publicStats(stats),
-        recentRoute: (stats.routeLog || []).slice(-8).reverse(),
-        pendingTriggers: getPendingTriggers(stats),
-        issuedTriggers: getIssuedTriggers(stats),
-        latestTrigger
-      };
-    });
+    const { rows, dirty } = buildAdminRows(db);
+    const finalAnswers = buildFinalAnswers(rows);
 
     if (dirty) {
       writeDb(db);
@@ -624,11 +730,80 @@ app.get('/api/admin/summary', (_, res) => {
     res.json({
       ok: true,
       teams: rows,
+      finalAnswers,
       eventsTotal: db.events.length,
       updatedAt: nowIso()
     });
   } catch (error) {
     res.status(500).json({ ok: false, error: 'summary_failed', detail: String(error?.message || error) });
+  }
+});
+
+app.get('/api/admin/export/teams.csv', (_, res) => {
+  try {
+    const db = readDb();
+    const { rows, dirty } = buildAdminRows(db);
+
+    if (dirty) {
+      writeDb(db);
+    }
+
+    const csv = makeCsv(
+      [
+        'Команда',
+        'Перемещения',
+        'Города',
+        'Решено',
+        'Собранные улики',
+        'Выданные улики',
+        'Текущая точка',
+        'Итоговый ответ',
+        'Время ответа',
+        'Перемещения на момент ответа',
+        'Ожидают выдачи'
+      ],
+      rows.map((team) => [
+        team.teamName,
+        team.moveCount,
+        team.uniquePointCount,
+        team.solvedCount,
+        (team.collectedClueNumbers || []).join(', '),
+        (team.issuedClueNumbers || []).join(', '),
+        team.currentPointLabel || '',
+        team.finalAnswerText || '',
+        team.finalAnswerAt || '',
+        team.finalAnswerMoveCount || 0,
+        (team.pendingTriggers || []).map((item) => item.actionLabel || item.text || '').join(' | ')
+      ])
+    );
+
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', 'attachment; filename="miniapp-teams.csv"');
+    res.send(csv);
+  } catch (error) {
+    res.status(500).json({ ok: false, error: 'team_export_failed', detail: String(error?.message || error) });
+  }
+});
+
+app.get('/api/admin/export/events.csv', (_, res) => {
+  try {
+    const db = readDb();
+    const csv = makeCsv(
+      ['Время', 'Команда', 'Тип', 'Точка', 'Данные'],
+      (db.events || []).map((event) => [
+        event.at || '',
+        event.teamName || '',
+        event.type || '',
+        pointLabel(event.pointId || ''),
+        event.meta ? JSON.stringify(event.meta) : ''
+      ])
+    );
+
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', 'attachment; filename="miniapp-events.csv"');
+    res.send(csv);
+  } catch (error) {
+    res.status(500).json({ ok: false, error: 'event_export_failed', detail: String(error?.message || error) });
   }
 });
 
