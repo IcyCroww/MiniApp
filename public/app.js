@@ -459,7 +459,7 @@ const points = [
             segments: 12,
             step: 30,
             start: 1,
-            target: 7,
+            target: 3,
             size: 100,
             thickness: 28,
             colors: ['transparent', '#d73d2a', '#d73d2a', '#d73d2a', 'transparent', '#d73d2a', '#d73d2a', 'transparent', 'transparent', 'transparent', '#d73d2a', 'transparent']
