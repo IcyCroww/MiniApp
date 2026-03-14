@@ -460,10 +460,9 @@ const points = [
             step: 30,
             start: 4,
             target: 0,
-            targets: [0, 4, 8],
             size: 100,
             thickness: 28,
-            colors: ['#d7c8c6', '#d7c8c6', 'transparent', 'transparent', '#d7c8c6', '#d7c8c6', 'transparent', 'transparent', '#d7c8c6', '#d7c8c6', 'transparent', 'transparent']
+            colors: ['#d7c8c6', '#d7c8c6', 'transparent', 'transparent', '#d7c8c6', 'transparent', 'transparent', '#d7c8c6', '#d7c8c6', '#d7c8c6', 'transparent', 'transparent']
           },
           {
             id: 'middle',
@@ -472,10 +471,9 @@ const points = [
             step: 30,
             start: 7,
             target: 0,
-            targets: [0, 4, 8],
             size: 74,
             thickness: 24,
-            colors: ['#d73d2a', '#d73d2a', 'transparent', 'transparent', '#d73d2a', '#d73d2a', 'transparent', 'transparent', '#d73d2a', '#d73d2a', 'transparent', 'transparent']
+            colors: ['transparent', '#d73d2a', '#d73d2a', 'transparent', 'transparent', '#d73d2a', '#d73d2a', '#d73d2a', 'transparent', 'transparent', '#d73d2a', 'transparent']
           }
         ]
       }
@@ -576,10 +574,9 @@ const points = [
             step: 30,
             start: 9,
             target: 0,
-            targets: [0, 3, 6, 9],
             size: 100,
             thickness: 28,
-            colors: ['#d0c4b8', '#d0c4b8', 'transparent', '#d0c4b8', '#d0c4b8', 'transparent', '#d0c4b8', '#d0c4b8', 'transparent', '#d0c4b8', '#d0c4b8', 'transparent']
+            colors: ['#d0c4b8', '#d0c4b8', 'transparent', '#d0c4b8', 'transparent', 'transparent', '#d0c4b8', '#d0c4b8', 'transparent', '#d0c4b8', '#d0c4b8', '#d0c4b8']
           },
           {
             id: 'middle',
@@ -588,10 +585,9 @@ const points = [
             step: 30,
             start: 5,
             target: 0,
-            targets: [0, 3, 6, 9],
             size: 74,
             thickness: 24,
-            colors: ['#b9402a', '#b9402a', 'transparent', '#b9402a', '#b9402a', 'transparent', '#b9402a', '#b9402a', 'transparent', '#b9402a', '#b9402a', 'transparent']
+            colors: ['transparent', '#b9402a', '#b9402a', 'transparent', '#b9402a', '#b9402a', 'transparent', 'transparent', '#b9402a', '#b9402a', '#b9402a', 'transparent']
           }
         ]
       }
@@ -2842,10 +2838,14 @@ function renderDecoderTask(point) {
     current.className = `decoder-card-current${clueFound ? '' : ' is-locked'}`;
     if (clueFound) {
       current.innerHTML = `
-        <span class="decoder-card-current-label">База</span>
-        <span class="decoder-card-current-value">${baseValue}</span>
-        <span class="decoder-card-current-label">Сейчас</span>
-        <span class="decoder-card-current-value">${currentValue}</span>
+        <div class="decoder-value-row">
+          <span class="decoder-value-label">База</span>
+          <span class="decoder-value-number">${baseValue}</span>
+        </div>
+        <div class="decoder-value-row">
+          <span class="decoder-value-label">Сейчас</span>
+          <span class="decoder-value-number">${currentValue}</span>
+        </div>
       `;
     } else {
       current.innerHTML = `

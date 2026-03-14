@@ -1400,9 +1400,7 @@ body {
 .decoder-card-current {
   grid-area: current;
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 4px 6px;
-  text-align: center;
+  gap: 6px;
   min-width: 0;
 }
 
@@ -1416,14 +1414,34 @@ body {
   line-height: 1.1;
 }
 
-.decoder-card-current-value {
+.decoder-value-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  border: 1px solid #d8dfda;
+  border-radius: 12px;
+  background: #fffefb;
+  padding: 6px 8px;
+}
+
+.decoder-value-label {
+  color: #6c7b71;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.decoder-value-number {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  min-width: 34px;
   min-height: 34px;
-  border: 1px solid #d3ddd6;
+  border: 1px solid #d7ded8;
   border-radius: 12px;
-  background: #fffefb;
+  background: #ffffff;
   color: #9a3628;
   font-size: 20px;
   font-weight: 800;
@@ -1707,6 +1725,13 @@ body {
     white-space: nowrap;
   }
 
+  .decoder-layout {
+    grid-template-columns: 1fr;
+    align-items: start;
+  }
+}
+
+@media (min-width: 760px) {
   .decoder-layout {
     grid-template-columns: 220px 1fr;
     align-items: start;
