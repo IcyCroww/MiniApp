@@ -473,18 +473,18 @@ const points = [
             target: 0,
             size: 74,
             thickness: 24,
-            colors: ['transparent', 'transparent', '#d7c8c6', 'transparent', 'transparent', 'transparent', 'transparent', '#d7c8c6', '#d7c8c6', 'transparent', '#d7c8c6', '#d7c8c6']
+            colors: ['transparent', 'transparent', 'transparent', '#d7c8c6', '#d7c8c6', 'transparent', '#d7c8c6', '#d7c8c6', '#d7c8c6', 'transparent', 'transparent', '#d7c8c6']
           },
           {
             id: 'inner',
             label: 'Внутренний круг',
-            segments: 8,
-            step: 45,
-            start: 3,
+            segments: 12,
+            step: 30,
+            start: 2,
             target: 0,
-            size: 48,
-            thickness: 30,
-            colors: ['#c94531', '#c94531', 'transparent', 'transparent', 'transparent', '#c94531', '#c94531', 'transparent']
+            size: 50,
+            thickness: 22,
+            colors: ['transparent', '#c94531', '#c94531', '#c94531', 'transparent', 'transparent', '#c94531', '#c94531', 'transparent', 'transparent', 'transparent', '#c94531']
           }
         ]
       }
