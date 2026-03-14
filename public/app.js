@@ -350,6 +350,7 @@ const points = [
       answerLabel: 'Бонус',
       answerText: 'Бонус: числовой код Палермо восстановлен.',
       decoder: {
+        shiftHint: 'У кода Палермо три опоры: знак, взгляд и птица. Их число и задаёт сдвиг.',
         startOffset: 0,
         correctOffset: 3,
         scene: {
@@ -634,7 +635,7 @@ const points = [
       answerLabel: 'Бонус',
       answerText: 'Бонус: код Бари переведен в числа.',
       decoder: {
-        dialMode: 'symbol-disks',
+        shiftHint: 'Сдвиг равен числу дней, после которых календарь снова начинает неделю.',
         startOffset: 6,
         correctOffset: 7,
         scene: {
@@ -2780,6 +2781,13 @@ function renderDecoderTask(point) {
       : '1. Найдите на изображении все активные метки. 2. Каждая метка откроет базовое значение своего знака. 3. Потом крутите диск и вводите новые числа.')
     : '1. Поверните диск. 2. Смотрите число напротив того же символа. 3. Введите его в поле этой строки.';
   wrap.appendChild(note);
+
+  if (config.shiftHint) {
+    const shiftRiddle = document.createElement('div');
+    shiftRiddle.className = 'decoder-shift-riddle';
+    shiftRiddle.innerHTML = `<span class="decoder-shift-riddle-label">Подсказка на сдвиг</span><span>${config.shiftHint}</span>`;
+    wrap.appendChild(shiftRiddle);
+  }
 
   const steps = document.createElement('div');
   steps.className = 'decoder-steps';

@@ -1247,6 +1247,28 @@ body {
   margin: 0 0 12px;
 }
 
+.decoder-shift-riddle {
+  display: grid;
+  gap: 6px;
+  margin: 0 0 12px;
+  border: 1px solid #d7cdbf;
+  border-radius: 12px;
+  background: #fff8f1;
+  color: #694733;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.45;
+  padding: 10px 12px;
+}
+
+.decoder-shift-riddle-label {
+  color: #8a5a40;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
 .decoder-step {
   display: flex;
   align-items: center;
