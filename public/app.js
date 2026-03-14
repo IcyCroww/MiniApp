@@ -458,8 +458,8 @@ const points = [
             label: 'Внешний обод',
             segments: 12,
             step: 30,
-            start: 7,
-            target: 0,
+            start: 1,
+            target: 7,
             size: 100,
             thickness: 28,
             colors: ['transparent', '#d73d2a', '#d73d2a', '#d73d2a', 'transparent', '#d73d2a', '#d73d2a', 'transparent', 'transparent', 'transparent', '#d73d2a', 'transparent']
@@ -469,8 +469,8 @@ const points = [
             label: 'Средний пояс',
             segments: 12,
             step: 30,
-            start: 4,
-            target: 0,
+            start: 9,
+            target: 4,
             size: 74,
             thickness: 24,
             colors: ['#d7c8c6', '#d7c8c6', '#d7c8c6', 'transparent', '#d7c8c6', '#d7c8c6', 'transparent', 'transparent', 'transparent', '#d7c8c6', 'transparent', 'transparent']
@@ -480,8 +480,8 @@ const points = [
             label: 'Внутренний круг',
             segments: 12,
             step: 30,
-            start: 2,
-            target: 0,
+            start: 6,
+            target: 2,
             size: 56,
             thickness: 22,
             colors: ['transparent', 'transparent', '#c94531', '#c94531', '#c94531', 'transparent', '#c94531', '#c94531', 'transparent', 'transparent', 'transparent', '#c94531']
