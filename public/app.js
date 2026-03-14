@@ -473,7 +473,7 @@ const points = [
             target: 0,
             size: 74,
             thickness: 24,
-            colors: ['#d7c8c6', 'transparent', 'transparent', 'transparent', 'transparent', 'transparent', 'transparent', '#d7c8c6', '#d7c8c6', 'transparent', '#d7c8c6', '#d7c8c6']
+            colors: ['transparent', 'transparent', '#d7c8c6', 'transparent', 'transparent', 'transparent', 'transparent', '#d7c8c6', '#d7c8c6', 'transparent', '#d7c8c6', '#d7c8c6']
           },
           {
             id: 'inner',
@@ -484,7 +484,7 @@ const points = [
             target: 0,
             size: 48,
             thickness: 30,
-            colors: ['#f4eee8', '#c94531', '#f4eee8', 'transparent', '#f4eee8', '#c94531', '#f4eee8', 'transparent']
+            colors: ['#c94531', '#c94531', 'transparent', 'transparent', 'transparent', '#c94531', '#c94531', 'transparent']
           }
         ]
       }
