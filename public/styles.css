@@ -1122,6 +1122,39 @@ body {
   gap: 12px;
 }
 
+.decoder-steps {
+  display: grid;
+  gap: 8px;
+  margin: 0 0 12px;
+}
+
+.decoder-step {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid #d5ddd6;
+  border-radius: 12px;
+  background: #fbfcf9;
+  color: #40574b;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 8px 10px;
+}
+
+.decoder-step-index {
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  background: #ca3f31;
+  color: #fff8f2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 800;
+  flex: 0 0 auto;
+}
+
 .decoder-dial-card,
 .decoder-panel {
   border: 1px solid #d1dbd1;
@@ -1138,6 +1171,19 @@ body {
   border-radius: 50%;
   background: linear-gradient(180deg, #ca3f31, #b12f24);
   box-shadow: inset 0 0 0 10px #f8f1ea, inset 0 0 0 24px #c33f31;
+}
+
+.decoder-wheel-pointer {
+  position: absolute;
+  left: 50%;
+  top: 8px;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 11px solid transparent;
+  border-right: 11px solid transparent;
+  border-top: 18px solid #fff8f1;
+  filter: drop-shadow(0 2px 3px rgba(80, 34, 29, 0.28));
 }
 
 .decoder-wheel-inner {
@@ -1177,6 +1223,14 @@ body {
   gap: 10px;
 }
 
+.decoder-shift-label {
+  margin: 0 0 10px;
+  text-align: center;
+  color: #5e3c2d;
+  font-size: 13px;
+  font-weight: 800;
+}
+
 .decoder-head {
   margin: 0 0 8px;
   font-size: 12px;
@@ -1186,20 +1240,11 @@ body {
   letter-spacing: 0.05em;
 }
 
-.decoder-mapping {
-  display: grid;
-  gap: 6px;
-  margin-bottom: 10px;
-}
-
-.decoder-map-item {
-  border: 1px solid #d7dfd8;
-  border-radius: 10px;
-  background: #f6faf5;
-  color: #385043;
-  font-size: 13px;
-  font-weight: 700;
-  padding: 8px 10px;
+.decoder-panel-lead {
+  margin: 0 0 10px;
+  color: #617066;
+  font-size: 12px;
+  line-height: 1.4;
 }
 
 .decoder-cards {
@@ -1210,9 +1255,13 @@ body {
 
 .decoder-card {
   display: grid;
-  grid-template-columns: 56px 1fr;
+  grid-template-columns: 56px minmax(0, 90px) 20px minmax(0, 1fr);
   gap: 10px;
   align-items: center;
+  border: 1px solid #d8e0d8;
+  border-radius: 14px;
+  background: #f7faf6;
+  padding: 8px;
 }
 
 .decoder-card-glyph {
@@ -1225,6 +1274,48 @@ body {
   color: #783b27;
   font-size: 30px;
   min-height: 52px;
+}
+
+.decoder-card-current {
+  display: grid;
+  gap: 2px;
+  text-align: center;
+}
+
+.decoder-card-current-label,
+.decoder-card-entry-label {
+  font-size: 10px;
+  font-weight: 800;
+  color: #6c7b71;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.decoder-card-current-value {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+  border: 1px solid #d3ddd6;
+  border-radius: 12px;
+  background: #fffefb;
+  color: #9a3628;
+  font-size: 24px;
+  font-weight: 800;
+}
+
+.decoder-card-arrow {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #9f7660;
+  font-size: 22px;
+  font-weight: 800;
+}
+
+.decoder-card-entry {
+  display: grid;
+  gap: 4px;
 }
 
 .chess-board {
@@ -1473,6 +1564,25 @@ body {
   .decoder-layout {
     grid-template-columns: 220px 1fr;
     align-items: start;
+  }
+}
+
+@media (max-width: 520px) {
+  .decoder-card {
+    grid-template-columns: 48px minmax(0, 1fr);
+  }
+
+  .decoder-card-arrow {
+    display: none;
+  }
+
+  .decoder-card-current,
+  .decoder-card-entry {
+    grid-column: 2;
+  }
+
+  .decoder-card-current {
+    margin-bottom: 4px;
   }
 }
 

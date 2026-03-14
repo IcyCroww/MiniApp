@@ -2555,8 +2555,18 @@ function renderDecoderTask(point) {
 
   const note = document.createElement('p');
   note.className = 'task-mini-note';
-  note.textContent = 'Диск задает общий сдвиг. Выставьте нужное положение и введите числа для знаков.';
+  note.textContent = '1. Поверните диск. 2. Смотрите число напротив того же символа. 3. Введите его в поле этой строки.';
   wrap.appendChild(note);
+
+  const steps = document.createElement('div');
+  steps.className = 'decoder-steps';
+  ['Крутите диск', 'Смотрите число', 'Вводите код'].forEach((label, index) => {
+    const item = document.createElement('div');
+    item.className = 'decoder-step';
+    item.innerHTML = `<span class="decoder-step-index">${index + 1}</span><span>${label}</span>`;
+    steps.appendChild(item);
+  });
+  wrap.appendChild(steps);
 
   const layout = document.createElement('div');
   layout.className = 'decoder-layout';
@@ -2564,8 +2574,16 @@ function renderDecoderTask(point) {
   const dial = document.createElement('div');
   dial.className = 'decoder-dial-card';
 
+  const dialTitle = document.createElement('p');
+  dialTitle.className = 'decoder-head';
+  dialTitle.textContent = 'Диск сдвига';
+  dial.appendChild(dialTitle);
+
   const dialWheel = document.createElement('div');
   dialWheel.className = 'decoder-wheel';
+  const wheelPointer = document.createElement('span');
+  wheelPointer.className = 'decoder-wheel-pointer';
+  dialWheel.appendChild(wheelPointer);
   const wheelInner = document.createElement('div');
   wheelInner.className = 'decoder-wheel-inner';
   wheelInner.textContent = String(offset);
@@ -2613,37 +2631,58 @@ function renderDecoderTask(point) {
   dialActions.appendChild(leftBtn);
   dialActions.appendChild(rightBtn);
   dial.appendChild(dialWheel);
+
+  const dialHint = document.createElement('p');
+  dialHint.className = 'decoder-shift-label';
+  dialHint.textContent = `Текущий сдвиг: ${offset}`;
+  dial.appendChild(dialHint);
   dial.appendChild(dialActions);
   layout.appendChild(dial);
 
   const panel = document.createElement('div');
   panel.className = 'decoder-panel';
 
-  const mappingHead = document.createElement('p');
-  mappingHead.className = 'decoder-head';
-  mappingHead.textContent = 'Текущее считывание';
-  panel.appendChild(mappingHead);
+  const panelHead = document.createElement('p');
+  panelHead.className = 'decoder-head';
+  panelHead.textContent = 'Символы и значения';
+  panel.appendChild(panelHead);
 
-  const mappingList = document.createElement('div');
-  mappingList.className = 'decoder-mapping';
-  symbols.forEach((symbolConfig) => {
-    const item = document.createElement('div');
-    item.className = 'decoder-map-item';
-    item.textContent = `${symbolConfig.glyph} = ${decoderValueFor(symbolConfig, offset)}`;
-    mappingList.appendChild(item);
-  });
-  panel.appendChild(mappingList);
+  const panelLead = document.createElement('p');
+  panelLead.className = 'decoder-panel-lead';
+  panelLead.textContent = 'В каждой строке сначала смотрите число для символа, затем вводите его в поле справа.';
+  panel.appendChild(panelLead);
 
   const cardsWrap = document.createElement('div');
   cardsWrap.className = 'decoder-cards';
   cards.forEach((card) => {
-    const cardNode = document.createElement('label');
+    const symbolConfig = symbols.find((item) => item.glyph === card.glyph) || null;
+    const currentValue = symbolConfig ? decoderValueFor(symbolConfig, offset) : '?';
+
+    const cardNode = document.createElement('div');
     cardNode.className = 'decoder-card';
 
     const glyph = document.createElement('span');
     glyph.className = 'decoder-card-glyph';
     glyph.textContent = card.glyph;
     cardNode.appendChild(glyph);
+
+    const current = document.createElement('div');
+    current.className = 'decoder-card-current';
+    current.innerHTML = `<span class="decoder-card-current-label">Сейчас</span><span class="decoder-card-current-value">${currentValue}</span>`;
+    cardNode.appendChild(current);
+
+    const arrow = document.createElement('span');
+    arrow.className = 'decoder-card-arrow';
+    arrow.textContent = '→';
+    cardNode.appendChild(arrow);
+
+    const inputWrap = document.createElement('label');
+    inputWrap.className = 'decoder-card-entry';
+
+    const inputLabel = document.createElement('span');
+    inputLabel.className = 'decoder-card-entry-label';
+    inputLabel.textContent = 'Ваш ввод';
+    inputWrap.appendChild(inputLabel);
 
     const input = document.createElement('input');
     input.type = 'text';
@@ -2658,7 +2697,8 @@ function renderDecoderTask(point) {
       nextInputs[card.id] = input.value.replace(/\D+/g, '').slice(0, 2);
       setDecoderInputs(point, nextInputs);
     });
-    cardNode.appendChild(input);
+    inputWrap.appendChild(input);
+    cardNode.appendChild(inputWrap);
 
     cardsWrap.appendChild(cardNode);
   });
