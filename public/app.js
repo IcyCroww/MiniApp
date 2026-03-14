@@ -424,7 +424,7 @@ const points = [
             target: 0,
             size: 100,
             thickness: 28,
-            colors: ['transparent', '#d7c8c6', '#d7c8c6', 'transparent', 'transparent', '#d7c8c6', '#d7c8c6', '#d7c8c6', 'transparent', 'transparent', '#d7c8c6', 'transparent']
+            colors: ['#d7c8c6', '#d7c8c6', 'transparent', 'transparent', '#d7c8c6', '#d7c8c6', 'transparent', 'transparent', '#d7c8c6', '#d7c8c6', 'transparent', 'transparent']
           },
           {
             id: 'middle',
@@ -435,7 +435,7 @@ const points = [
             target: 0,
             size: 74,
             thickness: 24,
-            colors: ['transparent', '#d73d2a', '#d73d2a', '#d73d2a', 'transparent', '#d73d2a', 'transparent', '#d73d2a', '#d73d2a', 'transparent', 'transparent', '#d73d2a']
+            colors: ['#d73d2a', '#d73d2a', 'transparent', 'transparent', '#d73d2a', '#d73d2a', 'transparent', 'transparent', '#d73d2a', '#d73d2a', 'transparent', 'transparent']
           }
         ]
       }
@@ -538,7 +538,7 @@ const points = [
             target: 0,
             size: 100,
             thickness: 28,
-            colors: ['transparent', '#d0c4b8', '#d0c4b8', 'transparent', '#d0c4b8', 'transparent', 'transparent', '#d0c4b8', '#d0c4b8', 'transparent', '#d0c4b8', 'transparent']
+            colors: ['#d0c4b8', '#d0c4b8', 'transparent', '#d0c4b8', '#d0c4b8', 'transparent', '#d0c4b8', '#d0c4b8', 'transparent', '#d0c4b8', '#d0c4b8', 'transparent']
           },
           {
             id: 'middle',
@@ -549,7 +549,7 @@ const points = [
             target: 0,
             size: 74,
             thickness: 24,
-            colors: ['#b9402a', 'transparent', '#b9402a', '#b9402a', 'transparent', 'transparent', '#b9402a', 'transparent', '#b9402a', '#b9402a', 'transparent', 'transparent']
+            colors: ['#b9402a', '#b9402a', 'transparent', '#b9402a', '#b9402a', 'transparent', '#b9402a', '#b9402a', 'transparent', '#b9402a', '#b9402a', 'transparent']
           }
         ]
       }
