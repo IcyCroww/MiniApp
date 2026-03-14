@@ -442,6 +442,184 @@ const points = [
         ]
       }
     }
+  },
+  {
+    id: 'siena',
+    title: 'Сиена',
+    text: 'Скрытая отметка в зале.',
+    lat: 43.3188,
+    lng: 11.3308,
+    zoom: 9,
+    markerColor: '#c06447',
+    task: {
+      kind: 'hotspot',
+      kicker: 'Архив Сиены',
+      title: 'Сиена: найти печать',
+      lore: 'В схеме старого зала осталась только одна точная отметка, которая подтверждает подлинность плана. Найдите её на изображении.',
+      question: 'Нажмите на скрытую печать на схеме комнаты.',
+      success: 'Печать Сиены найдена.',
+      answerLabel: 'Бонус',
+      answerText: 'Бонус: печать зала Сиены обнаружена.',
+      hotspot: {
+        image: {
+          src: 'assets/puzzles/bologna-room.svg',
+          alt: 'Схема комнаты Сиены'
+        },
+        target: {
+          x: 24,
+          y: 30,
+          radius: 7
+        },
+        missText: 'Не та зона. Посмотрите ближе к левой стене и высоким шкафам.'
+      }
+    }
+  },
+  {
+    id: 'ravenna',
+    title: 'Равенна',
+    text: 'Сканер архивного кадра.',
+    lat: 44.4184,
+    lng: 12.2035,
+    zoom: 9,
+    markerColor: '#b9567f',
+    task: {
+      kind: 'scanner',
+      kicker: 'Архив Равенны',
+      title: 'Равенна: поймать код',
+      lore: 'Кадр почти уничтожен шумом, но внутри всё ещё спрятан служебный шифр. Подведите сканер к правильному фрагменту и считайте код.',
+      question: 'Найдите код сканером и введите его.',
+      success: 'Код Равенны считан.',
+      answerLabel: 'Бонус',
+      answerText: 'Бонус: код с архива Равенны найден.',
+      scanner: {
+        image: {
+          src: 'assets/puzzles/verona-scanner.svg',
+          alt: 'Архивный снимок Равенны'
+        },
+        startX: 10,
+        startY: 52,
+        lensWidth: 22,
+        lensHeight: 18,
+        target: {
+          x: 74,
+          y: 30,
+          width: 17,
+          height: 18
+        },
+        revealText: 'DELTA-508',
+        targetCode: 'DELTA-508'
+      }
+    }
+  },
+  {
+    id: 'matera',
+    title: 'Матера',
+    text: 'Каменный сигил.',
+    lat: 40.6663,
+    lng: 16.6043,
+    zoom: 9,
+    markerColor: '#8d6ab8',
+    task: {
+      kind: 'rotor',
+      kicker: 'Архив Матеры',
+      title: 'Матера: кольца знака',
+      lore: 'Знак на каменной плите разбит на три вращающихся кольца. Совместите все сегменты, чтобы рисунок снова стал цельным.',
+      question: 'Поверните кольца и соберите знак.',
+      success: 'Каменный знак Матеры собран.',
+      answerLabel: 'Бонус',
+      answerText: 'Бонус: знак Матеры восстановлен.',
+      rotor: {
+        note: 'У каждого кольца своё положение. Нужна точная комбинация.',
+        rings: [
+          {
+            id: 'outer',
+            segments: 12,
+            step: 30,
+            start: 9,
+            target: 0,
+            colors: ['transparent', '#d0c4b8', '#d0c4b8', 'transparent', '#d0c4b8', 'transparent', 'transparent', '#d0c4b8', '#d0c4b8', 'transparent', '#d0c4b8', 'transparent']
+          },
+          {
+            id: 'middle',
+            segments: 12,
+            step: 30,
+            start: 5,
+            target: 0,
+            colors: ['#b9402a', 'transparent', '#b9402a', '#b9402a', 'transparent', 'transparent', '#b9402a', 'transparent', '#b9402a', '#b9402a', 'transparent', 'transparent']
+          },
+          {
+            id: 'inner',
+            segments: 8,
+            step: 45,
+            start: 6,
+            target: 0,
+            colors: ['transparent', '#f5efe8', 'transparent', '#f5efe8', 'transparent', '#f5efe8', 'transparent', '#f5efe8']
+          }
+        ]
+      }
+    }
+  },
+  {
+    id: 'bari',
+    title: 'Бари',
+    text: 'Шифровальный диск.',
+    lat: 41.1171,
+    lng: 16.8719,
+    zoom: 9,
+    markerColor: '#c34c34',
+    task: {
+      kind: 'decoder',
+      kicker: 'Архив Бари',
+      title: 'Бари: числовой диск',
+      lore: 'На столе переговорщиков найден другой дешифровщик. Он даёт общий сдвиг для знаков, а правильные числа нужно вписать вручную.',
+      question: 'Поверните диск и введите числа для символов.',
+      success: 'Код Бари собран.',
+      answerLabel: 'Бонус',
+      answerText: 'Бонус: код Бари переведен в числа.',
+      decoder: {
+        startOffset: 6,
+        correctOffset: 7,
+        symbols: [
+          { id: 'wave', glyph: '≈', baseValue: 4 },
+          { id: 'triad', glyph: '⋮', baseValue: 7 },
+          { id: 'star', glyph: '✶', baseValue: 9 }
+        ],
+        cards: [
+          { id: 'card1', glyph: '≈', answer: 1 },
+          { id: 'card2', glyph: '⋮', answer: 4 },
+          { id: 'card3', glyph: '✶', answer: 6 }
+        ]
+      }
+    }
+  },
+  {
+    id: 'cagliari',
+    title: 'Кальяри',
+    text: 'Шахматная концовка.',
+    lat: 39.2238,
+    lng: 9.1217,
+    zoom: 9,
+    markerColor: '#5f7fd6',
+    task: {
+      kind: 'chess',
+      kicker: 'Досье Кальяри',
+      title: 'Кальяри: мат в один',
+      lore: 'На островной станции сохранилась короткая шахматная запись. Нужно найти единственный ход белых, который закрывает партию сразу.',
+      question: 'Белые начинают. Найдите мат в 1 ход.',
+      success: 'Концовка Кальяри закрыта.',
+      answerLabel: 'Бонус',
+      answerText: 'Бонус: партия в Кальяри завершена одним точным ходом.',
+      chess: {
+        sideToMove: 'w',
+        pieces: [
+          { square: 'h8', type: 'k', color: 'b' },
+          { square: 'g7', type: 'p', color: 'b' },
+          { square: 'h7', type: 'p', color: 'b' },
+          { square: 'd7', type: 'q', color: 'w' },
+          { square: 'g1', type: 'k', color: 'w' }
+        ]
+      }
+    }
   }
 ];
 
@@ -559,12 +737,17 @@ const fallbackPointPositions = {
   venice: { x: 71, y: 22 },
   verona: { x: 62, y: 24 },
   bologna: { x: 57, y: 31 },
+  ravenna: { x: 65, y: 33 },
   vatican: { x: 57, y: 47 },
   rome: { x: 60, y: 50 },
   pisa: { x: 49, y: 43 },
   florence: { x: 54, y: 41 },
+  siena: { x: 56, y: 47 },
   naples: { x: 66, y: 66 },
-  palermo: { x: 63, y: 88 }
+  matera: { x: 76, y: 65 },
+  bari: { x: 82, y: 58 },
+  palermo: { x: 63, y: 88 },
+  cagliari: { x: 42, y: 84 }
 };
 
 const pointsById = new Map(points.map((point) => [point.id, point]));

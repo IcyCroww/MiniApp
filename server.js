@@ -49,6 +49,11 @@ const POINT_LABELS = {
   bologna: 'Болонья',
   verona: 'Верона',
   trieste: 'Триест',
+  siena: 'Сиена',
+  ravenna: 'Равенна',
+  matera: 'Матера',
+  bari: 'Бари',
+  cagliari: 'Кальяри',
   pisa: 'Пиза',
   palermo: 'Палермо',
   genoa_media: 'Генуя'
