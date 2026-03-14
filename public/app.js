@@ -2494,9 +2494,14 @@ function buildRotorGradient(colors = []) {
 function renderRotorTask(point) {
   const config = point.task.rotor || {};
   const rings = config.rings || [];
-  const isSolved = mapState.solved.has(point.id);
   const angles = getRotorAngles(point);
   const previewSolved = isRotorSolved(point, angles);
+  let isSolved = mapState.solved.has(point.id);
+
+  if (previewSolved && !isSolved) {
+    completeTask(point);
+    isSolved = true;
+  }
 
   const wrap = document.createElement('div');
   wrap.className = 'rotor-wrap';
