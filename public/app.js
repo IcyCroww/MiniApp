@@ -460,8 +460,8 @@ const points = [
             step: 30,
             start: 4,
             target: 0,
-            size: 100,
-            thickness: 28,
+            size: 74,
+            thickness: 24,
             colors: ['#d7c8c6', '#d7c8c6', 'transparent', 'transparent', '#d7c8c6', 'transparent', 'transparent', '#d7c8c6', '#d7c8c6', '#d7c8c6', 'transparent', 'transparent']
           },
           {
@@ -471,8 +471,8 @@ const points = [
             step: 30,
             start: 7,
             target: 0,
-            size: 74,
-            thickness: 24,
+            size: 100,
+            thickness: 28,
             colors: ['transparent', '#d73d2a', '#d73d2a', 'transparent', 'transparent', '#d73d2a', '#d73d2a', '#d73d2a', 'transparent', 'transparent', '#d73d2a', 'transparent']
           }
         ]
@@ -574,8 +574,8 @@ const points = [
             step: 30,
             start: 9,
             target: 0,
-            size: 100,
-            thickness: 28,
+            size: 74,
+            thickness: 24,
             colors: ['#d0c4b8', '#d0c4b8', 'transparent', '#d0c4b8', 'transparent', 'transparent', '#d0c4b8', '#d0c4b8', 'transparent', '#d0c4b8', '#d0c4b8', '#d0c4b8']
           },
           {
@@ -585,8 +585,8 @@ const points = [
             step: 30,
             start: 5,
             target: 0,
-            size: 74,
-            thickness: 24,
+            size: 100,
+            thickness: 28,
             colors: ['transparent', '#b9402a', '#b9402a', 'transparent', '#b9402a', '#b9402a', 'transparent', 'transparent', '#b9402a', '#b9402a', '#b9402a', 'transparent']
           }
         ]
@@ -2481,7 +2481,7 @@ function renderRotorTask(point) {
 
   const note = document.createElement('p');
   note.className = 'task-mini-note';
-  note.textContent = `${config.note || 'Поверните кольца, пока фрагменты не встанут в цельный знак.'}${previewSolved ? '' : ' Бледный контур показывает цель.'}`;
+  note.textContent = config.note || 'Поверните кольца, пока фрагменты не встанут в цельный знак.';
   wrap.appendChild(note);
 
   const stage = document.createElement('div');
@@ -2491,21 +2491,6 @@ function renderRotorTask(point) {
   const thicknesses = [28, 24, 20];
 
   rings.forEach((ring, index) => {
-    if (!previewSolved) {
-      const guideNode = document.createElement('div');
-      guideNode.className = 'rotor-ring rotor-ring-guide';
-      const ringSize = Number(ring.size) || sizes[index] || 44;
-      const ringThickness = Number(ring.thickness) || thicknesses[index] || 18;
-      const targetStep = Number(ring.step) || (360 / (Number(ring.segments) || 1));
-      const targetTurn = Number(ring.target) || 0;
-      guideNode.style.width = `${ringSize}%`;
-      guideNode.style.height = `${ringSize}%`;
-      guideNode.style.setProperty('--ring-thickness', `${ringThickness}%`);
-      guideNode.style.background = buildRotorGradient(ring.colors || []);
-      guideNode.style.transform = `translate(-50%, -50%) rotate(${targetTurn * targetStep}deg)`;
-      stage.appendChild(guideNode);
-    }
-
     const ringNode = document.createElement('div');
     ringNode.className = 'rotor-ring';
     const ringSize = Number(ring.size) || sizes[index] || 44;
