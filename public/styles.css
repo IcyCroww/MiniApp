@@ -1075,8 +1075,8 @@ body {
   position: absolute;
   left: 50%;
   top: 50%;
-  width: 12%;
-  height: 12%;
+  width: 18%;
+  height: 18%;
   transform: translate(-50%, -50%);
   border-radius: 999px;
   background: radial-gradient(circle at 50% 50%, #fff8f0 0%, #e0d0ca 68%, #6c463f 70%, #6c463f 100%);
