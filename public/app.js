@@ -344,14 +344,52 @@ const points = [
       kind: 'decoder',
       kicker: 'Палермо: дешифровщик порта',
       title: 'Палермо: код на знаках',
-      lore: 'На складе найден боковой дешифровщик: он крутится по кругу и смещает значения символов. Выставьте правильное положение и введите числа для трех знаков.',
-      question: 'Поверните дешифровщик и введите верные числа к иероглифам.',
+      lore: 'На доске порта спрятаны три активные метки. Сначала найдите их на снимке, откройте базовые значения знаков, а потом уже выставьте сдвиг на диске.',
+      question: 'Найдите подсказки на снимке, затем поверните дешифровщик и введите верные числа.',
       success: 'Знаки переведены в числа.',
       answerLabel: 'Бонус',
       answerText: 'Бонус: числовой код Палермо восстановлен.',
       decoder: {
         startOffset: 0,
         correctOffset: 3,
+        scene: {
+          image: {
+            src: 'assets/puzzles/palermo-board.svg',
+            alt: 'Доска улик Палермо'
+          },
+          clues: [
+            {
+              id: 'sun-clue',
+              glyph: '𓇳',
+              x: 23,
+              y: 35,
+              width: 14,
+              height: 16,
+              title: 'Метка на левом снимке',
+              revealText: 'На клочке бумаги написано: 𓇳 при нулевом сдвиге = 2.'
+            },
+            {
+              id: 'eye-clue',
+              glyph: '𓂀',
+              x: 50,
+              y: 24,
+              width: 14,
+              height: 16,
+              title: 'Метка на верхней карточке',
+              revealText: 'В архивной рамке видно: 𓂀 при нулевом сдвиге = 5.'
+            },
+            {
+              id: 'bird-clue',
+              glyph: '𓅓',
+              x: 73,
+              y: 67,
+              width: 14,
+              height: 16,
+              title: 'Метка на правом документе',
+              revealText: 'На боковой записи отмечено: 𓅓 при нулевом сдвиге = 8.'
+            }
+          ]
+        },
         symbols: [
           { id: 'sun', glyph: '𓇳', baseValue: 2 },
           { id: 'eye', glyph: '𓂀', baseValue: 5 },
@@ -567,14 +605,52 @@ const points = [
       kind: 'decoder',
       kicker: 'Архив Бари',
       title: 'Бари: числовой диск',
-      lore: 'На столе переговорщиков найден другой дешифровщик. Он даёт общий сдвиг для знаков, а правильные числа нужно вписать вручную.',
-      question: 'Поверните диск и введите числа для символов.',
+      lore: 'На столе переговорщиков лежат три заметки с активными метками. Сначала найдите их на снимке и восстановите базовые значения, потом проверните диск и впишите новые числа.',
+      question: 'Активируйте все метки на столе, затем поверните диск и введите числа.',
       success: 'Код Бари собран.',
       answerLabel: 'Бонус',
       answerText: 'Бонус: код Бари переведен в числа.',
       decoder: {
         startOffset: 6,
         correctOffset: 7,
+        scene: {
+          image: {
+            src: 'assets/puzzles/bari-board.svg',
+            alt: 'Стол переговорщиков в Бари'
+          },
+          clues: [
+            {
+              id: 'wave-clue',
+              glyph: '≈',
+              x: 26,
+              y: 61,
+              width: 14,
+              height: 16,
+              title: 'Метка на левой заметке',
+              revealText: 'На помятой карточке видно: ≈ при нулевом сдвиге = 4.'
+            },
+            {
+              id: 'triad-clue',
+              glyph: '⋮',
+              x: 49,
+              y: 29,
+              width: 14,
+              height: 16,
+              title: 'Метка на центральной карточке',
+              revealText: 'Служебная запись говорит: ⋮ при нулевом сдвиге = 7.'
+            },
+            {
+              id: 'star-clue',
+              glyph: '✶',
+              x: 74,
+              y: 53,
+              width: 14,
+              height: 16,
+              title: 'Метка на правой заметке',
+              revealText: 'На красной метке отмечено: ✶ при нулевом сдвиге = 9.'
+            }
+          ]
+        },
         symbols: [
           { id: 'wave', glyph: '≈', baseValue: 4 },
           { id: 'triad', glyph: '⋮', baseValue: 7 },
@@ -714,6 +790,7 @@ const mapState = {
   scannerStates: new Map(),
   decoderOffsets: new Map(),
   decoderInputs: new Map(),
+  decoderClues: new Map(),
   rotorAngles: new Map(),
   chessStates: new Map(),
   cityVisits: new Map(),
@@ -2516,6 +2593,24 @@ function setDecoderInputs(point, nextInputs) {
   mapState.decoderInputs.set(point.id, { ...nextInputs });
 }
 
+function getDecoderClues(point) {
+  const existing = mapState.decoderClues.get(point.id);
+  if (existing) {
+    return { ...existing };
+  }
+
+  const initial = {};
+  (point.task.decoder?.scene?.clues || []).forEach((clue) => {
+    initial[clue.id] = false;
+  });
+  mapState.decoderClues.set(point.id, { ...initial });
+  return { ...initial };
+}
+
+function setDecoderClues(point, nextClues) {
+  mapState.decoderClues.set(point.id, { ...nextClues });
+}
+
 function decoderValueFor(symbolConfig, offset) {
   return ((Number(symbolConfig.baseValue) || 0) + (Number(offset) || 0)) % 10;
 }
@@ -2524,27 +2619,103 @@ function renderDecoderTask(point) {
   const config = point.task.decoder || {};
   const symbols = config.symbols || [];
   const cards = config.cards || [];
+  const sceneConfig = config.scene || {};
+  const clues = sceneConfig.clues || [];
   const isSolved = mapState.solved.has(point.id);
   const offset = getDecoderOffset(point);
   const inputs = getDecoderInputs(point);
+  const foundClues = getDecoderClues(point);
+  const foundCount = clues.filter((clue) => foundClues[clue.id]).length;
+  const allCluesFound = isSolved || !clues.length || foundCount === clues.length;
 
   const wrap = document.createElement('div');
   wrap.className = 'decoder-wrap';
 
   const note = document.createElement('p');
   note.className = 'task-mini-note';
-  note.textContent = '1. Поверните диск. 2. Смотрите число напротив того же символа. 3. Введите его в поле этой строки.';
+  note.textContent = clues.length
+    ? '1. Найдите на изображении все активные метки. 2. Каждая метка откроет базовое значение своего знака. 3. Потом крутите диск и вводите новые числа.'
+    : '1. Поверните диск. 2. Смотрите число напротив того же символа. 3. Введите его в поле этой строки.';
   wrap.appendChild(note);
 
   const steps = document.createElement('div');
   steps.className = 'decoder-steps';
-  ['Крутите диск', 'Смотрите число', 'Вводите код'].forEach((label, index) => {
+  (clues.length
+    ? ['Найдите метки', 'Поверните диск', 'Введите код']
+    : ['Крутите диск', 'Смотрите число', 'Вводите код'])
+    .forEach((label, index) => {
     const item = document.createElement('div');
     item.className = 'decoder-step';
     item.innerHTML = `<span class="decoder-step-index">${index + 1}</span><span>${label}</span>`;
     steps.appendChild(item);
-  });
+    });
   wrap.appendChild(steps);
+
+  if (clues.length) {
+    const sceneCard = document.createElement('div');
+    sceneCard.className = 'decoder-scene-card';
+
+    const sceneHead = document.createElement('p');
+    sceneHead.className = 'decoder-head';
+    sceneHead.textContent = 'Сцена с уликами';
+    sceneCard.appendChild(sceneHead);
+
+    const sceneLead = document.createElement('p');
+    sceneLead.className = 'decoder-panel-lead';
+    sceneLead.textContent = `Найдите и активируйте все метки на снимке: ${foundCount}/${clues.length}.`;
+    sceneCard.appendChild(sceneLead);
+
+    const scene = document.createElement('div');
+    scene.className = 'decoder-scene';
+
+    const sceneImage = document.createElement('img');
+    sceneImage.className = 'decoder-scene-image';
+    sceneImage.src = sceneConfig.image?.src || '';
+    sceneImage.alt = sceneConfig.image?.alt || point.title;
+    scene.appendChild(sceneImage);
+
+    clues.forEach((clue, index) => {
+      const found = isSolved || Boolean(foundClues[clue.id]);
+      const hotspot = document.createElement('button');
+      hotspot.type = 'button';
+      hotspot.className = `decoder-scene-hotspot${found ? ' is-found' : ''}`;
+      hotspot.disabled = isSolved || found;
+      hotspot.style.left = `${Number(clue.x) || 50}%`;
+      hotspot.style.top = `${Number(clue.y) || 50}%`;
+      hotspot.style.width = `${Number(clue.width) || 14}%`;
+      hotspot.style.height = `${Number(clue.height) || 14}%`;
+      hotspot.setAttribute('aria-label', clue.title || `Метка ${index + 1}`);
+      hotspot.title = found ? (clue.revealText || clue.title || `Метка ${index + 1}`) : (clue.title || `Метка ${index + 1}`);
+      hotspot.innerHTML = found
+        ? `<span class="decoder-scene-hotspot-mark">${clue.glyph || index + 1}</span>`
+        : '<span class="decoder-scene-hotspot-mark">+</span>';
+      hotspot.addEventListener('click', () => {
+        const nextClues = getDecoderClues(point);
+        nextClues[clue.id] = true;
+        setDecoderClues(point, nextClues);
+        renderTask(point);
+        setTaskResult(clue.revealText || 'Подсказка активирована.', 'info');
+        triggerHaptic('light');
+      });
+      scene.appendChild(hotspot);
+    });
+
+    sceneCard.appendChild(scene);
+
+    const clueStrip = document.createElement('div');
+    clueStrip.className = 'decoder-clue-strip';
+    clues.forEach((clue, index) => {
+      const found = isSolved || Boolean(foundClues[clue.id]);
+      const pill = document.createElement('div');
+      pill.className = `decoder-clue-pill${found ? ' is-found' : ''}`;
+      pill.innerHTML = found
+        ? `<span class="decoder-clue-pill-glyph">${clue.glyph}</span><span>${clue.revealText}</span>`
+        : `<span class="decoder-clue-pill-index">${index + 1}</span><span>Подсказка еще не активирована</span>`;
+      clueStrip.appendChild(pill);
+    });
+    sceneCard.appendChild(clueStrip);
+    wrap.appendChild(sceneCard);
+  }
 
   const layout = document.createElement('div');
   layout.className = 'decoder-layout';
@@ -2627,14 +2798,19 @@ function renderDecoderTask(point) {
 
   const panelLead = document.createElement('p');
   panelLead.className = 'decoder-panel-lead';
-  panelLead.textContent = 'В каждой строке сначала смотрите число для символа, затем вводите его в поле справа.';
+  panelLead.textContent = allCluesFound
+    ? 'Теперь для каждой строки видны базовое значение и текущее число после сдвига. Введите число справа.'
+    : 'Сначала найдите все метки на изображении. После этого здесь откроются значения знаков.';
   panel.appendChild(panelLead);
 
   const cardsWrap = document.createElement('div');
   cardsWrap.className = 'decoder-cards';
   cards.forEach((card) => {
     const symbolConfig = symbols.find((item) => item.glyph === card.glyph) || null;
-    const currentValue = symbolConfig ? decoderValueFor(symbolConfig, offset) : '?';
+    const clue = clues.find((item) => item.glyph === card.glyph) || null;
+    const clueFound = isSolved || !clues.length || !clue || Boolean(foundClues[clue.id]);
+    const currentValue = clueFound && symbolConfig ? decoderValueFor(symbolConfig, offset) : '?';
+    const baseValue = clueFound && symbolConfig ? Number(symbolConfig.baseValue) : '?';
 
     const cardNode = document.createElement('div');
     cardNode.className = 'decoder-card';
@@ -2645,8 +2821,20 @@ function renderDecoderTask(point) {
     cardNode.appendChild(glyph);
 
     const current = document.createElement('div');
-    current.className = 'decoder-card-current';
-    current.innerHTML = `<span class="decoder-card-current-label">Сейчас</span><span class="decoder-card-current-value">${currentValue}</span>`;
+    current.className = `decoder-card-current${clueFound ? '' : ' is-locked'}`;
+    if (clueFound) {
+      current.innerHTML = `
+        <span class="decoder-card-current-label">База</span>
+        <span class="decoder-card-current-value">${baseValue}</span>
+        <span class="decoder-card-current-label">Сейчас</span>
+        <span class="decoder-card-current-value">${currentValue}</span>
+      `;
+    } else {
+      current.innerHTML = `
+        <span class="decoder-card-current-label">Подсказка</span>
+        <span class="decoder-card-current-locked">Найдите метку на снимке</span>
+      `;
+    }
     cardNode.appendChild(current);
 
     const arrow = document.createElement('span');
@@ -2668,8 +2856,8 @@ function renderDecoderTask(point) {
     input.maxLength = 2;
     input.className = 'decoder-card-input';
     input.value = inputs[card.id] || '';
-    input.disabled = isSolved;
-    input.placeholder = '??';
+    input.disabled = isSolved || !clueFound;
+    input.placeholder = clueFound ? '??' : 'Сначала метка';
     input.addEventListener('input', () => {
       const nextInputs = getDecoderInputs(point);
       nextInputs[card.id] = input.value.replace(/\D+/g, '').slice(0, 2);
@@ -2688,6 +2876,12 @@ function renderDecoderTask(point) {
   checkBtn.textContent = isSolved ? 'Код подтвержден' : 'Проверить числа';
   checkBtn.disabled = isSolved;
   checkBtn.addEventListener('click', () => {
+    if (!allCluesFound) {
+      setTaskResult('Сначала активируйте все подсказки на снимке.', 'info');
+      triggerHaptic('error');
+      return;
+    }
+
     const typed = getDecoderInputs(point);
     const offsetOk = getDecoderOffset(point) === (Number(config.correctOffset) || 0);
     const numbersOk = cards.every((card) => String(card.answer) === String(typed[card.id] || '').trim());

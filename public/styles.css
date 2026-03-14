@@ -1122,6 +1122,104 @@ body {
   gap: 12px;
 }
 
+.decoder-scene-card {
+  border: 1px solid #d1dbd1;
+  border-radius: 14px;
+  background: #fbfcf9;
+  padding: 10px;
+  margin-bottom: 12px;
+}
+
+.decoder-scene {
+  position: relative;
+  border: 1px solid #c8d2cc;
+  border-radius: 16px;
+  overflow: hidden;
+  background: #22161a;
+}
+
+.decoder-scene-image {
+  width: 100%;
+  display: block;
+}
+
+.decoder-scene-hotspot {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  border: 2px dashed rgba(255, 246, 240, 0.42);
+  border-radius: 12px;
+  background: rgba(255, 249, 244, 0.08);
+  color: #fff7ee;
+  box-shadow: 0 0 0 1px rgba(33, 22, 26, 0.18), inset 0 0 0 1px rgba(255, 252, 248, 0.1);
+  cursor: pointer;
+  backdrop-filter: blur(1px);
+}
+
+.decoder-scene-hotspot.is-found {
+  border-style: solid;
+  border-color: rgba(255, 208, 141, 0.98);
+  background: rgba(255, 214, 162, 0.18);
+}
+
+.decoder-scene-hotspot-mark {
+  display: inline-flex;
+  width: 100%;
+  height: 100%;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.decoder-clue-strip {
+  margin-top: 10px;
+  display: grid;
+  gap: 8px;
+}
+
+.decoder-clue-pill {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid #d6ddd7;
+  border-radius: 12px;
+  background: #f7faf6;
+  color: #6a756e;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 8px 10px;
+}
+
+.decoder-clue-pill.is-found {
+  border-color: #d6c3af;
+  background: #fff8f1;
+  color: #68402e;
+}
+
+.decoder-clue-pill-glyph,
+.decoder-clue-pill-index {
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.decoder-clue-pill-glyph {
+  border: 1px solid #d7bba3;
+  background: #fff5ea;
+}
+
+.decoder-clue-pill-index {
+  background: #d7e4db;
+  color: #456253;
+}
+
 .decoder-steps {
   display: grid;
   gap: 8px;
@@ -1255,7 +1353,7 @@ body {
 
 .decoder-card {
   display: grid;
-  grid-template-columns: 56px minmax(0, 90px) 20px minmax(0, 1fr);
+  grid-template-columns: 56px minmax(0, 120px) 20px minmax(0, 1fr);
   gap: 10px;
   align-items: center;
   border: 1px solid #d8e0d8;
@@ -1278,7 +1376,8 @@ body {
 
 .decoder-card-current {
   display: grid;
-  gap: 2px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px 6px;
   text-align: center;
 }
 
@@ -1295,13 +1394,32 @@ body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 40px;
+  min-height: 34px;
   border: 1px solid #d3ddd6;
   border-radius: 12px;
   background: #fffefb;
   color: #9a3628;
-  font-size: 24px;
+  font-size: 20px;
   font-weight: 800;
+}
+
+.decoder-card-current.is-locked {
+  grid-template-columns: 1fr;
+}
+
+.decoder-card-current-locked {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 72px;
+  border: 1px dashed #d5ddd7;
+  border-radius: 12px;
+  background: #fbfcfa;
+  color: #7a877f;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 8px;
+  text-align: center;
 }
 
 .decoder-card-arrow {
@@ -1316,6 +1434,11 @@ body {
 .decoder-card-entry {
   display: grid;
   gap: 4px;
+}
+
+.decoder-card-input:disabled {
+  background: #f1f4f0;
+  color: #819087;
 }
 
 .chess-board {
