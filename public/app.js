@@ -417,18 +417,24 @@ const points = [
         rings: [
           {
             id: 'outer',
+            label: 'Внешний обод',
             segments: 12,
             step: 30,
             start: 4,
             target: 0,
+            size: 100,
+            thickness: 28,
             colors: ['transparent', '#d7c8c6', '#d7c8c6', 'transparent', 'transparent', '#d7c8c6', '#d7c8c6', '#d7c8c6', 'transparent', 'transparent', '#d7c8c6', 'transparent']
           },
           {
             id: 'middle',
+            label: 'Средний пояс',
             segments: 12,
             step: 30,
             start: 7,
             target: 0,
+            size: 74,
+            thickness: 24,
             colors: ['transparent', '#d73d2a', '#d73d2a', '#d73d2a', 'transparent', '#d73d2a', 'transparent', '#d73d2a', '#d73d2a', 'transparent', 'transparent', '#d73d2a']
           },
           {
@@ -437,7 +443,10 @@ const points = [
             step: 45,
             start: 3,
             target: 0,
-            colors: ['#f0ece7', 'transparent', '#f0ece7', 'transparent', 'transparent', '#f0ece7', 'transparent', '#f0ece7']
+            label: 'Центр знака',
+            size: 50,
+            thickness: 42,
+            colors: ['#f4eee8', '#c94531', '#f4eee8', 'transparent', '#f4eee8', '#c94531', '#f4eee8', 'transparent']
           }
         ]
       }
@@ -533,18 +542,24 @@ const points = [
         rings: [
           {
             id: 'outer',
+            label: 'Внешний обод',
             segments: 12,
             step: 30,
             start: 9,
             target: 0,
+            size: 100,
+            thickness: 28,
             colors: ['transparent', '#d0c4b8', '#d0c4b8', 'transparent', '#d0c4b8', 'transparent', 'transparent', '#d0c4b8', '#d0c4b8', 'transparent', '#d0c4b8', 'transparent']
           },
           {
             id: 'middle',
+            label: 'Средний пояс',
             segments: 12,
             step: 30,
             start: 5,
             target: 0,
+            size: 74,
+            thickness: 24,
             colors: ['#b9402a', 'transparent', '#b9402a', '#b9402a', 'transparent', 'transparent', '#b9402a', 'transparent', '#b9402a', '#b9402a', 'transparent', 'transparent']
           },
           {
@@ -553,7 +568,10 @@ const points = [
             step: 45,
             start: 6,
             target: 0,
-            colors: ['transparent', '#f5efe8', 'transparent', '#f5efe8', 'transparent', '#f5efe8', 'transparent', '#f5efe8']
+            label: 'Центр знака',
+            size: 50,
+            thickness: 42,
+            colors: ['#f7f1e9', '#b9402a', '#f7f1e9', 'transparent', '#f7f1e9', '#b9402a', '#f7f1e9', 'transparent']
           }
         ]
       }
@@ -2414,9 +2432,11 @@ function renderRotorTask(point) {
   rings.forEach((ring, index) => {
     const ringNode = document.createElement('div');
     ringNode.className = 'rotor-ring';
-    ringNode.style.width = `${sizes[index] || 44}%`;
-    ringNode.style.height = `${sizes[index] || 44}%`;
-    ringNode.style.setProperty('--ring-thickness', `${thicknesses[index] || 18}%`);
+    const ringSize = Number(ring.size) || sizes[index] || 44;
+    const ringThickness = Number(ring.thickness) || thicknesses[index] || 18;
+    ringNode.style.width = `${ringSize}%`;
+    ringNode.style.height = `${ringSize}%`;
+    ringNode.style.setProperty('--ring-thickness', `${ringThickness}%`);
     ringNode.style.background = buildRotorGradient(ring.colors || []);
     ringNode.style.transform = `translate(-50%, -50%) rotate(${(Number(angles[index]) || 0) * (Number(ring.step) || (360 / (Number(ring.segments) || 1)))}deg)`;
     stage.appendChild(ringNode);
@@ -2436,7 +2456,7 @@ function renderRotorTask(point) {
 
     const label = document.createElement('span');
     label.className = 'rotor-control-label';
-    label.textContent = `Кольцо ${index + 1}`;
+    label.textContent = ring.label || `Кольцо ${index + 1}`;
     control.appendChild(label);
 
     const leftBtn = document.createElement('button');
