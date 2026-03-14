@@ -458,22 +458,22 @@ const points = [
             label: 'Внешний обод',
             segments: 12,
             step: 30,
-            start: 4,
+            start: 7,
             target: 0,
-            size: 74,
-            thickness: 24,
-            colors: ['#d7c8c6', 'transparent', 'transparent', 'transparent', '#d7c8c6', 'transparent', 'transparent', '#d7c8c6', '#d7c8c6', '#d7c8c6', 'transparent', '#d7c8c6']
+            size: 100,
+            thickness: 28,
+            colors: ['transparent', '#d73d2a', '#d73d2a', '#d73d2a', 'transparent', '#d73d2a', '#d73d2a', 'transparent', 'transparent', 'transparent', '#d73d2a', 'transparent']
           },
           {
             id: 'middle',
             label: 'Средний пояс',
             segments: 12,
             step: 30,
-            start: 7,
+            start: 4,
             target: 0,
-            size: 100,
-            thickness: 28,
-            colors: ['transparent', '#d73d2a', '#d73d2a', '#d73d2a', 'transparent', '#d73d2a', '#d73d2a', 'transparent', 'transparent', 'transparent', '#d73d2a', 'transparent']
+            size: 74,
+            thickness: 24,
+            colors: ['#d7c8c6', 'transparent', 'transparent', 'transparent', '#d7c8c6', 'transparent', 'transparent', '#d7c8c6', '#d7c8c6', '#d7c8c6', 'transparent', '#d7c8c6']
           }
         ]
       }
@@ -572,22 +572,22 @@ const points = [
             label: 'Внешний обод',
             segments: 12,
             step: 30,
-            start: 9,
+            start: 5,
             target: 0,
-            size: 74,
-            thickness: 24,
-            colors: ['#d0c4b8', '#d0c4b8', 'transparent', '#d0c4b8', 'transparent', 'transparent', '#d0c4b8', '#d0c4b8', 'transparent', '#d0c4b8', '#d0c4b8', '#d0c4b8']
+            size: 100,
+            thickness: 28,
+            colors: ['transparent', '#b9402a', '#b9402a', 'transparent', '#b9402a', '#b9402a', 'transparent', 'transparent', '#b9402a', '#b9402a', '#b9402a', 'transparent']
           },
           {
             id: 'middle',
             label: 'Средний пояс',
             segments: 12,
             step: 30,
-            start: 5,
+            start: 9,
             target: 0,
-            size: 100,
-            thickness: 28,
-            colors: ['transparent', '#b9402a', '#b9402a', 'transparent', '#b9402a', '#b9402a', 'transparent', 'transparent', '#b9402a', '#b9402a', '#b9402a', 'transparent']
+            size: 74,
+            thickness: 24,
+            colors: ['#d0c4b8', '#d0c4b8', 'transparent', '#d0c4b8', 'transparent', 'transparent', '#d0c4b8', '#d0c4b8', 'transparent', '#d0c4b8', '#d0c4b8', '#d0c4b8']
           }
         ]
       }
