@@ -473,7 +473,7 @@ const points = [
             target: 0,
             size: 74,
             thickness: 24,
-            colors: ['transparent', '#d7c8c6', '#d7c8c6', '#d7c8c6', 'transparent', '#d7c8c6', '#d7c8c6', 'transparent', 'transparent', '#d7c8c6', 'transparent', 'transparent']
+            colors: ['#d7c8c6', '#d7c8c6', '#d7c8c6', 'transparent', '#d7c8c6', '#d7c8c6', 'transparent', 'transparent', 'transparent', '#d7c8c6', 'transparent', 'transparent']
           },
           {
             id: 'inner',
