@@ -209,33 +209,68 @@ const points = [
   {
     id: 'bologna',
     title: 'Болонья',
-    text: 'Архивный шум.',
+    text: 'Схема комнаты архива.',
     lat: 44.4949,
     lng: 11.3426,
     zoom: 9,
     task: {
-      kind: 'empty',
+      kind: 'hotspot',
       kicker: 'Архив Болоньи',
-      title: 'Болонья: бумажный лабиринт',
-      lore: 'Полки забиты бумагами, но почти все листы пустые. На одном клочке повторяется фраза: "сдвиг на 3 спасает от чужих глаз".',
-      question: 'Вы перебираете архив и отмечаете повторяющиеся намеки.',
-      info: 'Прямого правила нет, только след к шифру Цезаря и числу 3.'
+      title: 'Болонья: комната с печатью',
+      lore: 'В архиве осталась только схема переговорной комнаты. Кто-то отметил нужную зону едва заметным кругом: если попасть точно в неё, комната будет считаться проверенной.',
+      question: 'Найдите на изображении правильную метку и нажмите точно в неё.',
+      success: 'Печать архива найдена.',
+      answerLabel: 'Бонус',
+      answerText: 'Бонус: вы нашли скрытую печать архива.',
+      hotspot: {
+        image: {
+          src: 'assets/puzzles/bologna-room.svg',
+          alt: 'Схема архивной комнаты'
+        },
+        target: {
+          x: 74,
+          y: 28,
+          radius: 8,
+          label: 'Печать архива'
+        },
+        missText: 'Пока мимо. Ищите отметку ближе к правой части комнаты.'
+      }
     }
   },
   {
     id: 'verona',
     title: 'Верона',
-    text: 'Слухи и версии.',
+    text: 'Сканирование архивного кадра.',
     lat: 45.4384,
     lng: 10.9916,
     zoom: 9,
     task: {
-      kind: 'empty',
+      kind: 'scanner',
       kicker: 'Архив Вероны',
-      title: 'Верона: город слухов',
-      lore: 'Здесь каждый свидетель говорит по-своему. На полях чужой рукой: "собирай смысл блоками по три символа - так меньше шума".',
-      question: 'Вы сверяете версии и отделяете факты от сплетен.',
-      info: 'Доказательств нет, но прием "по тройкам" явно не случайный.'
+      title: 'Верона: сканер следа',
+      lore: 'Изображение зашумлено, но под ним спрятан короткий шифр. Передвигайте сканер по кадру, пока он не поймает участок с кодом.',
+      question: 'Найдите шифр сканером и введите его без пробелов.',
+      success: 'Шифр снят с кадра.',
+      answerLabel: 'Бонус',
+      answerText: 'Бонус: код с кадра считан.',
+      scanner: {
+        image: {
+          src: 'assets/puzzles/verona-scanner.svg',
+          alt: 'Архивный снимок с помехами'
+        },
+        startX: 18,
+        startY: 24,
+        lensWidth: 24,
+        lensHeight: 20,
+        target: {
+          x: 67,
+          y: 19,
+          width: 18,
+          height: 18
+        },
+        revealText: 'SIGMA-314',
+        targetCode: 'SIGMA-314'
+      }
     }
   },
   {
@@ -301,52 +336,111 @@ const points = [
   {
     id: 'palermo',
     title: 'Палермо',
-    text: 'Закрытый порт.',
+    text: 'Дешифровщик символов.',
     lat: 38.1157,
     lng: 13.3615,
     zoom: 9,
     task: {
-      kind: 'empty',
-      kicker: 'Палермо: закрытый порт',
-      title: 'Палермо: оборванный канал',
-      lore: 'Часть документов изъяли до вашего прибытия. Оставшаяся записка предупреждает: нейтральной территории больше нет, у стола есть скрытая сторона.',
-      question: 'Вы фиксируете финальные штрихи досье перед публичным разбором.',
-      info: 'Финальный намек: ищите не только правила, но и тех, кто меняет их в тени.'
+      kind: 'decoder',
+      kicker: 'Палермо: дешифровщик порта',
+      title: 'Палермо: код на знаках',
+      lore: 'На складе найден боковой дешифровщик: он крутится по кругу и смещает значения символов. Выставьте правильное положение и введите числа для трех знаков.',
+      question: 'Поверните дешифровщик и введите верные числа к иероглифам.',
+      success: 'Знаки переведены в числа.',
+      answerLabel: 'Бонус',
+      answerText: 'Бонус: числовой код Палермо восстановлен.',
+      decoder: {
+        startOffset: 0,
+        correctOffset: 3,
+        symbols: [
+          { id: 'sun', glyph: '𓇳', baseValue: 2 },
+          { id: 'eye', glyph: '𓂀', baseValue: 5 },
+          { id: 'bird', glyph: '𓅓', baseValue: 8 }
+        ],
+        cards: [
+          { id: 'card1', glyph: '𓇳', answer: 5 },
+          { id: 'card2', glyph: '𓂀', answer: 8 },
+          { id: 'card3', glyph: '𓅓', answer: 1 }
+        ]
+      }
     }
   },
   {
     id: 'genoa_media',
-    title: 'Генуя: медиа-точка',
-    text: 'Тест фото, видео и аудио.',
+    title: 'Генуя',
+    text: 'Шахматная партия.',
     lat: 44.4056,
     lng: 8.9463,
     zoom: 9,
     markerColor: '#8f5bff',
     task: {
-      kind: 'empty',
-      kicker: 'Медиа-досье',
-      title: 'Генуя: тест медиа',
-      lore: 'Эта точка сделана как проверка: здесь можно показать фото-улику, видеофрагмент и аудиозапись прямо в карточке города.',
-      question: 'Откройте материалы ниже и проверьте, как они выглядят в Mini App.',
-      info: 'Тестовая точка без ключа. Позже сюда можно подставить ваши реальные файлы.',
-      media: [
-        {
-          type: 'image',
-          title: 'Фото-улика',
-          src: 'assets/media/test-photo.svg',
-          alt: 'Тестовая фото-улика'
-        },
-        {
-          type: 'video',
-          title: 'Видео-фрагмент',
-          src: 'https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4'
-        },
-        {
-          type: 'audio',
-          title: 'Аудио-запись',
-          src: 'assets/media/test-audio.wav'
-        }
-      ]
+      kind: 'chess',
+      kicker: 'Досье Генуи',
+      title: 'Генуя: мат в один ход',
+      lore: 'На полях досье лежит короткая шахматная запись: нужно сделать один точный ход, после которого партия заканчивается сразу. Любой другой легальный ход считается промахом.',
+      question: 'Белые начинают. Найдите мат в один ход.',
+      success: 'Партия закрыта мгновенно.',
+      answerLabel: 'Бонус',
+      answerText: 'Бонус: партия завершена точным ходом.',
+      chess: {
+        sideToMove: 'w',
+        pieces: [
+          { square: 'h8', type: 'k', color: 'b' },
+          { square: 'g7', type: 'p', color: 'b' },
+          { square: 'h7', type: 'p', color: 'b' },
+          { square: 'c3', type: 'b', color: 'w' },
+          { square: 'g6', type: 'q', color: 'w' },
+          { square: 'g1', type: 'k', color: 'w' }
+        ]
+      }
+    }
+  },
+  {
+    id: 'trieste',
+    title: 'Триест',
+    text: 'Кольца сигила.',
+    lat: 45.6495,
+    lng: 13.7768,
+    zoom: 9,
+    markerColor: '#cc5c78',
+    task: {
+      kind: 'rotor',
+      kicker: 'Архив Триеста',
+      title: 'Триест: вращающиеся кольца',
+      lore: 'На этой схеме знак разбит на три кольца. Поверните каждое отдельно так, чтобы из фрагментов снова собрался цельный символ.',
+      question: 'Крутите кольца, пока рисунок не станет цельным.',
+      success: 'Сигил собран.',
+      answerLabel: 'Бонус',
+      answerText: 'Бонус: знак Триеста восстановлен.',
+      rotor: {
+        note: 'Каждое кольцо вращается отдельно. Нужна одна правильная комбинация.',
+        rings: [
+          {
+            id: 'outer',
+            segments: 12,
+            step: 30,
+            start: 4,
+            target: 0,
+            colors: ['transparent', '#d7c8c6', '#d7c8c6', 'transparent', 'transparent', '#d7c8c6', '#d7c8c6', '#d7c8c6', 'transparent', 'transparent', '#d7c8c6', 'transparent']
+          },
+          {
+            id: 'middle',
+            segments: 12,
+            step: 30,
+            start: 7,
+            target: 0,
+            colors: ['transparent', '#d73d2a', '#d73d2a', '#d73d2a', 'transparent', '#d73d2a', 'transparent', '#d73d2a', '#d73d2a', 'transparent', 'transparent', '#d73d2a']
+          },
+          {
+            id: 'inner',
+            segments: 8,
+            step: 45,
+            start: 3,
+            target: 0,
+            colors: ['#f0ece7', 'transparent', '#f0ece7', 'transparent', 'transparent', '#f0ece7', 'transparent', '#f0ece7']
+          }
+        ]
+      }
     }
   }
 ];
@@ -443,6 +537,11 @@ const mapState = {
   caesarInputs: new Map(),
   matchLinks: new Map(),
   matchActiveFacts: new Map(),
+  scannerStates: new Map(),
+  decoderOffsets: new Map(),
+  decoderInputs: new Map(),
+  rotorAngles: new Map(),
+  chessStates: new Map(),
   cityVisits: new Map(),
   cityHints: new Map(),
   cityOverlayLayer: null,
@@ -456,6 +555,7 @@ const fallbackPointPositions = {
   turin: { x: 39, y: 21 },
   genoa_media: { x: 42, y: 29 },
   milan: { x: 48, y: 22 },
+  trieste: { x: 82, y: 18 },
   venice: { x: 71, y: 22 },
   verona: { x: 62, y: 24 },
   bologna: { x: 57, y: 31 },
@@ -1811,6 +1911,996 @@ function renderMatchTask(point) {
   taskOptionsNode.appendChild(wrap);
 }
 
+function clampNumber(value, min, max) {
+  return Math.min(max, Math.max(min, value));
+}
+
+function normalizeCodeToken(raw = '') {
+  return String(raw || '')
+    .toUpperCase()
+    .replace(/\s+/g, '')
+    .trim();
+}
+
+function renderHotspotTask(point) {
+  const config = point.task.hotspot || {};
+  const target = config.target || {};
+  const isSolved = mapState.solved.has(point.id);
+
+  const wrap = document.createElement('div');
+  wrap.className = 'hotspot-wrap';
+
+  const note = document.createElement('p');
+  note.className = 'task-mini-note';
+  note.textContent = 'На изображении спрятана одна правильная зона. Нажмите точно в неё.';
+  wrap.appendChild(note);
+
+  const scene = document.createElement('button');
+  scene.type = 'button';
+  scene.className = 'hotspot-scene';
+  scene.disabled = isSolved;
+
+  const image = document.createElement('img');
+  image.className = 'hotspot-image';
+  image.src = config.image?.src || '';
+  image.alt = config.image?.alt || point.title;
+  scene.appendChild(image);
+
+  if (isSolved) {
+    const marker = document.createElement('span');
+    marker.className = 'hotspot-hit';
+    marker.style.left = `${Number(target.x) || 50}%`;
+    marker.style.top = `${Number(target.y) || 50}%`;
+    marker.style.width = `${(Number(target.radius) || 8) * 2}%`;
+    marker.style.height = `${(Number(target.radius) || 8) * 2}%`;
+    scene.appendChild(marker);
+  }
+
+  scene.addEventListener('click', (event) => {
+    if (isSolved) {
+      return;
+    }
+
+    const rect = scene.getBoundingClientRect();
+    const x = ((event.clientX - rect.left) / rect.width) * 100;
+    const y = ((event.clientY - rect.top) / rect.height) * 100;
+    const dx = x - (Number(target.x) || 50);
+    const dy = y - (Number(target.y) || 50);
+    const distance = Math.sqrt(dx * dx + dy * dy);
+
+    if (distance <= (Number(target.radius) || 8)) {
+      completeTask(point);
+      setTaskResult(point.task.success || 'Точная зона найдена.', 'ok');
+      setTaskAnswer(point.task.answerText, point.task.answerLabel || 'Ключ');
+      renderTask(point);
+      triggerHaptic('success');
+      return;
+    }
+
+    setTaskResult(config.missText || 'Пока мимо. Попробуйте еще раз.', 'bad');
+    triggerHaptic('error');
+  });
+
+  wrap.appendChild(scene);
+  taskOptionsNode.appendChild(wrap);
+}
+
+function getScannerState(point) {
+  const existing = mapState.scannerStates.get(point.id);
+  if (existing) {
+    return existing;
+  }
+
+  const config = point.task.scanner || {};
+  const initial = {
+    x: Number(config.startX) || 18,
+    y: Number(config.startY) || 24,
+    input: '',
+    detectedCode: ''
+  };
+  mapState.scannerStates.set(point.id, initial);
+  return initial;
+}
+
+function getScannerOverlapRatio(state, config) {
+  const lensLeft = Number(state.x) || 0;
+  const lensTop = Number(state.y) || 0;
+  const lensRight = lensLeft + (Number(config.lensWidth) || 24);
+  const lensBottom = lensTop + (Number(config.lensHeight) || 20);
+  const targetLeft = Number(config.target?.x) || 0;
+  const targetTop = Number(config.target?.y) || 0;
+  const targetRight = targetLeft + (Number(config.target?.width) || 18);
+  const targetBottom = targetTop + (Number(config.target?.height) || 18);
+
+  const overlapWidth = Math.max(0, Math.min(lensRight, targetRight) - Math.max(lensLeft, targetLeft));
+  const overlapHeight = Math.max(0, Math.min(lensBottom, targetBottom) - Math.max(lensTop, targetTop));
+  const overlapArea = overlapWidth * overlapHeight;
+  const targetArea = (Number(config.target?.width) || 18) * (Number(config.target?.height) || 18);
+
+  if (!targetArea) {
+    return 0;
+  }
+
+  return overlapArea / targetArea;
+}
+
+function renderScannerTask(point) {
+  const config = point.task.scanner || {};
+  const state = getScannerState(point);
+  const isSolved = mapState.solved.has(point.id);
+
+  const wrap = document.createElement('div');
+  wrap.className = 'scanner-wrap';
+
+  const note = document.createElement('p');
+  note.className = 'task-mini-note';
+  note.textContent = 'Тяните рамку-сканер по изображению и ловите участок со шифром.';
+  wrap.appendChild(note);
+
+  const stage = document.createElement('div');
+  stage.className = 'scanner-stage';
+
+  const image = document.createElement('img');
+  image.className = 'scanner-image';
+  image.src = config.image?.src || '';
+  image.alt = config.image?.alt || point.title;
+  stage.appendChild(image);
+
+  const lens = document.createElement('div');
+  lens.className = 'scanner-lens';
+  lens.style.width = `${Number(config.lensWidth) || 24}%`;
+  lens.style.height = `${Number(config.lensHeight) || 20}%`;
+  stage.appendChild(lens);
+
+  const lensCode = document.createElement('span');
+  lensCode.className = 'scanner-lens-code';
+  lens.appendChild(lensCode);
+
+  const readout = document.createElement('p');
+  readout.className = 'scanner-readout';
+  wrap.appendChild(stage);
+  wrap.appendChild(readout);
+
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.className = 'scanner-input';
+  input.placeholder = 'Введите найденный шифр';
+  input.autocomplete = 'off';
+  input.spellcheck = false;
+  input.value = state.input || '';
+  input.disabled = isSolved;
+  input.addEventListener('input', () => {
+    state.input = input.value;
+  });
+
+  const checkBtn = document.createElement('button');
+  checkBtn.type = 'button';
+  checkBtn.className = 'scanner-confirm';
+  checkBtn.textContent = isSolved ? 'Шифр считан' : 'Подтвердить шифр';
+  checkBtn.disabled = isSolved;
+
+  const updateScannerUi = () => {
+    lens.style.left = `${state.x}%`;
+    lens.style.top = `${state.y}%`;
+    const detected = getScannerOverlapRatio(state, config) >= 0.42;
+    if (detected) {
+      state.detectedCode = config.revealText || '';
+    }
+
+    const codeText = state.detectedCode || '---';
+    readout.textContent = `Сканер: ${codeText}`;
+    lensCode.textContent = detected ? (config.revealText || '') : 'SCAN';
+    lens.classList.toggle('is-detected', detected || Boolean(state.detectedCode));
+  };
+
+  if (!isSolved) {
+    let pointerId = null;
+    let startX = 0;
+    let startY = 0;
+    let originX = state.x;
+    let originY = state.y;
+
+    const finishDrag = () => {
+      if (pointerId !== null) {
+        try {
+          lens.releasePointerCapture(pointerId);
+        } catch (_) {
+          // No-op.
+        }
+      }
+      pointerId = null;
+    };
+
+    lens.addEventListener('pointerdown', (event) => {
+      pointerId = event.pointerId;
+      startX = event.clientX;
+      startY = event.clientY;
+      originX = state.x;
+      originY = state.y;
+      lens.setPointerCapture(pointerId);
+      event.preventDefault();
+    });
+
+    lens.addEventListener('pointermove', (event) => {
+      if (pointerId === null || event.pointerId !== pointerId) {
+        return;
+      }
+
+      const rect = stage.getBoundingClientRect();
+      const deltaX = (event.clientX - startX) / rect.width * 100;
+      const deltaY = (event.clientY - startY) / rect.height * 100;
+      state.x = clampNumber(originX + deltaX, 0, 100 - (Number(config.lensWidth) || 24));
+      state.y = clampNumber(originY + deltaY, 0, 100 - (Number(config.lensHeight) || 20));
+      updateScannerUi();
+
+      if (state.detectedCode) {
+        setTaskResult('Сканер поймал шифр. Теперь введите его ниже.', 'info');
+      }
+
+      event.preventDefault();
+    });
+
+    lens.addEventListener('pointerup', finishDrag);
+    lens.addEventListener('pointercancel', finishDrag);
+  }
+
+  updateScannerUi();
+
+  checkBtn.addEventListener('click', () => {
+    if (!state.detectedCode) {
+      setTaskResult('Сначала найдите код сканером.', 'bad');
+      triggerHaptic('error');
+      return;
+    }
+
+    const typed = normalizeCodeToken(state.input);
+    const target = normalizeCodeToken(config.targetCode || config.revealText || '');
+    if (typed && typed === target) {
+      completeTask(point);
+      setTaskResult(point.task.success || 'Шифр подтвержден.', 'ok');
+      setTaskAnswer(point.task.answerText, point.task.answerLabel || 'Ключ');
+      renderTask(point);
+      triggerHaptic('success');
+      return;
+    }
+
+    setTaskResult('Шифр введен неверно. Проверьте символы и дефисы.', 'bad');
+    triggerHaptic('error');
+  });
+
+  const actions = document.createElement('div');
+  actions.className = 'scanner-actions';
+  actions.appendChild(input);
+  actions.appendChild(checkBtn);
+  wrap.appendChild(actions);
+
+  taskOptionsNode.appendChild(wrap);
+}
+
+function getRotorAngles(point) {
+  const existing = mapState.rotorAngles.get(point.id);
+  if (existing) {
+    return existing.slice();
+  }
+
+  const initial = (point.task.rotor?.rings || []).map((ring) => Number(ring.start) || 0);
+  mapState.rotorAngles.set(point.id, initial.slice());
+  return initial;
+}
+
+function setRotorAngles(point, values) {
+  mapState.rotorAngles.set(point.id, values.slice());
+}
+
+function isRotorSolved(point, angles = getRotorAngles(point)) {
+  const rings = point.task.rotor?.rings || [];
+  return rings.every((ring, index) => {
+    const segments = Number(ring.segments) || 1;
+    const normalized = ((Number(angles[index]) || 0) % segments + segments) % segments;
+    const target = ((Number(ring.target) || 0) % segments + segments) % segments;
+    return normalized === target;
+  });
+}
+
+function buildRotorGradient(colors = []) {
+  const segments = colors.length || 1;
+  const step = 360 / segments;
+  return `conic-gradient(${colors.map((color, index) => `${color} ${index * step}deg ${(index + 1) * step}deg`).join(', ')})`;
+}
+
+function renderRotorTask(point) {
+  const config = point.task.rotor || {};
+  const rings = config.rings || [];
+  const isSolved = mapState.solved.has(point.id);
+  const angles = getRotorAngles(point);
+
+  const wrap = document.createElement('div');
+  wrap.className = 'rotor-wrap';
+
+  const note = document.createElement('p');
+  note.className = 'task-mini-note';
+  note.textContent = config.note || 'Поверните кольца, пока фрагменты не встанут в цельный знак.';
+  wrap.appendChild(note);
+
+  const stage = document.createElement('div');
+  stage.className = 'rotor-stage';
+
+  const sizes = [100, 74, 48];
+  const thicknesses = [28, 24, 20];
+
+  rings.forEach((ring, index) => {
+    const ringNode = document.createElement('div');
+    ringNode.className = 'rotor-ring';
+    ringNode.style.width = `${sizes[index] || 44}%`;
+    ringNode.style.height = `${sizes[index] || 44}%`;
+    ringNode.style.setProperty('--ring-thickness', `${thicknesses[index] || 18}%`);
+    ringNode.style.background = buildRotorGradient(ring.colors || []);
+    ringNode.style.transform = `translate(-50%, -50%) rotate(${(Number(angles[index]) || 0) * (Number(ring.step) || (360 / (Number(ring.segments) || 1)))}deg)`;
+    stage.appendChild(ringNode);
+  });
+
+  const core = document.createElement('div');
+  core.className = 'rotor-core';
+  stage.appendChild(core);
+  wrap.appendChild(stage);
+
+  const controls = document.createElement('div');
+  controls.className = 'rotor-controls';
+
+  rings.forEach((ring, index) => {
+    const control = document.createElement('div');
+    control.className = 'rotor-control';
+
+    const label = document.createElement('span');
+    label.className = 'rotor-control-label';
+    label.textContent = `Кольцо ${index + 1}`;
+    control.appendChild(label);
+
+    const leftBtn = document.createElement('button');
+    leftBtn.type = 'button';
+    leftBtn.className = 'rotor-btn';
+    leftBtn.textContent = '⟲';
+    leftBtn.disabled = isSolved;
+    leftBtn.addEventListener('click', () => {
+      const next = getRotorAngles(point);
+      const total = Number(ring.segments) || 1;
+      next[index] = (Number(next[index]) - 1 + total) % total;
+      setRotorAngles(point, next);
+
+      if (isRotorSolved(point, next)) {
+        completeTask(point);
+        setTaskResult(point.task.success || 'Рисунок собран.', 'ok');
+        setTaskAnswer(point.task.answerText, point.task.answerLabel || 'Ключ');
+      }
+
+      renderTask(point);
+      triggerHaptic('light');
+    });
+
+    const rightBtn = document.createElement('button');
+    rightBtn.type = 'button';
+    rightBtn.className = 'rotor-btn';
+    rightBtn.textContent = '⟳';
+    rightBtn.disabled = isSolved;
+    rightBtn.addEventListener('click', () => {
+      const next = getRotorAngles(point);
+      const total = Number(ring.segments) || 1;
+      next[index] = (Number(next[index]) + 1) % total;
+      setRotorAngles(point, next);
+
+      if (isRotorSolved(point, next)) {
+        completeTask(point);
+        setTaskResult(point.task.success || 'Рисунок собран.', 'ok');
+        setTaskAnswer(point.task.answerText, point.task.answerLabel || 'Ключ');
+      }
+
+      renderTask(point);
+      triggerHaptic('light');
+    });
+
+    control.appendChild(leftBtn);
+    control.appendChild(rightBtn);
+    controls.appendChild(control);
+  });
+
+  wrap.appendChild(controls);
+  taskOptionsNode.appendChild(wrap);
+}
+
+function getDecoderOffset(point) {
+  if (mapState.decoderOffsets.has(point.id)) {
+    return Number(mapState.decoderOffsets.get(point.id)) || 0;
+  }
+
+  const initial = Number(point.task.decoder?.startOffset) || 0;
+  mapState.decoderOffsets.set(point.id, initial);
+  return initial;
+}
+
+function getDecoderInputs(point) {
+  const existing = mapState.decoderInputs.get(point.id);
+  if (existing) {
+    return { ...existing };
+  }
+
+  const initial = {};
+  (point.task.decoder?.cards || []).forEach((card) => {
+    initial[card.id] = '';
+  });
+  mapState.decoderInputs.set(point.id, { ...initial });
+  return { ...initial };
+}
+
+function setDecoderInputs(point, nextInputs) {
+  mapState.decoderInputs.set(point.id, { ...nextInputs });
+}
+
+function decoderValueFor(symbolConfig, offset) {
+  return ((Number(symbolConfig.baseValue) || 0) + (Number(offset) || 0)) % 10;
+}
+
+function renderDecoderTask(point) {
+  const config = point.task.decoder || {};
+  const symbols = config.symbols || [];
+  const cards = config.cards || [];
+  const isSolved = mapState.solved.has(point.id);
+  const offset = getDecoderOffset(point);
+  const inputs = getDecoderInputs(point);
+
+  const wrap = document.createElement('div');
+  wrap.className = 'decoder-wrap';
+
+  const note = document.createElement('p');
+  note.className = 'task-mini-note';
+  note.textContent = 'Диск задает общий сдвиг. Выставьте нужное положение и введите числа для знаков.';
+  wrap.appendChild(note);
+
+  const layout = document.createElement('div');
+  layout.className = 'decoder-layout';
+
+  const dial = document.createElement('div');
+  dial.className = 'decoder-dial-card';
+
+  const dialWheel = document.createElement('div');
+  dialWheel.className = 'decoder-wheel';
+  const wheelInner = document.createElement('div');
+  wheelInner.className = 'decoder-wheel-inner';
+  wheelInner.textContent = String(offset);
+  dialWheel.appendChild(wheelInner);
+
+  for (let value = 0; value < 10; value += 1) {
+    const digit = document.createElement('span');
+    digit.className = 'decoder-wheel-digit';
+    digit.textContent = String(value);
+    const angle = (360 / 10) * value - 90;
+    digit.style.transform = `translate(-50%, -50%) rotate(${angle}deg) translate(0, -74px) rotate(${-angle}deg)`;
+    if (value === offset) {
+      digit.classList.add('is-active');
+    }
+    dialWheel.appendChild(digit);
+  }
+
+  const dialActions = document.createElement('div');
+  dialActions.className = 'decoder-dial-actions';
+
+  const leftBtn = document.createElement('button');
+  leftBtn.type = 'button';
+  leftBtn.className = 'decoder-btn';
+  leftBtn.textContent = '−';
+  leftBtn.disabled = isSolved;
+  leftBtn.addEventListener('click', () => {
+    const next = (getDecoderOffset(point) + 9) % 10;
+    mapState.decoderOffsets.set(point.id, next);
+    renderTask(point);
+    triggerHaptic('light');
+  });
+
+  const rightBtn = document.createElement('button');
+  rightBtn.type = 'button';
+  rightBtn.className = 'decoder-btn';
+  rightBtn.textContent = '+';
+  rightBtn.disabled = isSolved;
+  rightBtn.addEventListener('click', () => {
+    const next = (getDecoderOffset(point) + 1) % 10;
+    mapState.decoderOffsets.set(point.id, next);
+    renderTask(point);
+    triggerHaptic('light');
+  });
+
+  dialActions.appendChild(leftBtn);
+  dialActions.appendChild(rightBtn);
+  dial.appendChild(dialWheel);
+  dial.appendChild(dialActions);
+  layout.appendChild(dial);
+
+  const panel = document.createElement('div');
+  panel.className = 'decoder-panel';
+
+  const mappingHead = document.createElement('p');
+  mappingHead.className = 'decoder-head';
+  mappingHead.textContent = 'Текущее считывание';
+  panel.appendChild(mappingHead);
+
+  const mappingList = document.createElement('div');
+  mappingList.className = 'decoder-mapping';
+  symbols.forEach((symbolConfig) => {
+    const item = document.createElement('div');
+    item.className = 'decoder-map-item';
+    item.textContent = `${symbolConfig.glyph} = ${decoderValueFor(symbolConfig, offset)}`;
+    mappingList.appendChild(item);
+  });
+  panel.appendChild(mappingList);
+
+  const cardsWrap = document.createElement('div');
+  cardsWrap.className = 'decoder-cards';
+  cards.forEach((card) => {
+    const cardNode = document.createElement('label');
+    cardNode.className = 'decoder-card';
+
+    const glyph = document.createElement('span');
+    glyph.className = 'decoder-card-glyph';
+    glyph.textContent = card.glyph;
+    cardNode.appendChild(glyph);
+
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.inputMode = 'numeric';
+    input.maxLength = 2;
+    input.className = 'decoder-card-input';
+    input.value = inputs[card.id] || '';
+    input.disabled = isSolved;
+    input.placeholder = '??';
+    input.addEventListener('input', () => {
+      const nextInputs = getDecoderInputs(point);
+      nextInputs[card.id] = input.value.replace(/\D+/g, '').slice(0, 2);
+      setDecoderInputs(point, nextInputs);
+    });
+    cardNode.appendChild(input);
+
+    cardsWrap.appendChild(cardNode);
+  });
+  panel.appendChild(cardsWrap);
+
+  const checkBtn = document.createElement('button');
+  checkBtn.type = 'button';
+  checkBtn.className = 'decoder-confirm';
+  checkBtn.textContent = isSolved ? 'Код подтвержден' : 'Проверить числа';
+  checkBtn.disabled = isSolved;
+  checkBtn.addEventListener('click', () => {
+    const typed = getDecoderInputs(point);
+    const offsetOk = getDecoderOffset(point) === (Number(config.correctOffset) || 0);
+    const numbersOk = cards.every((card) => String(card.answer) === String(typed[card.id] || '').trim());
+
+    if (offsetOk && numbersOk) {
+      completeTask(point);
+      setTaskResult(point.task.success || 'Числа совпали.', 'ok');
+      setTaskAnswer(point.task.answerText, point.task.answerLabel || 'Ключ');
+      renderTask(point);
+      triggerHaptic('success');
+      return;
+    }
+
+    setTaskResult('Пока не сходится. Проверьте положение диска и значения всех знаков.', 'bad');
+    triggerHaptic('error');
+  });
+  panel.appendChild(checkBtn);
+
+  layout.appendChild(panel);
+  wrap.appendChild(layout);
+  taskOptionsNode.appendChild(wrap);
+}
+
+const CHESS_FILES = 'abcdefgh';
+const CHESS_GLYPHS = {
+  wk: '♔',
+  wq: '♕',
+  wr: '♖',
+  wb: '♗',
+  wn: '♘',
+  wp: '♙',
+  bk: '♚',
+  bq: '♛',
+  br: '♜',
+  bb: '♝',
+  bn: '♞',
+  bp: '♟'
+};
+
+function squareToCoords(square) {
+  const file = CHESS_FILES.indexOf(String(square || '').charAt(0));
+  const rank = Number(String(square || '').charAt(1));
+  return {
+    x: file,
+    y: 8 - rank
+  };
+}
+
+function coordsToSquare(x, y) {
+  return `${CHESS_FILES[x]}${8 - y}`;
+}
+
+function isInsideChessBoard(x, y) {
+  return x >= 0 && x < 8 && y >= 0 && y < 8;
+}
+
+function cloneChessBoard(board = {}) {
+  const copy = {};
+  Object.keys(board).forEach((square) => {
+    copy[square] = { ...board[square] };
+  });
+  return copy;
+}
+
+function buildChessBoard(pieces = []) {
+  const board = {};
+  pieces.forEach((piece) => {
+    board[piece.square] = {
+      type: piece.type,
+      color: piece.color
+    };
+  });
+  return board;
+}
+
+function createInitialChessState(point) {
+  return {
+    board: buildChessBoard(point.task.chess?.pieces || []),
+    selectedSquare: '',
+    sideToMove: point.task.chess?.sideToMove || 'w'
+  };
+}
+
+function getChessState(point) {
+  const existing = mapState.chessStates.get(point.id);
+  if (existing) {
+    return existing;
+  }
+
+  const initial = createInitialChessState(point);
+  mapState.chessStates.set(point.id, initial);
+  return initial;
+}
+
+function resetChessState(point) {
+  mapState.chessStates.set(point.id, createInitialChessState(point));
+}
+
+function getChessPiece(board, square) {
+  return board[square] || null;
+}
+
+function oppositeColor(color) {
+  return color === 'w' ? 'b' : 'w';
+}
+
+function pushSlidingMoves(board, piece, x, y, directions, moves, attacksOnly = false) {
+  directions.forEach(([dx, dy]) => {
+    let nextX = x + dx;
+    let nextY = y + dy;
+
+    while (isInsideChessBoard(nextX, nextY)) {
+      const nextSquare = coordsToSquare(nextX, nextY);
+      const occupant = getChessPiece(board, nextSquare);
+
+      if (!occupant) {
+        if (!attacksOnly) {
+          moves.push(nextSquare);
+        }
+        nextX += dx;
+        nextY += dy;
+        continue;
+      }
+
+      if (occupant.color !== piece.color) {
+        moves.push(nextSquare);
+      }
+      break;
+    }
+  });
+}
+
+function generateChessPseudoMoves(board, square, piece, attacksOnly = false) {
+  const { x, y } = squareToCoords(square);
+  const moves = [];
+
+  if (!isInsideChessBoard(x, y)) {
+    return moves;
+  }
+
+  if (piece.type === 'p') {
+    const direction = piece.color === 'w' ? -1 : 1;
+    const startRank = piece.color === 'w' ? 6 : 1;
+    const attackOffsets = [[-1, direction], [1, direction]];
+
+    attackOffsets.forEach(([dx, dy]) => {
+      const nextX = x + dx;
+      const nextY = y + dy;
+      if (!isInsideChessBoard(nextX, nextY)) {
+        return;
+      }
+
+      const nextSquare = coordsToSquare(nextX, nextY);
+      const occupant = getChessPiece(board, nextSquare);
+      if (attacksOnly || (occupant && occupant.color !== piece.color)) {
+        moves.push(nextSquare);
+      }
+    });
+
+    if (attacksOnly) {
+      return moves;
+    }
+
+    const oneStepY = y + direction;
+    if (isInsideChessBoard(x, oneStepY)) {
+      const oneStepSquare = coordsToSquare(x, oneStepY);
+      if (!getChessPiece(board, oneStepSquare)) {
+        moves.push(oneStepSquare);
+
+        const twoStepY = y + direction * 2;
+        if (y === startRank && isInsideChessBoard(x, twoStepY)) {
+          const twoStepSquare = coordsToSquare(x, twoStepY);
+          if (!getChessPiece(board, twoStepSquare)) {
+            moves.push(twoStepSquare);
+          }
+        }
+      }
+    }
+
+    return moves;
+  }
+
+  if (piece.type === 'n') {
+    [[1, 2], [2, 1], [2, -1], [1, -2], [-1, -2], [-2, -1], [-2, 1], [-1, 2]].forEach(([dx, dy]) => {
+      const nextX = x + dx;
+      const nextY = y + dy;
+      if (!isInsideChessBoard(nextX, nextY)) {
+        return;
+      }
+      const nextSquare = coordsToSquare(nextX, nextY);
+      const occupant = getChessPiece(board, nextSquare);
+      if (!occupant || occupant.color !== piece.color) {
+        moves.push(nextSquare);
+      }
+    });
+    return moves;
+  }
+
+  if (piece.type === 'b') {
+    pushSlidingMoves(board, piece, x, y, [[1, 1], [1, -1], [-1, 1], [-1, -1]], moves, attacksOnly);
+    return moves;
+  }
+
+  if (piece.type === 'r') {
+    pushSlidingMoves(board, piece, x, y, [[1, 0], [-1, 0], [0, 1], [0, -1]], moves, attacksOnly);
+    return moves;
+  }
+
+  if (piece.type === 'q') {
+    pushSlidingMoves(board, piece, x, y, [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]], moves, attacksOnly);
+    return moves;
+  }
+
+  if (piece.type === 'k') {
+    [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]].forEach(([dx, dy]) => {
+      const nextX = x + dx;
+      const nextY = y + dy;
+      if (!isInsideChessBoard(nextX, nextY)) {
+        return;
+      }
+      const nextSquare = coordsToSquare(nextX, nextY);
+      const occupant = getChessPiece(board, nextSquare);
+      if (!occupant || occupant.color !== piece.color) {
+        moves.push(nextSquare);
+      }
+    });
+  }
+
+  return moves;
+}
+
+function findKingSquare(board, color) {
+  return Object.keys(board).find((square) => board[square]?.type === 'k' && board[square]?.color === color) || '';
+}
+
+function applyChessMove(board, from, to) {
+  const next = cloneChessBoard(board);
+  next[to] = { ...next[from] };
+  delete next[from];
+  return next;
+}
+
+function isSquareAttacked(board, square, byColor) {
+  return Object.keys(board).some((fromSquare) => {
+    const piece = board[fromSquare];
+    if (!piece || piece.color !== byColor) {
+      return false;
+    }
+    return generateChessPseudoMoves(board, fromSquare, piece, true).includes(square);
+  });
+}
+
+function isKingInCheck(board, color) {
+  const kingSquare = findKingSquare(board, color);
+  if (!kingSquare) {
+    return false;
+  }
+  return isSquareAttacked(board, kingSquare, oppositeColor(color));
+}
+
+function getLegalChessMovesForSquare(board, square) {
+  const piece = getChessPiece(board, square);
+  if (!piece) {
+    return [];
+  }
+
+  return generateChessPseudoMoves(board, square, piece, false).filter((targetSquare) => {
+    const nextBoard = applyChessMove(board, square, targetSquare);
+    return !isKingInCheck(nextBoard, piece.color);
+  });
+}
+
+function getAllLegalChessMoves(board, color) {
+  const moves = [];
+  Object.keys(board).forEach((square) => {
+    const piece = board[square];
+    if (!piece || piece.color !== color) {
+      return;
+    }
+
+    getLegalChessMovesForSquare(board, square).forEach((targetSquare) => {
+      moves.push({ from: square, to: targetSquare });
+    });
+  });
+  return moves;
+}
+
+function isCheckmate(board, color) {
+  return isKingInCheck(board, color) && getAllLegalChessMoves(board, color).length === 0;
+}
+
+function chessGlyph(piece) {
+  return CHESS_GLYPHS[`${piece.color}${piece.type}`] || '';
+}
+
+function renderChessTask(point) {
+  const chess = getChessState(point);
+  const isSolved = mapState.solved.has(point.id);
+
+  const wrap = document.createElement('div');
+  wrap.className = 'chess-wrap';
+
+  const note = document.createElement('p');
+  note.className = 'task-mini-note';
+  note.textContent = 'Сначала выберите белую фигуру, затем клетку назначения.';
+  wrap.appendChild(note);
+
+  const boardNode = document.createElement('div');
+  boardNode.className = 'chess-board';
+
+  const selectedSquare = chess.selectedSquare || '';
+  const legalTargets = selectedSquare ? getLegalChessMovesForSquare(chess.board, selectedSquare) : [];
+
+  for (let y = 0; y < 8; y += 1) {
+    for (let x = 0; x < 8; x += 1) {
+      const square = coordsToSquare(x, y);
+      const piece = getChessPiece(chess.board, square);
+      const cell = document.createElement('button');
+      cell.type = 'button';
+      cell.className = `chess-cell ${(x + y) % 2 === 0 ? 'light' : 'dark'}`;
+      cell.disabled = isSolved;
+      cell.dataset.square = square;
+
+      if (selectedSquare === square) {
+        cell.classList.add('is-selected');
+      }
+
+      if (legalTargets.includes(square)) {
+        cell.classList.add('is-target');
+      }
+
+      if (piece) {
+        const glyph = document.createElement('span');
+        glyph.className = `chess-piece ${piece.color === 'w' ? 'white' : 'black'}`;
+        glyph.textContent = chessGlyph(piece);
+        cell.appendChild(glyph);
+      }
+
+      if (y === 7) {
+        const fileLabel = document.createElement('span');
+        fileLabel.className = 'chess-file';
+        fileLabel.textContent = CHESS_FILES[x];
+        cell.appendChild(fileLabel);
+      }
+
+      if (x === 0) {
+        const rankLabel = document.createElement('span');
+        rankLabel.className = 'chess-rank';
+        rankLabel.textContent = String(8 - y);
+        cell.appendChild(rankLabel);
+      }
+
+      cell.addEventListener('click', () => {
+        const clickedPiece = getChessPiece(chess.board, square);
+
+        if (!selectedSquare) {
+          if (clickedPiece && clickedPiece.color === chess.sideToMove) {
+            chess.selectedSquare = square;
+            renderTask(point);
+            triggerHaptic('light');
+            return;
+          }
+
+          setTaskResult('Сначала выберите белую фигуру.', 'info');
+          triggerHaptic('error');
+          return;
+        }
+
+        if (selectedSquare === square) {
+          chess.selectedSquare = '';
+          renderTask(point);
+          triggerHaptic('light');
+          return;
+        }
+
+        const allowedMoves = getLegalChessMovesForSquare(chess.board, selectedSquare);
+        if (allowedMoves.includes(square)) {
+          const nextBoard = applyChessMove(chess.board, selectedSquare, square);
+          chess.board = nextBoard;
+          chess.selectedSquare = '';
+
+          if (isCheckmate(nextBoard, oppositeColor(chess.sideToMove))) {
+            completeTask(point);
+            setTaskResult(point.task.success || 'Мат поставлен.', 'ok');
+            setTaskAnswer(point.task.answerText, point.task.answerLabel || 'Ключ');
+            renderTask(point);
+            triggerHaptic('success');
+            return;
+          }
+
+          resetChessState(point);
+          renderTask(point);
+          setTaskResult('Ход легальный, но мгновенной победы нет. Позиция сброшена.', 'bad');
+          triggerHaptic('error');
+          return;
+        }
+
+        if (clickedPiece && clickedPiece.color === chess.sideToMove) {
+          chess.selectedSquare = square;
+          renderTask(point);
+          triggerHaptic('light');
+          return;
+        }
+
+        setTaskResult('Такой ход сейчас не проходит.', 'bad');
+        triggerHaptic('error');
+      });
+
+      boardNode.appendChild(cell);
+    }
+  }
+
+  wrap.appendChild(boardNode);
+
+  const actions = document.createElement('div');
+  actions.className = 'chess-actions';
+
+  const resetBtn = document.createElement('button');
+  resetBtn.type = 'button';
+  resetBtn.className = 'chess-reset';
+  resetBtn.textContent = 'Сбросить позицию';
+  resetBtn.disabled = isSolved;
+  resetBtn.addEventListener('click', () => {
+    resetChessState(point);
+    renderTask(point);
+    setTaskResult('Позиция сброшена.', 'info');
+    triggerHaptic('light');
+  });
+
+  actions.appendChild(resetBtn);
+  wrap.appendChild(actions);
+  taskOptionsNode.appendChild(wrap);
+}
+
 function cityPoiMarkerStyle(poi, isVisited) {
   if (isVisited) {
     return {
@@ -2094,6 +3184,56 @@ function renderTask(point) {
   if (point.task.kind === 'match') {
     renderTaskMedia(point);
     renderMatchTask(point);
+    if (mapState.solved.has(point.id)) {
+      setTaskResult(point.task.success || 'Загадка уже решена.', 'ok');
+      setTaskAnswer(point.task.answerText, point.task.answerLabel || 'Ключ');
+    }
+    return;
+  }
+
+  if (point.task.kind === 'hotspot') {
+    renderTaskMedia(point);
+    renderHotspotTask(point);
+    if (mapState.solved.has(point.id)) {
+      setTaskResult(point.task.success || 'Загадка уже решена.', 'ok');
+      setTaskAnswer(point.task.answerText, point.task.answerLabel || 'Ключ');
+    }
+    return;
+  }
+
+  if (point.task.kind === 'scanner') {
+    renderTaskMedia(point);
+    renderScannerTask(point);
+    if (mapState.solved.has(point.id)) {
+      setTaskResult(point.task.success || 'Загадка уже решена.', 'ok');
+      setTaskAnswer(point.task.answerText, point.task.answerLabel || 'Ключ');
+    }
+    return;
+  }
+
+  if (point.task.kind === 'rotor') {
+    renderTaskMedia(point);
+    renderRotorTask(point);
+    if (mapState.solved.has(point.id)) {
+      setTaskResult(point.task.success || 'Загадка уже решена.', 'ok');
+      setTaskAnswer(point.task.answerText, point.task.answerLabel || 'Ключ');
+    }
+    return;
+  }
+
+  if (point.task.kind === 'decoder') {
+    renderTaskMedia(point);
+    renderDecoderTask(point);
+    if (mapState.solved.has(point.id)) {
+      setTaskResult(point.task.success || 'Загадка уже решена.', 'ok');
+      setTaskAnswer(point.task.answerText, point.task.answerLabel || 'Ключ');
+    }
+    return;
+  }
+
+  if (point.task.kind === 'chess') {
+    renderTaskMedia(point);
+    renderChessTask(point);
     if (mapState.solved.has(point.id)) {
       setTaskResult(point.task.success || 'Загадка уже решена.', 'ok');
       setTaskAnswer(point.task.answerText, point.task.answerLabel || 'Ключ');

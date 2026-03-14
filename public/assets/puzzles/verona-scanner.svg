@@ -1,0 +1,43 @@
+<svg width="1200" height="780" viewBox="0 0 1200 780" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="118" y1="84" x2="1096" y2="672" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#581B24"/>
+      <stop offset="1" stop-color="#1A0A0F"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="780" rx="24" fill="#1C0B12"/>
+  <rect x="68" y="76" width="792" height="568" rx="20" fill="url(#bg)"/>
+  <rect x="94" y="106" width="742" height="510" rx="10" fill="#7E1726"/>
+  <g opacity="0.72">
+    <ellipse cx="236" cy="420" rx="84" ry="132" fill="#F56576"/>
+    <ellipse cx="408" cy="318" rx="76" ry="164" fill="#FB8390"/>
+    <ellipse cx="594" cy="360" rx="80" ry="152" fill="#EE6574"/>
+    <ellipse cx="730" cy="338" rx="66" ry="138" fill="#FF8D95"/>
+    <ellipse cx="304" cy="272" rx="54" ry="114" fill="#CA4457"/>
+    <ellipse cx="520" cy="224" rx="48" ry="94" fill="#A92439"/>
+  </g>
+  <g stroke="#FFD4D8" stroke-width="4" opacity="0.8">
+    <path d="M122 204H808"/>
+    <path d="M122 520H808"/>
+    <path d="M188 130V592"/>
+    <path d="M742 130V592"/>
+  </g>
+  <rect x="874" y="146" width="264" height="204" rx="16" fill="#2A0E17" stroke="#F5D3D8" stroke-width="4"/>
+  <path d="M904 188H1108" stroke="#F5D3D8" stroke-width="4"/>
+  <path d="M904 252H1108" stroke="#F5D3D8" stroke-width="4"/>
+  <path d="M944 170L1032 330" stroke="#F5D3D8" stroke-width="4"/>
+  <path d="M1084 170L976 330" stroke="#F5D3D8" stroke-width="4"/>
+  <path d="M936 210H960" stroke="#FFF5F6" stroke-width="8" stroke-linecap="round"/>
+  <path d="M980 210H988" stroke="#FFF5F6" stroke-width="8" stroke-linecap="round"/>
+  <path d="M998 210H1006" stroke="#FFF5F6" stroke-width="8" stroke-linecap="round"/>
+  <path d="M1018 210H1026" stroke="#FFF5F6" stroke-width="8" stroke-linecap="round"/>
+  <path d="M1040 210H1048" stroke="#FFF5F6" stroke-width="8" stroke-linecap="round"/>
+  <path d="M928 286H936" stroke="#FFF5F6" stroke-width="8" stroke-linecap="round"/>
+  <path d="M948 286H956" stroke="#FFF5F6" stroke-width="8" stroke-linecap="round"/>
+  <path d="M968 286H976" stroke="#FFF5F6" stroke-width="8" stroke-linecap="round"/>
+  <path d="M1008 286H1016" stroke="#FFF5F6" stroke-width="8" stroke-linecap="round"/>
+  <path d="M1032 286H1040" stroke="#FFF5F6" stroke-width="8" stroke-linecap="round"/>
+  <path d="M1052 286H1060" stroke="#FFF5F6" stroke-width="8" stroke-linecap="round"/>
+  <text x="90" y="50" fill="#F6E6E9" font-family="Arial, sans-serif" font-size="32" font-weight="700">Архивный кадр с шумом</text>
+  <text x="92" y="704" fill="#D8B2B8" font-family="Arial, sans-serif" font-size="28" font-weight="700">Подведите сканер к блоку с шифром</text>
+</svg>

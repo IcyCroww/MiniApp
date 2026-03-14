@@ -1,0 +1,40 @@
+<svg width="1200" height="780" viewBox="0 0 1200 780" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="600" y1="48" x2="600" y2="740" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F4F0E6"/>
+      <stop offset="1" stop-color="#D7DCCF"/>
+    </linearGradient>
+    <linearGradient id="floor" x1="600" y1="472" x2="600" y2="760" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#B98A58"/>
+      <stop offset="1" stop-color="#87623F"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="780" rx="24" fill="url(#bg)"/>
+  <rect y="468" width="1200" height="312" fill="url(#floor)"/>
+  <rect x="94" y="102" width="228" height="286" rx="20" fill="#7D8A78"/>
+  <rect x="114" y="124" width="188" height="248" rx="12" fill="#E8EDE3"/>
+  <rect x="820" y="98" width="282" height="190" rx="18" fill="#5B473F"/>
+  <rect x="842" y="118" width="238" height="150" rx="10" fill="#EAE6DE"/>
+  <rect x="748" y="322" width="236" height="156" rx="18" fill="#C1C9BC"/>
+  <rect x="182" y="506" width="844" height="58" rx="28" fill="#553C29"/>
+  <ellipse cx="602" cy="446" rx="254" ry="104" fill="#D0B28A"/>
+  <ellipse cx="602" cy="446" rx="182" ry="68" fill="#EAD7B9"/>
+  <rect x="304" y="206" width="460" height="156" rx="22" fill="#C7D4CC"/>
+  <rect x="326" y="226" width="416" height="116" rx="14" fill="#F8FBF7"/>
+  <path d="M884 130H1038V238H884V130Z" fill="#C1423F"/>
+  <path d="M896 144H1026V224H896V144Z" fill="#8D2522"/>
+  <circle cx="962" cy="184" r="34" fill="#F8E8D6"/>
+  <path d="M962 156L970 176H992L974 188L980 210L962 198L944 210L950 188L932 176H954L962 156Z" fill="#C1423F"/>
+  <circle cx="884" cy="184" r="18" fill="#EAD7B9"/>
+  <circle cx="1042" cy="184" r="18" fill="#EAD7B9"/>
+  <path d="M224 162H278" stroke="#6D7B69" stroke-width="12" stroke-linecap="round"/>
+  <path d="M224 202H278" stroke="#6D7B69" stroke-width="12" stroke-linecap="round"/>
+  <path d="M224 242H278" stroke="#6D7B69" stroke-width="12" stroke-linecap="round"/>
+  <path d="M224 282H278" stroke="#6D7B69" stroke-width="12" stroke-linecap="round"/>
+  <circle cx="774" cy="566" r="10" fill="#31251D" fill-opacity="0.34"/>
+  <circle cx="826" cy="566" r="10" fill="#31251D" fill-opacity="0.34"/>
+  <circle cx="878" cy="566" r="10" fill="#31251D" fill-opacity="0.34"/>
+  <text x="126" y="90" fill="#314034" font-family="Arial, sans-serif" font-size="34" font-weight="700">Комната архива</text>
+  <text x="342" y="286" fill="#5F6C62" font-family="Arial, sans-serif" font-size="28" font-weight="700">СХЕМА ПЕРЕГОВОРНОЙ</text>
+  <text x="342" y="324" fill="#728178" font-family="Arial, sans-serif" font-size="24" font-weight="700">Найдите скрытую печать</text>
+</svg>
