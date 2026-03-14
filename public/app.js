@@ -634,6 +634,7 @@ const points = [
       answerLabel: 'Бонус',
       answerText: 'Бонус: код Бари переведен в числа.',
       decoder: {
+        dialMode: 'symbol-disks',
         startOffset: 6,
         correctOffset: 7,
         scene: {
@@ -2727,12 +2728,40 @@ function decoderValueFor(symbolConfig, offset) {
   return ((Number(symbolConfig.baseValue) || 0) + (Number(offset) || 0)) % 10;
 }
 
+function createDecoderMiniWheel(baseValue, currentValue) {
+  const wheel = document.createElement('div');
+  wheel.className = 'decoder-mini-wheel';
+
+  const inner = document.createElement('div');
+  inner.className = 'decoder-mini-wheel-inner';
+  inner.textContent = String(currentValue);
+  wheel.appendChild(inner);
+
+  for (let value = 0; value < 10; value += 1) {
+    const digit = document.createElement('span');
+    digit.className = 'decoder-mini-wheel-digit';
+    digit.textContent = String(value);
+    const angle = (360 / 10) * value - 90;
+    digit.style.transform = `translate(-50%, -50%) rotate(${angle}deg) translate(0, -34px) rotate(${-angle}deg)`;
+    if (value === Number(baseValue)) {
+      digit.classList.add('is-base');
+    }
+    if (value === Number(currentValue)) {
+      digit.classList.add('is-active');
+    }
+    wheel.appendChild(digit);
+  }
+
+  return wheel;
+}
+
 function renderDecoderTask(point) {
   const config = point.task.decoder || {};
   const symbols = config.symbols || [];
   const cards = config.cards || [];
   const sceneConfig = config.scene || {};
   const clues = sceneConfig.clues || [];
+  const useSymbolDisks = config.dialMode === 'symbol-disks';
   const isSolved = mapState.solved.has(point.id);
   const offset = getDecoderOffset(point);
   const inputs = getDecoderInputs(point);
@@ -2746,14 +2775,16 @@ function renderDecoderTask(point) {
   const note = document.createElement('p');
   note.className = 'task-mini-note';
   note.textContent = clues.length
-    ? '1. Найдите на изображении все активные метки. 2. Каждая метка откроет базовое значение своего знака. 3. Потом крутите диск и вводите новые числа.'
+    ? (useSymbolDisks
+      ? '1. Найдите на изображении все активные метки. 2. Выберите общий сдвиг. 3. У каждого знака ниже свой мини-диск: он покажет, во что превратилось число.'
+      : '1. Найдите на изображении все активные метки. 2. Каждая метка откроет базовое значение своего знака. 3. Потом крутите диск и вводите новые числа.')
     : '1. Поверните диск. 2. Смотрите число напротив того же символа. 3. Введите его в поле этой строки.';
   wrap.appendChild(note);
 
   const steps = document.createElement('div');
   steps.className = 'decoder-steps';
   (clues.length
-    ? ['Найдите метки', 'Поверните диск', 'Введите код']
+    ? (useSymbolDisks ? ['Найдите метки', 'Выберите сдвиг', 'Введите код'] : ['Найдите метки', 'Поверните диск', 'Введите код'])
     : ['Крутите диск', 'Смотрите число', 'Вводите код'])
     .forEach((label, index) => {
     const item = document.createElement('div');
@@ -2837,29 +2868,55 @@ function renderDecoderTask(point) {
 
   const dialTitle = document.createElement('p');
   dialTitle.className = 'decoder-head';
-  dialTitle.textContent = 'Диск сдвига';
+  dialTitle.textContent = useSymbolDisks ? 'Общий сдвиг' : 'Диск сдвига';
   dial.appendChild(dialTitle);
 
-  const dialWheel = document.createElement('div');
-  dialWheel.className = 'decoder-wheel';
-  const wheelPointer = document.createElement('span');
-  wheelPointer.className = 'decoder-wheel-pointer';
-  dialWheel.appendChild(wheelPointer);
-  const wheelInner = document.createElement('div');
-  wheelInner.className = 'decoder-wheel-inner';
-  wheelInner.textContent = String(offset);
-  dialWheel.appendChild(wheelInner);
+  if (useSymbolDisks) {
+    const dialLead = document.createElement('p');
+    dialLead.className = 'decoder-panel-lead';
+    dialLead.textContent = 'Выберите число сдвига. Все три мини-диска ниже повернутся вместе.';
+    dial.appendChild(dialLead);
 
-  for (let value = 0; value < 10; value += 1) {
-    const digit = document.createElement('span');
-    digit.className = 'decoder-wheel-digit';
-    digit.textContent = String(value);
-    const angle = (360 / 10) * value - 90;
-    digit.style.transform = `translate(-50%, -50%) rotate(${angle}deg) translate(0, -74px) rotate(${-angle}deg)`;
-    if (value === offset) {
-      digit.classList.add('is-active');
+    const rail = document.createElement('div');
+    rail.className = 'decoder-offset-rail';
+    for (let value = 0; value < 10; value += 1) {
+      const chip = document.createElement('button');
+      chip.type = 'button';
+      chip.className = `decoder-offset-chip${value === offset ? ' is-active' : ''}`;
+      chip.textContent = String(value);
+      chip.disabled = isSolved;
+      chip.addEventListener('click', () => {
+        mapState.decoderOffsets.set(point.id, value);
+        renderTask(point);
+        triggerHaptic('light');
+      });
+      rail.appendChild(chip);
     }
-    dialWheel.appendChild(digit);
+    dial.appendChild(rail);
+  } else {
+    const dialWheel = document.createElement('div');
+    dialWheel.className = 'decoder-wheel';
+    const wheelPointer = document.createElement('span');
+    wheelPointer.className = 'decoder-wheel-pointer';
+    dialWheel.appendChild(wheelPointer);
+    const wheelInner = document.createElement('div');
+    wheelInner.className = 'decoder-wheel-inner';
+    wheelInner.textContent = String(offset);
+    dialWheel.appendChild(wheelInner);
+
+    for (let value = 0; value < 10; value += 1) {
+      const digit = document.createElement('span');
+      digit.className = 'decoder-wheel-digit';
+      digit.textContent = String(value);
+      const angle = (360 / 10) * value - 90;
+      digit.style.transform = `translate(-50%, -50%) rotate(${angle}deg) translate(0, -74px) rotate(${-angle}deg)`;
+      if (value === offset) {
+        digit.classList.add('is-active');
+      }
+      dialWheel.appendChild(digit);
+    }
+
+    dial.appendChild(dialWheel);
   }
 
   const dialActions = document.createElement('div');
@@ -2891,11 +2948,10 @@ function renderDecoderTask(point) {
 
   dialActions.appendChild(leftBtn);
   dialActions.appendChild(rightBtn);
-  dial.appendChild(dialWheel);
 
   const dialHint = document.createElement('p');
   dialHint.className = 'decoder-shift-label';
-  dialHint.textContent = `Текущий сдвиг: ${offset}`;
+  dialHint.textContent = useSymbolDisks ? `Текущий общий сдвиг: ${offset}` : `Текущий сдвиг: ${offset}`;
   dial.appendChild(dialHint);
   dial.appendChild(dialActions);
   layout.appendChild(dial);
@@ -2905,13 +2961,15 @@ function renderDecoderTask(point) {
 
   const panelHead = document.createElement('p');
   panelHead.className = 'decoder-head';
-  panelHead.textContent = 'Символы и значения';
+  panelHead.textContent = useSymbolDisks ? 'Символы и мини-диски' : 'Символы и значения';
   panel.appendChild(panelHead);
 
   const panelLead = document.createElement('p');
   panelLead.className = 'decoder-panel-lead';
   panelLead.textContent = allCluesFound
-    ? 'В каждой карточке показан знак, число до сдвига и число после сдвига. Затем введите свой ответ.'
+    ? (useSymbolDisks
+      ? 'У каждого знака свой мини-диск: светлая метка показывает базовое число, яркая — текущее после сдвига. Затем введите ответ.'
+      : 'В каждой карточке показан знак, число до сдвига и число после сдвига. Затем введите свой ответ.')
     : 'Сначала найдите все метки на изображении. После этого здесь откроются значения знаков.';
   panel.appendChild(panelLead);
 
@@ -2925,7 +2983,7 @@ function renderDecoderTask(point) {
     const baseValue = clueFound && symbolConfig ? Number(symbolConfig.baseValue) : '?';
 
     const cardNode = document.createElement('div');
-    cardNode.className = 'decoder-card';
+    cardNode.className = `decoder-card${useSymbolDisks ? ' is-symbol-disk' : ''}`;
 
     const glyph = document.createElement('span');
     glyph.className = 'decoder-card-glyph';
@@ -2933,15 +2991,27 @@ function renderDecoderTask(point) {
     cardNode.appendChild(glyph);
 
     const current = document.createElement('div');
-    current.className = `decoder-card-current${clueFound ? '' : ' is-locked'}`;
+    current.className = `decoder-card-current${clueFound ? '' : ' is-locked'}${useSymbolDisks ? ' is-symbol-disk' : ''}`;
     if (clueFound) {
-      current.innerHTML = `
-        <div class="decoder-flow-row">
+      if (useSymbolDisks) {
+        current.appendChild(createDecoderMiniWheel(baseValue, currentValue));
+        const flow = document.createElement('div');
+        flow.className = 'decoder-flow-row decoder-flow-row-compact';
+        flow.innerHTML = `
           <span class="decoder-flow-chip decoder-flow-chip-base">${baseValue}</span>
           <span class="decoder-flow-arrow">→</span>
           <span class="decoder-flow-chip decoder-flow-chip-current">${currentValue}</span>
-        </div>
-      `;
+        `;
+        current.appendChild(flow);
+      } else {
+        current.innerHTML = `
+          <div class="decoder-flow-row">
+            <span class="decoder-flow-chip decoder-flow-chip-base">${baseValue}</span>
+            <span class="decoder-flow-arrow">→</span>
+            <span class="decoder-flow-chip decoder-flow-chip-current">${currentValue}</span>
+          </div>
+        `;
+      }
     } else {
       current.innerHTML = `
         <span class="decoder-card-current-label">Подсказка</span>
