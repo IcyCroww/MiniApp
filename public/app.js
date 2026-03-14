@@ -452,6 +452,7 @@ const points = [
       answerText: 'Бонус: знак Триеста восстановлен.',
       rotor: {
         note: 'Все три кольца вращаются отдельно. Нужна одна правильная комбинация.',
+        solveByArcSizes: [3, 2, 1],
         rings: [
           {
             id: 'outer',
@@ -2470,7 +2471,77 @@ function setRotorAngles(point, values) {
   mapState.rotorAngles.set(point.id, values.slice());
 }
 
+function getRotorArcLengthMap(ring) {
+  const segments = Number(ring.segments) || (ring.colors || []).length || 1;
+  const colors = Array.from({ length: segments }, (_, index) => ring.colors?.[index] || 'transparent');
+  const active = colors.map((color) => color && color !== 'transparent');
+  const result = Array(segments).fill(0);
+  const visited = Array(segments).fill(false);
+
+  for (let index = 0; index < segments; index += 1) {
+    if (!active[index] || visited[index]) {
+      continue;
+    }
+
+    const members = [];
+    let cursor = index;
+
+    while (active[cursor] && !visited[cursor]) {
+      visited[cursor] = true;
+      members.push(cursor);
+      cursor = (cursor + 1) % segments;
+    }
+
+    members.forEach((memberIndex) => {
+      result[memberIndex] = members.length;
+    });
+  }
+
+  return result;
+}
+
+function rotateRotorMap(values, offset) {
+  const size = values.length || 1;
+  const normalized = ((Number(offset) || 0) % size + size) % size;
+  const rotated = Array(size).fill(0);
+
+  values.forEach((value, index) => {
+    rotated[(index + normalized) % size] = value;
+  });
+
+  return rotated;
+}
+
+function isRotorSolvedByArcSizes(point, angles) {
+  const config = point.task.rotor || {};
+  const rings = config.rings || [];
+  const requiredSizes = config.solveByArcSizes || [];
+
+  if (!requiredSizes.length || !rings.length) {
+    return false;
+  }
+
+  const rotatedMaps = rings.map((ring, index) => rotateRotorMap(getRotorArcLengthMap(ring), angles[index]));
+  const segmentCount = rotatedMaps[0]?.length || 0;
+
+  return requiredSizes.every((requiredSize) => {
+    let matches = 0;
+
+    for (let index = 0; index < segmentCount; index += 1) {
+      if (rotatedMaps.every((map) => map[index] === requiredSize)) {
+        matches += 1;
+      }
+    }
+
+    return matches === requiredSize;
+  });
+}
+
 function isRotorSolved(point, angles = getRotorAngles(point)) {
+  if (point.task.rotor?.solveByArcSizes?.length) {
+    return isRotorSolvedByArcSizes(point, angles);
+  }
+
   const rings = point.task.rotor?.rings || [];
   return rings.every((ring, index) => {
     const segments = Number(ring.segments) || 1;
