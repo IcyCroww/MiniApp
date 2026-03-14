@@ -460,6 +460,7 @@ const points = [
             step: 30,
             start: 4,
             target: 0,
+            targets: [0, 4, 8],
             size: 100,
             thickness: 28,
             colors: ['#d7c8c6', '#d7c8c6', 'transparent', 'transparent', '#d7c8c6', '#d7c8c6', 'transparent', 'transparent', '#d7c8c6', '#d7c8c6', 'transparent', 'transparent']
@@ -471,6 +472,7 @@ const points = [
             step: 30,
             start: 7,
             target: 0,
+            targets: [0, 4, 8],
             size: 74,
             thickness: 24,
             colors: ['#d73d2a', '#d73d2a', 'transparent', 'transparent', '#d73d2a', '#d73d2a', 'transparent', 'transparent', '#d73d2a', '#d73d2a', 'transparent', 'transparent']
@@ -574,6 +576,7 @@ const points = [
             step: 30,
             start: 9,
             target: 0,
+            targets: [0, 3, 6, 9],
             size: 100,
             thickness: 28,
             colors: ['#d0c4b8', '#d0c4b8', 'transparent', '#d0c4b8', '#d0c4b8', 'transparent', '#d0c4b8', '#d0c4b8', 'transparent', '#d0c4b8', '#d0c4b8', 'transparent']
@@ -585,6 +588,7 @@ const points = [
             step: 30,
             start: 5,
             target: 0,
+            targets: [0, 3, 6, 9],
             size: 74,
             thickness: 24,
             colors: ['#b9402a', '#b9402a', 'transparent', '#b9402a', '#b9402a', 'transparent', '#b9402a', '#b9402a', 'transparent', '#b9402a', '#b9402a', 'transparent']
@@ -2453,8 +2457,13 @@ function isRotorSolved(point, angles = getRotorAngles(point)) {
   return rings.every((ring, index) => {
     const segments = Number(ring.segments) || 1;
     const normalized = ((Number(angles[index]) || 0) % segments + segments) % segments;
-    const target = ((Number(ring.target) || 0) % segments + segments) % segments;
-    return normalized === target;
+    const targets = Array.isArray(ring.targets) && ring.targets.length
+      ? ring.targets
+      : [ring.target];
+    return targets.some((targetValue) => {
+      const target = ((Number(targetValue) || 0) % segments + segments) % segments;
+      return normalized === target;
+    });
   });
 }
 
@@ -2469,6 +2478,7 @@ function renderRotorTask(point) {
   const rings = config.rings || [];
   const isSolved = mapState.solved.has(point.id);
   const angles = getRotorAngles(point);
+  const previewSolved = isRotorSolved(point, angles);
 
   const wrap = document.createElement('div');
   wrap.className = 'rotor-wrap';
@@ -2479,7 +2489,7 @@ function renderRotorTask(point) {
   wrap.appendChild(note);
 
   const stage = document.createElement('div');
-  stage.className = 'rotor-stage';
+  stage.className = `rotor-stage${previewSolved ? ' is-solved' : ''}`;
 
   const sizes = [100, 74, 48];
   const thicknesses = [28, 24, 20];
@@ -2500,6 +2510,14 @@ function renderRotorTask(point) {
   const core = document.createElement('div');
   core.className = 'rotor-core';
   stage.appendChild(core);
+
+  if (previewSolved) {
+    const badge = document.createElement('div');
+    badge.className = 'rotor-stage-badge';
+    badge.textContent = 'Собрано';
+    stage.appendChild(badge);
+  }
+
   wrap.appendChild(stage);
 
   const controls = document.createElement('div');

@@ -1060,6 +1060,10 @@ body {
   box-shadow: inset 0 0 0 1px rgba(146, 162, 152, 0.28);
 }
 
+.rotor-stage.is-solved {
+  box-shadow: inset 0 0 0 2px rgba(108, 189, 143, 0.44), 0 0 0 6px rgba(108, 189, 143, 0.08);
+}
+
 .rotor-ring {
   position: absolute;
   left: 50%;
@@ -1080,6 +1084,21 @@ body {
   transform: translate(-50%, -50%);
   border-radius: 999px;
   background: radial-gradient(circle at 50% 50%, #fff8f0 0%, #e0d0ca 68%, #6c463f 70%, #6c463f 100%);
+}
+
+.rotor-stage-badge {
+  position: absolute;
+  left: 50%;
+  bottom: 14px;
+  transform: translateX(-50%);
+  border: 1px solid #7cc69f;
+  border-radius: 999px;
+  background: rgba(235, 250, 239, 0.96);
+  color: #2b5a44;
+  font-size: 12px;
+  font-weight: 800;
+  padding: 6px 12px;
+  box-shadow: 0 8px 18px rgba(33, 62, 49, 0.12);
 }
 
 .rotor-controls {
@@ -1353,9 +1372,12 @@ body {
 
 .decoder-card {
   display: grid;
-  grid-template-columns: 56px minmax(0, 120px) 20px minmax(0, 1fr);
+  grid-template-columns: 56px minmax(0, 1fr);
+  grid-template-areas:
+    "glyph current"
+    "glyph entry";
   gap: 10px;
-  align-items: center;
+  align-items: start;
   border: 1px solid #d8e0d8;
   border-radius: 14px;
   background: #f7faf6;
@@ -1363,6 +1385,7 @@ body {
 }
 
 .decoder-card-glyph {
+  grid-area: glyph;
   display: inline-flex;
   justify-content: center;
   align-items: center;
@@ -1371,14 +1394,16 @@ body {
   background: #fffdf8;
   color: #783b27;
   font-size: 30px;
-  min-height: 52px;
+  min-height: 100%;
 }
 
 .decoder-card-current {
+  grid-area: current;
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 4px 6px;
   text-align: center;
+  min-width: 0;
 }
 
 .decoder-card-current-label,
@@ -1388,6 +1413,7 @@ body {
   color: #6c7b71;
   text-transform: uppercase;
   letter-spacing: 0.05em;
+  line-height: 1.1;
 }
 
 .decoder-card-current-value {
@@ -1423,17 +1449,14 @@ body {
 }
 
 .decoder-card-arrow {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  color: #9f7660;
-  font-size: 22px;
-  font-weight: 800;
+  display: none;
 }
 
 .decoder-card-entry {
+  grid-area: entry;
   display: grid;
   gap: 4px;
+  min-width: 0;
 }
 
 .decoder-card-input:disabled {
@@ -1692,20 +1715,8 @@ body {
 
 @media (max-width: 520px) {
   .decoder-card {
-    grid-template-columns: 48px minmax(0, 1fr);
-  }
-
-  .decoder-card-arrow {
-    display: none;
-  }
-
-  .decoder-card-current,
-  .decoder-card-entry {
-    grid-column: 2;
-  }
-
-  .decoder-card-current {
-    margin-bottom: 4px;
+    grid-template-columns: 44px minmax(0, 1fr);
+    gap: 8px;
   }
 }
 
