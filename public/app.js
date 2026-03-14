@@ -579,6 +579,7 @@ const points = [
       answerText: 'Бонус: знак Матеры восстановлен.',
       rotor: {
         note: 'У каждого из трёх колец своё положение. Нужна точная комбинация.',
+        solveByArcSizes: [3, 2, 1],
         rings: [
           {
             id: 'outer',
@@ -589,7 +590,7 @@ const points = [
             target: 0,
             size: 100,
             thickness: 28,
-            colors: ['transparent', '#b9402a', '#b9402a', 'transparent', '#b9402a', '#b9402a', 'transparent', 'transparent', '#b9402a', '#b9402a', '#b9402a', 'transparent']
+            colors: ['#b9402a', '#b9402a', '#b9402a', 'transparent', 'transparent', '#b9402a', '#b9402a', 'transparent', 'transparent', 'transparent', '#b9402a', 'transparent']
           },
           {
             id: 'middle',
@@ -600,18 +601,18 @@ const points = [
             target: 0,
             size: 74,
             thickness: 24,
-            colors: ['#d0c4b8', '#d0c4b8', 'transparent', '#d0c4b8', 'transparent', 'transparent', '#d0c4b8', '#d0c4b8', 'transparent', '#d0c4b8', '#d0c4b8', '#d0c4b8']
+            colors: ['transparent', 'transparent', '#d0c4b8', '#d0c4b8', '#d0c4b8', 'transparent', 'transparent', '#d0c4b8', '#d0c4b8', 'transparent', 'transparent', '#d0c4b8']
           },
           {
             id: 'inner',
             label: 'Внутренний круг',
-            segments: 8,
-            step: 45,
+            segments: 12,
+            step: 30,
             start: 6,
             target: 0,
-            size: 48,
-            thickness: 30,
-            colors: ['#f7f1e9', '#b9402a', '#f7f1e9', 'transparent', '#f7f1e9', '#b9402a', '#f7f1e9', 'transparent']
+            size: 52,
+            thickness: 18,
+            colors: ['transparent', '#b9402a', '#b9402a', '#b9402a', 'transparent', 'transparent', '#b9402a', '#b9402a', 'transparent', 'transparent', '#b9402a', 'transparent']
           }
         ]
       }
