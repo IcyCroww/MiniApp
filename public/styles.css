@@ -1138,7 +1138,9 @@ body {
 
 .decoder-layout {
   display: grid;
+  grid-template-columns: 1fr;
   gap: 12px;
+  align-items: start;
 }
 
 .decoder-scene-card {
@@ -1414,26 +1416,15 @@ body {
   line-height: 1.1;
 }
 
-.decoder-value-row {
+.decoder-flow-row {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
   gap: 8px;
-  border: 1px solid #d8dfda;
-  border-radius: 12px;
-  background: #fffefb;
-  padding: 6px 8px;
+  min-height: 40px;
 }
 
-.decoder-value-label {
-  color: #6c7b71;
-  font-size: 11px;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
-.decoder-value-number {
+.decoder-flow-chip {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -1444,6 +1435,22 @@ body {
   background: #ffffff;
   color: #9a3628;
   font-size: 20px;
+  font-weight: 800;
+}
+
+.decoder-flow-chip-base {
+  background: #fff9f2;
+  color: #7a4a32;
+}
+
+.decoder-flow-chip-current {
+  background: #fff4ef;
+  color: #a03b2d;
+}
+
+.decoder-flow-arrow {
+  color: #8f7562;
+  font-size: 18px;
   font-weight: 800;
 }
 
@@ -1723,18 +1730,6 @@ body {
 
   .scanner-confirm {
     white-space: nowrap;
-  }
-
-  .decoder-layout {
-    grid-template-columns: 1fr;
-    align-items: start;
-  }
-}
-
-@media (min-width: 760px) {
-  .decoder-layout {
-    grid-template-columns: 220px 1fr;
-    align-items: start;
   }
 }
 

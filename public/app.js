@@ -2813,7 +2813,7 @@ function renderDecoderTask(point) {
   const panelLead = document.createElement('p');
   panelLead.className = 'decoder-panel-lead';
   panelLead.textContent = allCluesFound
-    ? 'Теперь для каждой строки видны базовое значение и текущее число после сдвига. Введите число справа.'
+    ? 'В каждой карточке показан знак, число до сдвига и число после сдвига. Затем введите свой ответ.'
     : 'Сначала найдите все метки на изображении. После этого здесь откроются значения знаков.';
   panel.appendChild(panelLead);
 
@@ -2838,13 +2838,10 @@ function renderDecoderTask(point) {
     current.className = `decoder-card-current${clueFound ? '' : ' is-locked'}`;
     if (clueFound) {
       current.innerHTML = `
-        <div class="decoder-value-row">
-          <span class="decoder-value-label">База</span>
-          <span class="decoder-value-number">${baseValue}</span>
-        </div>
-        <div class="decoder-value-row">
-          <span class="decoder-value-label">Сейчас</span>
-          <span class="decoder-value-number">${currentValue}</span>
+        <div class="decoder-flow-row">
+          <span class="decoder-flow-chip decoder-flow-chip-base">${baseValue}</span>
+          <span class="decoder-flow-arrow">→</span>
+          <span class="decoder-flow-chip decoder-flow-chip-current">${currentValue}</span>
         </div>
       `;
     } else {
@@ -2865,7 +2862,7 @@ function renderDecoderTask(point) {
 
     const inputLabel = document.createElement('span');
     inputLabel.className = 'decoder-card-entry-label';
-    inputLabel.textContent = 'Ваш ввод';
+    inputLabel.textContent = 'Ответ';
     inputWrap.appendChild(inputLabel);
 
     const input = document.createElement('input');
@@ -2875,7 +2872,7 @@ function renderDecoderTask(point) {
     input.className = 'decoder-card-input';
     input.value = inputs[card.id] || '';
     input.disabled = isSolved || !clueFound;
-    input.placeholder = clueFound ? '??' : 'Сначала метка';
+    input.placeholder = clueFound ? 'Введите число' : 'Сначала метка';
     input.addEventListener('input', () => {
       const nextInputs = getDecoderInputs(point);
       nextInputs[card.id] = input.value.replace(/\D+/g, '').slice(0, 2);
