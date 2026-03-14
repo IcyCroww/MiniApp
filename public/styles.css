@@ -183,6 +183,116 @@ body {
   transition: height 0.32s ease;
 }
 
+.fallback-map {
+  position: absolute;
+  inset: 0;
+  z-index: 420;
+  display: none;
+  padding: 12px;
+  background:
+    radial-gradient(120% 100% at 0% 0%, rgba(73, 107, 148, 0.2), transparent 45%),
+    linear-gradient(180deg, rgba(5, 16, 28, 0.12), rgba(5, 16, 28, 0.06));
+}
+
+.fallback-map.is-visible {
+  display: block;
+}
+
+.fallback-map-note {
+  margin: 0 0 10px;
+  padding: 8px 10px;
+  border-radius: 12px;
+  background: rgba(244, 247, 241, 0.94);
+  border: 1px solid rgba(190, 204, 193, 0.92);
+  color: #274539;
+  font-size: 12px;
+  line-height: 1.35;
+  font-weight: 700;
+}
+
+.fallback-map-canvas {
+  position: relative;
+  height: calc(100% - 44px);
+  min-height: 190px;
+  border-radius: 18px;
+  overflow: hidden;
+  border: 1px solid rgba(122, 146, 138, 0.65);
+  background:
+    radial-gradient(90% 100% at 50% 0%, rgba(251, 252, 247, 0.98), rgba(229, 238, 232, 0.96)),
+    linear-gradient(180deg, #dde9e5, #eff5f2);
+}
+
+.fallback-map-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.fallback-map-points {
+  position: absolute;
+  inset: 0;
+}
+
+.fallback-point {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  border: 0;
+  background: transparent;
+  padding: 0;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+
+.fallback-point-dot {
+  width: 16px;
+  height: 16px;
+  border-radius: 999px;
+  background: var(--point-fill, #ff7a18);
+  border: 2px solid var(--point-stroke, #ffffff);
+  box-shadow: 0 8px 16px rgba(13, 31, 27, 0.26);
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+.fallback-point.is-active .fallback-point-dot {
+  width: 22px;
+  height: 22px;
+  transform: scale(1.02);
+}
+
+.fallback-point:focus-visible {
+  outline: none;
+}
+
+.fallback-point:focus-visible .fallback-point-dot,
+.fallback-point:hover .fallback-point-dot {
+  transform: scale(1.08);
+  box-shadow: 0 10px 18px rgba(13, 31, 27, 0.3);
+}
+
+.fallback-point-label {
+  display: none;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: rgba(248, 250, 245, 0.96);
+  border: 1px solid rgba(186, 201, 192, 0.92);
+  color: #214133;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1;
+  white-space: nowrap;
+  box-shadow: 0 6px 14px rgba(18, 35, 29, 0.14);
+}
+
+.fallback-point.is-active .fallback-point-label,
+.fallback-point:focus-visible .fallback-point-label,
+.fallback-point:hover .fallback-point-label {
+  display: inline-flex;
+}
+
 .card-map.has-task .leaflet-map {
   height: clamp(170px, 28vh, 220px);
 }
@@ -954,6 +1064,14 @@ body {
   .leaflet-map {
     height: clamp(210px, 35vh, 270px);
   }
+
+  .fallback-map {
+    padding: 10px;
+  }
+
+  .fallback-map-note {
+    font-size: 11px;
+  }
 }
 
 @media (min-width: 400px) {
@@ -1084,5 +1202,9 @@ body {
 @media (pointer: fine) {
   body {
     padding: 20px;
+  }
+
+  .fallback-point-label {
+    display: inline-flex;
   }
 }

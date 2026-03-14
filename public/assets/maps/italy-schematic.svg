@@ -1,0 +1,51 @@
+<svg width="1200" height="760" viewBox="0 0 1200 760" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="sea" x1="160" y1="74" x2="985" y2="665" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#EFF6F2"/>
+      <stop offset="1" stop-color="#DCEAE4"/>
+    </linearGradient>
+    <linearGradient id="land" x1="606" y1="99" x2="606" y2="690" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F7F0DB"/>
+      <stop offset="1" stop-color="#E8D5A8"/>
+    </linearGradient>
+    <filter id="shadow" x="178" y="82" width="810" height="604" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feFlood flood-opacity="0" result="BackgroundImageFix"/>
+      <feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/>
+      <feOffset dy="12"/>
+      <feGaussianBlur stdDeviation="18"/>
+      <feColorMatrix type="matrix" values="0 0 0 0 0.132 0 0 0 0 0.239 0 0 0 0 0.197 0 0 0 0.22 0"/>
+      <feBlend mode="normal" in2="BackgroundImageFix" result="effect1_dropShadow_1_1"/>
+      <feBlend mode="normal" in="SourceGraphic" in2="effect1_dropShadow_1_1" result="shape"/>
+    </filter>
+  </defs>
+
+  <rect width="1200" height="760" rx="34" fill="url(#sea)"/>
+
+  <g opacity="0.5" stroke="#BFD1C9" stroke-width="2">
+    <path d="M120 176H1080"/>
+    <path d="M120 334H1080"/>
+    <path d="M120 502H1080"/>
+    <path d="M242 104V656"/>
+    <path d="M600 84V676"/>
+    <path d="M942 104V656"/>
+  </g>
+
+  <g filter="url(#shadow)">
+    <path d="M521 97C550 106 592 120 628 147C661 172 688 208 699 241C709 270 701 300 700 323C698 353 707 378 731 407C755 437 794 465 817 504C835 535 841 571 828 601C812 636 776 657 742 651C716 647 694 628 679 604C664 581 652 555 633 537C614 518 590 509 569 504C546 499 524 497 505 487C481 474 462 449 456 421C451 392 461 361 474 337C486 314 501 297 506 276C513 250 504 223 497 196C489 165 485 129 521 97Z" fill="url(#land)" stroke="#8D7244" stroke-width="18" stroke-linejoin="round"/>
+    <path d="M660 426C690 415 726 415 753 428C785 444 806 474 808 503C810 536 785 564 759 584C733 605 702 620 679 644" stroke="#8D7244" stroke-width="18" stroke-linecap="round"/>
+    <path d="M463 291C440 300 419 320 410 344C401 369 403 398 414 417C424 434 441 448 456 455" stroke="#8D7244" stroke-width="16" stroke-linecap="round"/>
+    <path d="M613 643C634 654 658 667 671 688C678 699 681 715 671 724C657 738 632 731 613 723C590 713 566 701 553 682C542 666 548 646 566 637C580 630 598 634 613 643Z" fill="url(#land)" stroke="#8D7244" stroke-width="14" stroke-linejoin="round"/>
+    <path d="M409 585C429 577 453 579 471 590C487 600 500 619 500 638C499 660 482 678 462 688C438 701 408 704 386 690C369 679 359 658 360 638C361 616 377 596 396 587C400 585 404 584 409 585Z" fill="url(#land)" stroke="#8D7244" stroke-width="14" stroke-linejoin="round"/>
+  </g>
+
+  <g opacity="0.72" stroke="#8EA7A0" stroke-width="3" stroke-linecap="round">
+    <path d="M460 187C492 208 519 244 524 282"/>
+    <path d="M518 156C554 189 574 231 576 276"/>
+    <path d="M605 356C625 390 654 416 687 437"/>
+    <path d="M662 510C683 548 703 587 720 620"/>
+  </g>
+
+  <g fill="#25473B" opacity="0.7" font-family="Manrope, Arial, sans-serif" font-size="24" font-weight="800">
+    <text x="138" y="124">Резервная схема Италии</text>
+  </g>
+</svg>

@@ -407,6 +407,10 @@ const completionNode = document.getElementById('completionBadge');
 const answerMoveBadgeNode = document.getElementById('answerMoveBadge');
 const resetMapBtn = document.getElementById('resetMapBtn');
 const changeTeamBtn = document.getElementById('changeTeamBtn');
+const mapAttribNode = document.querySelector('.map-attrib');
+const fallbackMapNode = document.getElementById('fallbackMap');
+const fallbackMapNoteNode = document.getElementById('fallbackMapNote');
+const fallbackMapPointsNode = document.getElementById('fallbackMapPoints');
 const teamStripNode = document.getElementById('teamStrip');
 const teamGateNode = document.getElementById('teamGate');
 const teamSelectNode = document.getElementById('teamSelect');
@@ -444,7 +448,23 @@ const mapState = {
   cityOverlayLayer: null,
   cityOverlayPointId: null,
   cityPoiMarkers: new Map(),
-  bounds: null
+  bounds: null,
+  fallbackVisible: false
+};
+
+const fallbackPointPositions = {
+  turin: { x: 39, y: 21 },
+  genoa_media: { x: 42, y: 29 },
+  milan: { x: 48, y: 22 },
+  venice: { x: 71, y: 22 },
+  verona: { x: 62, y: 24 },
+  bologna: { x: 57, y: 31 },
+  vatican: { x: 57, y: 47 },
+  rome: { x: 60, y: 50 },
+  pisa: { x: 49, y: 43 },
+  florence: { x: 54, y: 41 },
+  naples: { x: 66, y: 66 },
+  palermo: { x: 63, y: 88 }
 };
 
 const pointsById = new Map(points.map((point) => [point.id, point]));
@@ -947,6 +967,111 @@ function getCityVisitSet(pointId) {
   return visitedSet;
 }
 
+function getPointPalette(pointId) {
+  const point = pointsById.get(pointId);
+  const isActive = state.selectedPointId === pointId;
+  const isVisited = mapState.visited.has(pointId);
+  const isSolved = mapState.solved.has(pointId);
+  const isEmpty = point?.task.kind === 'empty';
+  const customColor = point?.markerColor || '';
+
+  let fillColor = customColor || (isEmpty ? '#4f93e6' : '#ff7a18');
+
+  if (isVisited) {
+    fillColor = customColor ? '#6e3de1' : (isEmpty ? '#2d6ab4' : '#e26704');
+  }
+
+  if (isSolved) {
+    fillColor = '#19a56f';
+  }
+
+  const strokeColor = isActive
+    ? '#f2f7ff'
+    : (customColor ? '#ddcbff' : (isEmpty ? '#b9d4ff' : '#ffd9b5'));
+
+  return {
+    fillColor,
+    strokeColor,
+    radius: isActive ? 12 : 9,
+    weight: isActive ? 3 : 2
+  };
+}
+
+function setFallbackMapNote(text = '') {
+  if (!fallbackMapNoteNode) {
+    return;
+  }
+
+  fallbackMapNoteNode.textContent = text || 'Резервная схема: если фон карты не загрузился, нажимайте на точки здесь.';
+}
+
+function renderFallbackMap() {
+  if (!fallbackMapPointsNode) {
+    return;
+  }
+
+  fallbackMapPointsNode.innerHTML = '';
+
+  points.forEach((point) => {
+    const position = fallbackPointPositions[point.id];
+    if (!position) {
+      return;
+    }
+
+    const palette = getPointPalette(point.id);
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'fallback-point';
+    button.style.left = `${position.x}%`;
+    button.style.top = `${position.y}%`;
+    button.style.setProperty('--point-fill', palette.fillColor);
+    button.style.setProperty('--point-stroke', palette.strokeColor);
+    button.title = point.title;
+    button.setAttribute('aria-label', point.title);
+    button.classList.toggle('is-active', state.selectedPointId === point.id);
+
+    const dot = document.createElement('span');
+    dot.className = 'fallback-point-dot';
+    button.appendChild(dot);
+
+    const label = document.createElement('span');
+    label.className = 'fallback-point-label';
+    label.textContent = point.title;
+    button.appendChild(label);
+
+    button.addEventListener('click', () => {
+      focusPoint(point);
+      triggerHaptic('light');
+    });
+
+    fallbackMapPointsNode.appendChild(button);
+  });
+}
+
+function showFallbackMap(note = '') {
+  if (!fallbackMapNode) {
+    return;
+  }
+
+  mapState.fallbackVisible = true;
+  fallbackMapNode.hidden = false;
+  fallbackMapNode.classList.add('is-visible');
+  mapAttribNode && (mapAttribNode.hidden = true);
+  setFallbackMapNote(note);
+  renderFallbackMap();
+}
+
+function hideFallbackMap() {
+  if (!fallbackMapNode) {
+    return;
+  }
+
+  mapState.fallbackVisible = false;
+  fallbackMapNode.classList.remove('is-visible');
+  fallbackMapNode.hidden = true;
+  mapAttribNode && (mapAttribNode.hidden = false);
+}
+
 function setTaskPlaceholder() {
   destroyCityTaskMap();
   taskKickerNode.textContent = defaultTaskState.kicker;
@@ -970,32 +1095,13 @@ function markerStyle(pointId) {
     };
   }
 
-  const point = pointsById.get(pointId);
-  const isActive = state.selectedPointId === pointId;
-  const isVisited = mapState.visited.has(pointId);
-  const isSolved = mapState.solved.has(pointId);
-  const isEmpty = point?.task.kind === 'empty';
-  const customColor = point?.markerColor || '';
-
-  let fillColor = customColor || (isEmpty ? '#4f93e6' : '#ff7a18');
-
-  if (isVisited) {
-    fillColor = customColor ? '#6e3de1' : (isEmpty ? '#2d6ab4' : '#e26704');
-  }
-
-  if (isSolved) {
-    fillColor = '#19a56f';
-  }
-
-  const strokeColor = isActive
-    ? '#f2f7ff'
-    : (customColor ? '#ddcbff' : (isEmpty ? '#b9d4ff' : '#ffd9b5'));
+  const palette = getPointPalette(pointId);
 
   return {
-    radius: isActive ? 12 : 9,
-    color: strokeColor,
-    weight: isActive ? 3 : 2,
-    fillColor,
+    radius: palette.radius,
+    color: palette.strokeColor,
+    weight: palette.weight,
+    fillColor: palette.fillColor,
     fillOpacity: 0.96
   };
 }
@@ -1019,6 +1125,10 @@ function refreshMarkers() {
       marker.openTooltip();
     }
   });
+
+  if (mapState.fallbackVisible) {
+    renderFallbackMap();
+  }
 }
 
 function updateBadge() {
@@ -1735,9 +1845,28 @@ function refreshCityPoiMarkers(point) {
   });
 }
 
+function visitCityPoi(point, poi) {
+  const visitedSet = getCityVisitSet(point.id);
+  const wasVisited = visitedSet.has(poi.id);
+
+  if (!wasVisited) {
+    visitedSet.add(poi.id);
+  }
+
+  mapState.cityHints.set(point.id, poi.hint || `Отмечена точка: ${poi.title}.`);
+  refreshCityPoiMarkers(point);
+  renderTask(point);
+
+  if (!wasVisited) {
+    void postTeamEvent('city-poi', point.id, { poiId: poi.id });
+  }
+
+  return !wasVisited;
+}
+
 function activateCityOverlay(point) {
   const config = point.task.cityMap || {};
-  if (!mapState.map) {
+  if (!mapState.map || mapState.fallbackVisible) {
     return;
   }
 
@@ -1762,17 +1891,7 @@ function activateCityOverlay(point) {
     });
 
     marker.on('click', () => {
-      const wasVisited = visitedSet.has(poi.id);
-      if (!wasVisited) {
-        visitedSet.add(poi.id);
-      }
-
-      mapState.cityHints.set(point.id, poi.hint || `Отмечена точка: ${poi.title}.`);
-      refreshCityPoiMarkers(point);
-      renderTask(point);
-
-      if (!wasVisited) {
-        void postTeamEvent('city-poi', point.id, { poiId: poi.id });
+      if (visitCityPoi(point, poi)) {
         triggerHaptic('light');
       }
     });
@@ -1819,8 +1938,9 @@ function updateCityMapTaskStatus(point, progressNode, statusNode, listNode) {
 function renderCityMapTask(point) {
   const config = point.task.cityMap || {};
   const pois = config.pois || [];
+  const useInteractiveMap = Boolean(mapState.map) && !mapState.fallbackVisible;
 
-  if (mapState.cityOverlayPointId !== point.id) {
+  if (useInteractiveMap && mapState.cityOverlayPointId !== point.id) {
     activateCityOverlay(point);
   }
 
@@ -1829,7 +1949,9 @@ function renderCityMapTask(point) {
 
   const note = document.createElement('p');
   note.className = 'task-mini-note';
-  note.textContent = config.note || 'Карта города открыта сверху: перемещайтесь и отмечайте точки.';
+  note.textContent = useInteractiveMap
+    ? (config.note || 'Карта города открыта сверху: перемещайтесь и отмечайте точки.')
+    : 'Основная карта недоступна: отмечайте точки списком ниже.';
   wrap.appendChild(note);
 
   const progressNode = document.createElement('p');
@@ -1850,6 +1972,13 @@ function renderCityMapTask(point) {
     poiBtn.dataset.poiId = poi.id;
     poiBtn.textContent = poi.title;
     poiBtn.addEventListener('click', () => {
+      if (!useInteractiveMap) {
+        if (visitCityPoi(point, poi)) {
+          triggerHaptic('light');
+        }
+        return;
+      }
+
       if (!mapState.map || mapState.cityOverlayPointId !== point.id) {
         return;
       }
@@ -2001,7 +2130,7 @@ function renderTask(point) {
 }
 
 function focusPoint(point) {
-  if (!mapState.map) {
+  if (!mapState.map && !mapState.fallbackVisible) {
     return;
   }
 
@@ -2016,9 +2145,11 @@ function focusPoint(point) {
   mapState.visited.add(point.id);
 
   const hasCityMap = Boolean(point.task.cityMap);
-  if (hasCityMap) {
+  const canUseLeafletMap = Boolean(mapState.map) && !mapState.fallbackVisible;
+
+  if (hasCityMap && canUseLeafletMap) {
     activateCityOverlay(point);
-  } else {
+  } else if (mapState.map) {
     mapState.map.flyTo([point.lat, point.lng], point.zoom, {
       animate: true,
       duration: 1.05,
@@ -2039,7 +2170,7 @@ function focusPoint(point) {
   refreshMarkers();
   renderTask(point);
   setCityMode(true);
-  void postTeamEvent('travel', point.id, { source: hasCityMap ? 'city-entry' : 'point' });
+  void postTeamEvent('travel', point.id, { source: hasCityMap && canUseLeafletMap ? 'city-entry' : 'point' });
 }
 
 function closeCityMode() {
@@ -2051,13 +2182,19 @@ function closeCityMode() {
 }
 
 function resetMapView() {
-  if (!mapState.map) {
+  if (!mapState.map && !mapState.fallbackVisible) {
     return;
   }
 
   destroyCityTaskMap();
   state.selectedPointId = null;
   refreshMarkers();
+
+  if (!mapState.map) {
+    setCityMode(false);
+    setTaskPlaceholder();
+    return;
+  }
 
   if (mapState.bounds) {
     mapState.map.flyToBounds(mapState.bounds.pad(0.28), {
@@ -2095,27 +2232,54 @@ function addBaseTileLayerWithFallback(map) {
   let providerIndex = -1;
   let activeLayer = null;
   let errorCount = 0;
+  let successCount = 0;
+  let fallbackTimer = null;
+
+  const clearFallbackTimer = () => {
+    if (fallbackTimer) {
+      window.clearTimeout(fallbackTimer);
+      fallbackTimer = null;
+    }
+  };
 
   const switchProvider = () => {
     providerIndex += 1;
+    clearFallbackTimer();
 
     if (activeLayer) {
       activeLayer.off('tileerror');
+      activeLayer.off('tileload');
       map.removeLayer(activeLayer);
       activeLayer = null;
     }
 
     if (providerIndex >= providers.length) {
-      setTaskResult('Подложка карты не загрузилась. Работаем по точкам без фона.', 'info');
+      showFallbackMap('Основная карта не загрузилась. Используйте резервную схему и нажимайте на точки.');
+      setTaskResult('Подложка карты не загрузилась. Включена резервная схема карты.', 'info');
       return;
     }
 
     const current = providers[providerIndex];
     errorCount = 0;
+    successCount = 0;
     activeLayer = window.L.tileLayer(current.url, current.options).addTo(map);
+    fallbackTimer = window.setTimeout(() => {
+      if (successCount === 0) {
+        showFallbackMap('Фон карты тормозит или заблокирован. Пока можно работать по резервной схеме.');
+      }
+    }, 1800);
+
+    activeLayer.on('tileload', () => {
+      successCount += 1;
+      clearFallbackTimer();
+      if (successCount > 0) {
+        hideFallbackMap();
+      }
+    });
+
     activeLayer.on('tileerror', () => {
       errorCount += 1;
-      if (errorCount >= 10) {
+      if (errorCount >= 6 && successCount === 0) {
         switchProvider();
       }
     });
@@ -2127,7 +2291,9 @@ function addBaseTileLayerWithFallback(map) {
 function initMap() {
   if (!window.L) {
     setTaskPlaceholder();
-    setTaskResult('Карта не загрузилась. Проверьте интернет.', 'bad');
+    showFallbackMap('Библиотека карты не загрузилась. Используйте резервную схему и нажимайте на точки.');
+    setTaskResult('Карта не загрузилась. Включена резервная схема.', 'info');
+    renderFallbackMap();
     return;
   }
 
@@ -2166,6 +2332,8 @@ function initMap() {
   setTimeout(() => {
     mapState.map.invalidateSize();
   }, 120);
+
+  renderFallbackMap();
 }
 
 function bindEvents() {

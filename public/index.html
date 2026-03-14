@@ -43,6 +43,13 @@
 
           <div class="map-scene">
             <div class="leaflet-map" id="worldMap" aria-label="Карта Италии"></div>
+            <div class="fallback-map" id="fallbackMap" hidden>
+              <p class="fallback-map-note" id="fallbackMapNote">Резервная схема: если фон карты не загрузился, нажимайте на точки здесь.</p>
+              <div class="fallback-map-canvas">
+                <img class="fallback-map-image" src="./assets/maps/italy-schematic.svg" alt="Резервная схема Италии" />
+                <div class="fallback-map-points" id="fallbackMapPoints" aria-label="Резервные точки карты"></div>
+              </div>
+            </div>
             <div class="map-attrib">
               <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">© OpenStreetMap contributors</a>
               <span>•</span>
