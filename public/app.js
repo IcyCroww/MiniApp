@@ -482,7 +482,7 @@ const points = [
             step: 30,
             start: 2,
             target: 0,
-            size: 50,
+            size: 56,
             thickness: 22,
             colors: ['transparent', 'transparent', '#c94531', '#c94531', '#c94531', 'transparent', '#c94531', '#c94531', 'transparent', 'transparent', 'transparent', '#c94531']
           }
