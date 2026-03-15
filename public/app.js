@@ -590,7 +590,7 @@ const points = [
             target: 0,
             size: 100,
             thickness: 28,
-            colors: ['#b9402a', '#b9402a', '#b9402a', 'transparent', 'transparent', '#b9402a', '#b9402a', 'transparent', 'transparent', 'transparent', '#b9402a', 'transparent']
+            colors: ['#b9402a', '#b9402a', '#b9402a', 'transparent', 'transparent', '#b9402a', '#b9402a', 'transparent', 'transparent', '#b9402a', 'transparent', 'transparent']
           },
           {
             id: 'middle',
