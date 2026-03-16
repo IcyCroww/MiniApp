@@ -802,8 +802,8 @@ const submitFinalAnswerBtn = document.getElementById('submitFinalAnswerBtn');
 const finalAnswerStatusNode = document.getElementById('finalAnswerStatus');
 const finalAnswerLastNode = document.getElementById('finalAnswerLast');
 const finalAnswerLastTextNode = document.getElementById('finalAnswerLastText');
-const openCaseMapBtn = document.getElementById('openCaseMapBtn');
-const mapAssetStatusNode = document.getElementById('mapAssetStatus');
+const caseMapImageNode = document.getElementById('caseMapImage');
+const caseMapStatusNode = document.getElementById('caseMapStatus');
 
 const mapState = {
   map: null,
@@ -977,25 +977,28 @@ function formatUiDate(value = '') {
   return date.toLocaleString('ru-RU');
 }
 
-async function updateMapAssetStatus() {
-  if (!openCaseMapBtn || !mapAssetStatusNode) {
+function initCaseMapPanel() {
+  if (!caseMapImageNode || !caseMapStatusNode) {
     return;
   }
 
-  const href = String(openCaseMapBtn.getAttribute('href') || '').trim();
-  if (!href) {
-    mapAssetStatusNode.textContent = 'Ссылка на карту не настроена.';
-    return;
-  }
+  const setReady = () => {
+    caseMapStatusNode.textContent = 'Карта подключена.';
+  };
 
-  try {
-    const response = await fetch(href, { method: 'HEAD', cache: 'no-store' });
-    if (!response.ok) {
-      throw new Error('map_asset_not_found');
+  const setError = () => {
+    caseMapStatusNode.textContent = 'Не удалось загрузить карту: проверьте файл public/assets/maps/team-map.png.';
+  };
+
+  caseMapImageNode.addEventListener('load', setReady);
+  caseMapImageNode.addEventListener('error', setError);
+
+  if (caseMapImageNode.complete) {
+    if (caseMapImageNode.naturalWidth > 0) {
+      setReady();
+    } else {
+      setError();
     }
-    mapAssetStatusNode.textContent = 'Карта подключена. Нажмите "Открыть карту".';
-  } catch (_) {
-    mapAssetStatusNode.textContent = 'Файл пока не найден. Положите карту в public/assets/maps/team-map.png.';
   }
 }
 
@@ -1512,16 +1515,15 @@ function refreshMarkers() {
     }
 
     marker.setStyle(markerStyle(point.id));
+    marker.closeTooltip();
 
     if (mapState.cityOverlayPointId) {
-      marker.closeTooltip();
       return;
     }
 
-    marker.openTooltip();
-
     if (state.selectedPointId === point.id) {
       marker.bringToFront();
+      marker.openTooltip();
     }
   });
 
@@ -4083,8 +4085,7 @@ function initMap() {
     marker.bindTooltip(point.title, {
       className: 'leaflet-label',
       direction: 'top',
-      offset: [0, -12],
-      permanent: true
+      offset: [0, -8]
     });
     marker.on('click', () => {
       focusPoint(point);
@@ -4184,10 +4185,6 @@ function bindEvents() {
     submitFinalAnswer();
   });
 
-  openCaseMapBtn?.addEventListener('click', () => {
-    triggerHaptic('light');
-  });
-
   window.addEventListener('resize', () => {
     if (mapState.map) {
       mapState.map.invalidateSize();
@@ -4199,7 +4196,7 @@ async function init() {
   setActiveView('map');
   initMap();
   bindEvents();
-  await updateMapAssetStatus();
+  initCaseMapPanel();
   updateBadge();
   setTaskPlaceholder();
   renderFinalAnswerPanel();

@@ -89,19 +89,17 @@
 
           <section class="final-answer-panel">
             <p class="task-kicker">Материалы команды</p>
-            <p class="final-answer-note">Откройте карту задания по кнопке ниже.</p>
-            <div class="row-actions">
-              <a
-                class="btn primary"
-                id="openCaseMapBtn"
-                href="./assets/maps/team-map.png"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                Открыть карту
-              </a>
-            </div>
-            <p class="final-answer-status" id="mapAssetStatus">Если карта ещё не открывается, пришлите PNG и я сразу подключу файл.</p>
+            <p class="final-answer-note">Карта задания отображается прямо в этом разделе.</p>
+            <figure class="case-map-frame">
+              <img
+                class="case-map-image"
+                id="caseMapImage"
+                src="./assets/maps/team-map.png"
+                alt="Карта задания команды"
+                loading="lazy"
+              />
+            </figure>
+            <p class="final-answer-status" id="caseMapStatus">Загружаем карту...</p>
           </section>
         </article>
       </section>
