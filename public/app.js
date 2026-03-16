@@ -804,6 +804,10 @@ const finalAnswerLastNode = document.getElementById('finalAnswerLast');
 const finalAnswerLastTextNode = document.getElementById('finalAnswerLastText');
 const caseMapImageNode = document.getElementById('caseMapImage');
 const caseMapStatusNode = document.getElementById('caseMapStatus');
+const caseMapViewportNode = document.getElementById('caseMapViewport');
+const caseMapZoomInBtn = document.getElementById('caseMapZoomIn');
+const caseMapZoomOutBtn = document.getElementById('caseMapZoomOut');
+const caseMapZoomResetBtn = document.getElementById('caseMapZoomReset');
 
 const mapState = {
   map: null,
@@ -829,25 +833,22 @@ const mapState = {
   fallbackVisible: false
 };
 
-const pointLabelOffsets = {
-  turin: [-24, -12],
-  genoa_media: [-30, -6],
-  milan: [22, -14],
-  trieste: [26, -8],
-  venice: [34, -10],
-  verona: [4, -24],
-  bologna: [24, -10],
-  ravenna: [34, -2],
-  florence: [-32, -6],
-  pisa: [-22, -10],
-  siena: [10, -22],
-  rome: [-34, -12],
-  vatican: [24, -22],
-  naples: [30, -8],
-  matera: [32, -6],
-  bari: [24, -12],
-  cagliari: [0, 18],
-  palermo: [0, 18]
+const caseMapState = {
+  initialized: false,
+  scale: 1,
+  minScale: 1,
+  maxScale: 3,
+  translateX: 0,
+  translateY: 0,
+  baseWidth: 0,
+  baseHeight: 0,
+  pointers: new Map(),
+  panStartX: 0,
+  panStartY: 0,
+  panStartTranslateX: 0,
+  panStartTranslateY: 0,
+  pinchStartDistance: 0,
+  pinchStartScale: 1
 };
 
 const fallbackPointPositions = {
@@ -998,13 +999,178 @@ function formatUiDate(value = '') {
   return date.toLocaleString('ru-RU');
 }
 
+function updateCaseMapBaseSize() {
+  if (!caseMapViewportNode || !caseMapImageNode) {
+    return;
+  }
+
+  if (!caseMapImageNode.naturalWidth) {
+    return;
+  }
+
+  const viewportWidth = caseMapViewportNode.clientWidth;
+  if (!viewportWidth) {
+    return;
+  }
+
+  const ratio = caseMapImageNode.naturalHeight / caseMapImageNode.naturalWidth;
+  caseMapState.baseWidth = viewportWidth;
+  caseMapState.baseHeight = viewportWidth * ratio;
+}
+
+function clampCaseMapTranslate() {
+  if (!caseMapViewportNode) {
+    return;
+  }
+
+  const viewportWidth = caseMapViewportNode.clientWidth;
+  const viewportHeight = caseMapViewportNode.clientHeight;
+  const scaledWidth = caseMapState.baseWidth * caseMapState.scale;
+  const scaledHeight = caseMapState.baseHeight * caseMapState.scale;
+  const maxTranslateX = Math.max(0, (scaledWidth - viewportWidth) / 2);
+  const maxTranslateY = Math.max(0, (scaledHeight - viewportHeight) / 2);
+
+  caseMapState.translateX = Math.min(maxTranslateX, Math.max(-maxTranslateX, caseMapState.translateX));
+  caseMapState.translateY = Math.min(maxTranslateY, Math.max(-maxTranslateY, caseMapState.translateY));
+}
+
+function updateCaseMapTransform() {
+  if (!caseMapImageNode || !caseMapViewportNode) {
+    return;
+  }
+
+  caseMapImageNode.style.transform = `translate(${caseMapState.translateX}px, ${caseMapState.translateY}px) scale(${caseMapState.scale})`;
+  caseMapViewportNode.classList.toggle('is-zoomed', caseMapState.scale > 1.01);
+
+  if (caseMapZoomResetBtn) {
+    caseMapZoomResetBtn.textContent = `${Math.round(caseMapState.scale * 100)}%`;
+  }
+}
+
+function setCaseMapScale(nextScale) {
+  caseMapState.scale = Math.min(caseMapState.maxScale, Math.max(caseMapState.minScale, nextScale));
+  clampCaseMapTranslate();
+  updateCaseMapTransform();
+}
+
+function zoomCaseMap(delta) {
+  setCaseMapScale(caseMapState.scale + delta);
+}
+
+function resetCaseMap() {
+  caseMapState.scale = 1;
+  caseMapState.translateX = 0;
+  caseMapState.translateY = 0;
+  updateCaseMapTransform();
+}
+
+function bindCaseMapInteractions() {
+  if (!caseMapViewportNode || caseMapState.initialized) {
+    return;
+  }
+
+  caseMapState.initialized = true;
+
+  caseMapZoomInBtn?.addEventListener('click', () => {
+    zoomCaseMap(0.2);
+  });
+
+  caseMapZoomOutBtn?.addEventListener('click', () => {
+    zoomCaseMap(-0.2);
+  });
+
+  caseMapZoomResetBtn?.addEventListener('click', () => {
+    resetCaseMap();
+  });
+
+  caseMapViewportNode.addEventListener('wheel', (event) => {
+    event.preventDefault();
+    const delta = event.deltaY < 0 ? 0.12 : -0.12;
+    zoomCaseMap(delta);
+  }, { passive: false });
+
+  const updatePointer = (event) => {
+    caseMapState.pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+  };
+
+  const distance = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
+
+  caseMapViewportNode.addEventListener('pointerdown', (event) => {
+    caseMapViewportNode.setPointerCapture(event.pointerId);
+    updatePointer(event);
+
+    if (caseMapState.pointers.size === 1) {
+      caseMapState.panStartX = event.clientX;
+      caseMapState.panStartY = event.clientY;
+      caseMapState.panStartTranslateX = caseMapState.translateX;
+      caseMapState.panStartTranslateY = caseMapState.translateY;
+    }
+
+    if (caseMapState.pointers.size === 2) {
+      const [first, second] = Array.from(caseMapState.pointers.values());
+      caseMapState.pinchStartDistance = distance(first, second);
+      caseMapState.pinchStartScale = caseMapState.scale;
+    }
+  });
+
+  caseMapViewportNode.addEventListener('pointermove', (event) => {
+    if (!caseMapState.pointers.has(event.pointerId)) {
+      return;
+    }
+
+    updatePointer(event);
+
+    if (caseMapState.pointers.size === 1 && caseMapState.scale > 1) {
+      const point = Array.from(caseMapState.pointers.values())[0];
+      caseMapState.translateX = caseMapState.panStartTranslateX + (point.x - caseMapState.panStartX);
+      caseMapState.translateY = caseMapState.panStartTranslateY + (point.y - caseMapState.panStartY);
+      clampCaseMapTranslate();
+      updateCaseMapTransform();
+      return;
+    }
+
+    if (caseMapState.pointers.size === 2) {
+      const [first, second] = Array.from(caseMapState.pointers.values());
+      if (caseMapState.pinchStartDistance > 0) {
+        const nextScale = caseMapState.pinchStartScale * (distance(first, second) / caseMapState.pinchStartDistance);
+        setCaseMapScale(nextScale);
+      }
+    }
+  });
+
+  const clearPointer = (event) => {
+    caseMapState.pointers.delete(event.pointerId);
+    try {
+      caseMapViewportNode.releasePointerCapture(event.pointerId);
+    } catch (_) {
+      // Ignore cases where capture was already released.
+    }
+
+    if (caseMapState.pointers.size === 1) {
+      const point = Array.from(caseMapState.pointers.values())[0];
+      caseMapState.panStartX = point.x;
+      caseMapState.panStartY = point.y;
+      caseMapState.panStartTranslateX = caseMapState.translateX;
+      caseMapState.panStartTranslateY = caseMapState.translateY;
+    }
+  };
+
+  caseMapViewportNode.addEventListener('pointerup', clearPointer);
+  caseMapViewportNode.addEventListener('pointercancel', clearPointer);
+  caseMapViewportNode.addEventListener('pointerleave', clearPointer);
+}
+
 function initCaseMapPanel() {
-  if (!caseMapImageNode || !caseMapStatusNode) {
+  if (!caseMapImageNode || !caseMapStatusNode || !caseMapViewportNode) {
     return;
   }
 
   const setReady = () => {
     caseMapStatusNode.textContent = 'Карта подключена.';
+    window.requestAnimationFrame(() => {
+      updateCaseMapBaseSize();
+      resetCaseMap();
+    });
   };
 
   const setError = () => {
@@ -1013,6 +1179,8 @@ function initCaseMapPanel() {
 
   caseMapImageNode.addEventListener('load', setReady);
   caseMapImageNode.addEventListener('error', setError);
+
+  bindCaseMapInteractions();
 
   if (caseMapImageNode.complete) {
     if (caseMapImageNode.naturalWidth > 0) {
@@ -1526,10 +1694,6 @@ function markerStyle(pointId) {
     fillColor: palette.fillColor,
     fillOpacity: 0.96
   };
-}
-
-function getPointLabelOffset(pointId) {
-  return pointLabelOffsets[pointId] || [0, -10];
 }
 
 function refreshMarkers() {
@@ -4111,7 +4275,7 @@ function initMap() {
     marker.bindTooltip(point.title, {
       className: 'leaflet-label',
       direction: 'top',
-      offset: getPointLabelOffset(point.id),
+      offset: [0, -10],
       permanent: true
     });
     marker.on('click', () => {
@@ -4216,6 +4380,9 @@ function bindEvents() {
     if (mapState.map) {
       mapState.map.invalidateSize();
     }
+    updateCaseMapBaseSize();
+    clampCaseMapTranslate();
+    updateCaseMapTransform();
   });
 }
 
