@@ -328,6 +328,8 @@ body {
   border-radius: 999px;
   padding: 3px 8px;
   box-shadow: 0 3px 8px rgba(0, 0, 0, 0.28);
+  pointer-events: none;
+  white-space: nowrap;
 }
 
 .map-attrib {

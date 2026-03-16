@@ -829,6 +829,27 @@ const mapState = {
   fallbackVisible: false
 };
 
+const pointLabelOffsets = {
+  turin: [-24, -12],
+  genoa_media: [-30, -6],
+  milan: [22, -14],
+  trieste: [26, -8],
+  venice: [34, -10],
+  verona: [4, -24],
+  bologna: [24, -10],
+  ravenna: [34, -2],
+  florence: [-32, -6],
+  pisa: [-22, -10],
+  siena: [10, -22],
+  rome: [-34, -12],
+  vatican: [24, -22],
+  naples: [30, -8],
+  matera: [32, -6],
+  bari: [24, -12],
+  cagliari: [0, 18],
+  palermo: [0, 18]
+};
+
 const fallbackPointPositions = {
   turin: { x: 39, y: 21 },
   genoa_media: { x: 42, y: 29 },
@@ -1507,6 +1528,10 @@ function markerStyle(pointId) {
   };
 }
 
+function getPointLabelOffset(pointId) {
+  return pointLabelOffsets[pointId] || [0, -10];
+}
+
 function refreshMarkers() {
   points.forEach((point) => {
     const marker = mapState.markers.get(point.id);
@@ -1521,9 +1546,10 @@ function refreshMarkers() {
       return;
     }
 
+    marker.openTooltip();
+
     if (state.selectedPointId === point.id) {
       marker.bringToFront();
-      marker.openTooltip();
     }
   });
 
@@ -4085,7 +4111,8 @@ function initMap() {
     marker.bindTooltip(point.title, {
       className: 'leaflet-label',
       direction: 'top',
-      offset: [0, -8]
+      offset: getPointLabelOffset(point.id),
+      permanent: true
     });
     marker.on('click', () => {
       focusPoint(point);
