@@ -241,9 +241,9 @@ body {
   background: transparent;
   padding: 0;
   display: inline-flex;
-  flex-direction: column;
+  flex-direction: column-reverse;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
   cursor: pointer;
 }
 
@@ -274,7 +274,7 @@ body {
 }
 
 .fallback-point-label {
-  display: none;
+  display: inline-flex;
   padding: 3px 8px;
   border-radius: 999px;
   background: rgba(248, 250, 245, 0.96);
@@ -285,12 +285,6 @@ body {
   line-height: 1;
   white-space: nowrap;
   box-shadow: 0 6px 14px rgba(18, 35, 29, 0.14);
-}
-
-.fallback-point.is-active .fallback-point-label,
-.fallback-point:focus-visible .fallback-point-label,
-.fallback-point:hover .fallback-point-label {
-  display: inline-flex;
 }
 
 .card-map.has-task .leaflet-map {

@@ -560,7 +560,7 @@ function evaluateTriggers(stats) {
   return fresh;
 }
 
-function publicStats(stats) {
+function adminStats(stats) {
   return {
     teamName: stats.teamName,
     moveCount: Number(stats.moveCount) || 0,
@@ -574,6 +574,15 @@ function publicStats(stats) {
     pisaPoiCount: collectPoiCount(stats, 'pisa'),
     currentPointId: stats.currentPointId || '',
     currentPointLabel: pointLabel(stats.currentPointId || ''),
+    updatedAt: stats.updatedAt || nowIso()
+  };
+}
+
+function participantStats(stats) {
+  return {
+    teamName: stats.teamName,
+    finalAnswerText: typeof stats.finalAnswerText === 'string' ? stats.finalAnswerText : '',
+    finalAnswerAt: typeof stats.finalAnswerAt === 'string' ? stats.finalAnswerAt : '',
     updatedAt: stats.updatedAt || nowIso()
   };
 }
@@ -596,7 +605,7 @@ function buildAdminRows(db) {
     const latestTrigger = (stats.triggerLog || [])[stats.triggerLog.length - 1] || null;
     return {
       teamName,
-      ...publicStats(stats),
+      ...adminStats(stats),
       recentRoute: (stats.routeLog || []).slice(-8).reverse(),
       pendingTriggers: getPendingTriggers(stats),
       issuedTriggers: getIssuedTriggers(stats),
@@ -671,7 +680,7 @@ app.post('/api/register', async (req, res) => {
         ok: true,
         sessionId,
         teamName,
-        stats: publicStats(stats),
+        stats: participantStats(stats),
         triggers: (stats.triggerLog || []).slice(-5)
       };
     });
@@ -758,7 +767,7 @@ app.post('/api/event', async (req, res) => {
       return {
         ok: true,
         event,
-        stats: publicStats(stats),
+        stats: participantStats(stats),
         triggers: freshTriggers
       };
     });
@@ -821,10 +830,9 @@ app.post('/api/final-answer', async (req, res) => {
         teamName,
         finalAnswer: {
           text: stats.finalAnswerText,
-          at: stats.finalAnswerAt,
-          moveCount: stats.finalAnswerMoveCount
+          at: stats.finalAnswerAt
         },
-        stats: publicStats(stats)
+        stats: participantStats(stats)
       };
     });
 
@@ -852,7 +860,7 @@ app.get('/api/team/:teamName/status', async (req, res) => {
     res.json({
       ok: true,
       teamName,
-      stats: publicStats(stats),
+      stats: participantStats(stats),
       triggers: (stats.triggerLog || []).slice(-8)
     });
   } catch (error) {
@@ -983,7 +991,7 @@ app.post('/api/admin/team/:teamName/ack-trigger', async (req, res) => {
         teamName,
         pendingTriggers: getPendingTriggers(stats),
         issuedTriggers: getIssuedTriggers(stats),
-        stats: publicStats(stats)
+        stats: participantStats(stats)
       };
     });
 

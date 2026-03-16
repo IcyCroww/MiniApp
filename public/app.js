@@ -774,7 +774,6 @@ const viewAnswerNode = document.getElementById('view-answer');
 const tabMapBtn = document.getElementById('tabMapBtn');
 const tabAnswerBtn = document.getElementById('tabAnswerBtn');
 const completionNode = document.getElementById('completionBadge');
-const answerMoveBadgeNode = document.getElementById('answerMoveBadge');
 const resetMapBtn = document.getElementById('resetMapBtn');
 const changeTeamBtn = document.getElementById('changeTeamBtn');
 const mapAttribNode = document.querySelector('.map-attrib');
@@ -803,6 +802,8 @@ const submitFinalAnswerBtn = document.getElementById('submitFinalAnswerBtn');
 const finalAnswerStatusNode = document.getElementById('finalAnswerStatus');
 const finalAnswerLastNode = document.getElementById('finalAnswerLast');
 const finalAnswerLastTextNode = document.getElementById('finalAnswerLastText');
+const openCaseMapBtn = document.getElementById('openCaseMapBtn');
+const mapAssetStatusNode = document.getElementById('mapAssetStatus');
 
 const mapState = {
   map: null,
@@ -976,6 +977,28 @@ function formatUiDate(value = '') {
   return date.toLocaleString('ru-RU');
 }
 
+async function updateMapAssetStatus() {
+  if (!openCaseMapBtn || !mapAssetStatusNode) {
+    return;
+  }
+
+  const href = String(openCaseMapBtn.getAttribute('href') || '').trim();
+  if (!href) {
+    mapAssetStatusNode.textContent = 'Ссылка на карту не настроена.';
+    return;
+  }
+
+  try {
+    const response = await fetch(href, { method: 'HEAD', cache: 'no-store' });
+    if (!response.ok) {
+      throw new Error('map_asset_not_found');
+    }
+    mapAssetStatusNode.textContent = 'Карта подключена. Нажмите "Открыть карту".';
+  } catch (_) {
+    mapAssetStatusNode.textContent = 'Файл пока не найден. Положите карту в public/assets/maps/team-map.png.';
+  }
+}
+
 function renderFinalAnswerPanel() {
   if (!finalAnswerPanelNode || !finalAnswerInputNode || !submitFinalAnswerBtn) {
     return;
@@ -987,9 +1010,6 @@ function renderFinalAnswerPanel() {
     finalAnswerStatusNode.textContent = 'Сначала выберите команду на вкладке карты.';
     finalAnswerLastNode.hidden = true;
     finalAnswerInputNode.value = state.finalAnswerDraft || '';
-    if (answerMoveBadgeNode) {
-      answerMoveBadgeNode.textContent = 'Перемещения: 0';
-    }
     return;
   }
 
@@ -1000,12 +1020,8 @@ function renderFinalAnswerPanel() {
     finalAnswerInputNode.value = state.finalAnswerDraft || '';
   }
 
-  if (answerMoveBadgeNode) {
-    answerMoveBadgeNode.textContent = `Перемещения: ${state.teamMoveCount}`;
-  }
-
   if (state.finalAnswerText && state.finalAnswerAt) {
-    finalAnswerStatusNode.textContent = `Ответ принят: ${formatUiDate(state.finalAnswerAt)} • Перемещения: ${state.finalAnswerMoveCount}`;
+    finalAnswerStatusNode.textContent = `Ответ принят: ${formatUiDate(state.finalAnswerAt)}`;
     finalAnswerLastTextNode.textContent = state.finalAnswerText;
     finalAnswerLastNode.hidden = false;
   } else {
@@ -1227,7 +1243,7 @@ async function submitFinalAnswer() {
     applyTeamStats(data?.stats || {});
     state.finalAnswerDraft = state.finalAnswerText;
     renderFinalAnswerPanel();
-    finalAnswerStatusNode.textContent = `Ответ принят: ${formatUiDate(state.finalAnswerAt)} • Перемещения: ${state.finalAnswerMoveCount}`;
+    finalAnswerStatusNode.textContent = `Ответ принят: ${formatUiDate(state.finalAnswerAt)}`;
     triggerHaptic('success');
   } catch (error) {
     const reason = String(error?.message || '');
@@ -1496,15 +1512,16 @@ function refreshMarkers() {
     }
 
     marker.setStyle(markerStyle(point.id));
-    marker.closeTooltip();
 
     if (mapState.cityOverlayPointId) {
+      marker.closeTooltip();
       return;
     }
 
+    marker.openTooltip();
+
     if (state.selectedPointId === point.id) {
       marker.bringToFront();
-      marker.openTooltip();
     }
   });
 
@@ -1514,8 +1531,10 @@ function refreshMarkers() {
 }
 
 function updateBadge() {
-  const moveCount = state.teamReady ? state.teamMoveCount : 0;
-  completionNode.textContent = `Точки: ${mapState.visited.size}/${points.length} • Ключи: ${mapState.solved.size}/${totalQuestCount} • Перемещения: ${moveCount}`;
+  if (completionNode) {
+    completionNode.hidden = true;
+    completionNode.textContent = '';
+  }
 }
 
 function setMapInteractionsEnabled(enabled) {
@@ -4064,7 +4083,8 @@ function initMap() {
     marker.bindTooltip(point.title, {
       className: 'leaflet-label',
       direction: 'top',
-      offset: [0, -8]
+      offset: [0, -12],
+      permanent: true
     });
     marker.on('click', () => {
       focusPoint(point);
@@ -4164,6 +4184,10 @@ function bindEvents() {
     submitFinalAnswer();
   });
 
+  openCaseMapBtn?.addEventListener('click', () => {
+    triggerHaptic('light');
+  });
+
   window.addEventListener('resize', () => {
     if (mapState.map) {
       mapState.map.invalidateSize();
@@ -4175,6 +4199,7 @@ async function init() {
   setActiveView('map');
   initMap();
   bindEvents();
+  await updateMapAssetStatus();
   updateBadge();
   setTaskPlaceholder();
   renderFinalAnswerPanel();

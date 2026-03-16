@@ -22,7 +22,7 @@
 
     <nav class="view-tabs" aria-label="Разделы Mini App">
       <button class="view-tab is-active" id="tabMapBtn" data-view-target="map" type="button">Карта</button>
-      <button class="view-tab" id="tabAnswerBtn" data-view-target="answer" type="button">Итоговый ответ</button>
+      <button class="view-tab" id="tabAnswerBtn" data-view-target="answer" type="button">Карта задания</button>
     </nav>
 
     <main class="view-stack">
@@ -30,7 +30,6 @@
         <article class="card card-map">
           <div class="card-head">
             <h2>Карта Италии</h2>
-            <span id="completionBadge" class="badge">Точки: 0/10</span>
           </div>
 
           <section class="team-gate" id="teamGate" hidden>
@@ -85,22 +84,24 @@
       <section class="view" id="view-answer" data-view="answer">
         <article class="card card-answer">
           <div class="card-head">
-            <h2>Итоговый ответ</h2>
-            <span class="badge" id="answerMoveBadge">Перемещения: 0</span>
+            <h2>Карта задания</h2>
           </div>
 
-          <section class="final-answer-panel" id="finalAnswerPanel">
-            <p class="task-kicker">Итоговый ответ команды</p>
-            <p class="final-answer-note">Когда команда собрала версию дела, отправьте здесь общий итоговый ответ.</p>
-            <textarea class="final-answer-input" id="finalAnswerInput" rows="4" placeholder="Введите итоговый ответ команды"></textarea>
+          <section class="final-answer-panel">
+            <p class="task-kicker">Материалы команды</p>
+            <p class="final-answer-note">Откройте карту задания по кнопке ниже.</p>
             <div class="row-actions">
-              <button class="btn primary" id="submitFinalAnswerBtn">Отправить итоговый ответ</button>
+              <a
+                class="btn primary"
+                id="openCaseMapBtn"
+                href="./assets/maps/team-map.png"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Открыть карту
+              </a>
             </div>
-            <p class="final-answer-status" id="finalAnswerStatus"></p>
-            <div class="task-answer final-answer-last" id="finalAnswerLast" hidden>
-              <p class="task-answer-label">Последний отправленный ответ</p>
-              <p class="task-answer-text" id="finalAnswerLastText"></p>
-            </div>
+            <p class="final-answer-status" id="mapAssetStatus">Если карта ещё не открывается, пришлите PNG и я сразу подключу файл.</p>
           </section>
         </article>
       </section>
