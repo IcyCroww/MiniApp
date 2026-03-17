@@ -119,6 +119,13 @@ app.use((req, res, next) => {
 });
 
 const PUBLIC_DIR = path.join(__dirname, 'public');
+const MAP_SOURCE_CANDIDATES = [
+  { fileName: 'team-map.avif', mimeType: 'image/avif' },
+  { fileName: 'team-map.webp', mimeType: 'image/webp' },
+  { fileName: 'team-map.jpg', mimeType: 'image/jpeg' },
+  { fileName: 'team-map.jpeg', mimeType: 'image/jpeg' },
+  { fileName: 'team-map.png', mimeType: 'image/png' }
+];
 
 function setNoCacheHeaders(res) {
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
@@ -136,9 +143,15 @@ function setStaticCacheHeaders(res, filePath) {
   const isMapAsset = assetPath.startsWith('assets/maps/');
   const isCoreUiFile = assetPath === 'app.js' || assetPath === 'styles.css';
 
-  // Telegram WebView can aggressively cache; these files must refresh immediately after deploy/replace.
-  if (isHtml || isMapAsset || isCoreUiFile) {
+  // Telegram WebView can aggressively cache; UI shell must refresh immediately after deploy.
+  if (isHtml || isCoreUiFile) {
     setNoCacheHeaders(res);
+    return;
+  }
+
+  if (isMapAsset) {
+    // Map files are versioned via query string from /api/map-source, safe to cache aggressively.
+    res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
     return;
   }
 
@@ -678,6 +691,46 @@ app.get('/api/config', (_, res) => {
   res.json({
     ok: true,
     teams: TEAM_NAMES,
+    timestamp: nowIso()
+  });
+});
+
+function resolveCaseMapSource() {
+  const mapsDir = path.join(PUBLIC_DIR, 'assets', 'maps');
+
+  for (const candidate of MAP_SOURCE_CANDIDATES) {
+    const absolutePath = path.join(mapsDir, candidate.fileName);
+    if (!fs.existsSync(absolutePath)) {
+      continue;
+    }
+
+    const stat = fs.statSync(absolutePath);
+    const version = String(Math.trunc(Number(stat.mtimeMs) || Date.now()));
+
+    return {
+      src: `./assets/maps/${candidate.fileName}?v=${version}`,
+      fileName: candidate.fileName,
+      mimeType: candidate.mimeType,
+      size: Number(stat.size) || 0,
+      updatedAt: new Date(Number(stat.mtimeMs) || Date.now()).toISOString()
+    };
+  }
+
+  return null;
+}
+
+app.get('/api/map-source', (_, res) => {
+  setNoCacheHeaders(res);
+
+  const source = resolveCaseMapSource();
+  if (!source) {
+    res.status(404).json({ ok: false, error: 'map_not_found' });
+    return;
+  }
+
+  res.json({
+    ok: true,
+    ...source,
     timestamp: nowIso()
   });
 });
