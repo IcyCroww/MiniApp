@@ -34,7 +34,7 @@ body {
 }
 
 .app-shell {
-  width: min(480px, 100%);
+  width: min(620px, 100%);
   min-height: 92vh;
   border-radius: 30px;
   background: linear-gradient(168deg, #f8faf5 0%, #edf2e8 100%);
@@ -108,14 +108,14 @@ body {
   transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
 }
 
-#tabMapBtn.view-tab {
+#tabAnswerBtn.view-tab {
   background: #dbe9df;
   border-color: #9db8a4;
   color: #173629;
   -webkit-text-fill-color: #173629;
 }
 
-#tabMapBtn.view-tab.is-active {
+#tabAnswerBtn.view-tab.is-active {
   background: #cbe2d2;
   border-color: #7f9f8a;
   color: #113124;
@@ -125,14 +125,14 @@ body {
     0 2px 0 rgba(13, 33, 27, 0.12);
 }
 
-#tabAnswerBtn.view-tab {
+#tabMapBtn.view-tab {
   background: #e7dfcf;
   border-color: #c1b29a;
   color: #3c2f1f;
   -webkit-text-fill-color: #3c2f1f;
 }
 
-#tabAnswerBtn.view-tab.is-active {
+#tabMapBtn.view-tab.is-active {
   background: #ddd0b7;
   border-color: #ab9673;
   color: #322414;
@@ -536,7 +536,7 @@ body {
   gap: 8px;
   border: 1px solid #c8d8ce;
   border-radius: 16px;
-  padding: 10px;
+  padding: 8px;
   background: #f8fbf7;
 }
 
@@ -546,6 +546,7 @@ body {
   border-radius: 12px;
   background: #eef3ee;
   aspect-ratio: 7680 / 3475;
+  min-height: 180px;
 }
 
 .case-map-viewport .leaflet-tile-container img,
@@ -558,6 +559,14 @@ body {
   align-items: center;
   justify-content: flex-end;
   gap: 6px;
+}
+
+.case-map-actions {
+  margin-top: 2px;
+}
+
+.case-map-actions .btn {
+  flex: 1;
 }
 
 .btn.tiny {

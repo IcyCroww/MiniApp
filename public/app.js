@@ -751,7 +751,7 @@ const API_BASE = (() => {
 })();
 
 const state = {
-  activeView: 'map',
+  activeView: 'answer',
   selectedPointId: null,
   cityMode: false,
   teamReady: false,
@@ -807,6 +807,8 @@ const caseMapViewportNode = document.getElementById('caseMapViewport');
 const caseMapZoomInBtn = document.getElementById('caseMapZoomIn');
 const caseMapZoomOutBtn = document.getElementById('caseMapZoomOut');
 const caseMapZoomResetBtn = document.getElementById('caseMapZoomReset');
+const caseMapResetViewBtn = document.getElementById('caseMapResetViewBtn');
+const caseMapChangeTeamBtn = document.getElementById('caseMapChangeTeamBtn');
 
 const mapState = {
   map: null,
@@ -4083,6 +4085,14 @@ function closeCityMode() {
   setTaskPlaceholder();
 }
 
+function openTeamSwitcher() {
+  if (state.teamName) {
+    teamSelectNode.value = state.teamName;
+  }
+  setActiveView('map');
+  openTeamGate('Смена команды сбросит только текущую сессию на этом телефоне.');
+}
+
 function resetMapView() {
   if (!mapState.map && !mapState.fallbackVisible) {
     return;
@@ -4256,10 +4266,17 @@ function bindEvents() {
   });
 
   changeTeamBtn.addEventListener('click', () => {
-    if (state.teamName) {
-      teamSelectNode.value = state.teamName;
-    }
-    openTeamGate('Смена команды сбросит только текущую сессию на этом телефоне.');
+    openTeamSwitcher();
+    triggerHaptic('light');
+  });
+
+  caseMapResetViewBtn?.addEventListener('click', () => {
+    resetCaseMap();
+    triggerHaptic('light');
+  });
+
+  caseMapChangeTeamBtn?.addEventListener('click', () => {
+    openTeamSwitcher();
     triggerHaptic('light');
   });
 

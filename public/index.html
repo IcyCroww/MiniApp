@@ -14,21 +14,21 @@
 <body>
   <div class="app-shell">
     <header class="top-panel">
-      <h1 class="title">Карта проекта</h1>
-      <p class="subtitle">Нажмите на точку Италии: карта перейдет к городу, загадка откроется здесь, а итоговый ответ отправляется в отдельной вкладке.</p>
+      <h1 class="title">Карта</h1>
+      <p class="subtitle">Основная вкладка — «Карта». «Карта (тест)» оставлена для точек Италии и проверки сценариев.</p>
       <p class="team-strip" id="teamStrip">Команда: не выбрана</p>
     </header>
 
     <nav class="view-tabs" aria-label="Разделы Mini App">
-      <button class="view-tab is-active" id="tabMapBtn" data-view-target="map" type="button">Карта</button>
-      <button class="view-tab" id="tabAnswerBtn" data-view-target="answer" type="button">Карта детектива</button>
+      <button class="view-tab is-active" id="tabAnswerBtn" data-view-target="answer" type="button">Карта</button>
+      <button class="view-tab" id="tabMapBtn" data-view-target="map" type="button">Карта (тест)</button>
     </nav>
 
     <main class="view-stack">
-      <section class="view is-active" id="view-map" data-view="map">
+      <section class="view" id="view-map" data-view="map">
         <article class="card card-map">
           <div class="card-head">
-            <h2>Карта Италии</h2>
+            <h2>Карта (тест)</h2>
           </div>
 
           <section class="team-gate" id="teamGate" hidden>
@@ -40,7 +40,7 @@
           </section>
 
           <div class="map-scene">
-            <div class="leaflet-map" id="worldMap" aria-label="Карта Италии"></div>
+            <div class="leaflet-map" id="worldMap" aria-label="Карта (тест)"></div>
             <div class="fallback-map" id="fallbackMap" hidden>
               <p class="fallback-map-note" id="fallbackMapNote">Резервная схема: если фон карты не загрузился, нажимайте на точки здесь.</p>
               <div class="fallback-map-canvas">
@@ -80,23 +80,27 @@
         </article>
       </section>
 
-      <section class="view" id="view-answer" data-view="answer">
+      <section class="view is-active" id="view-answer" data-view="answer">
         <article class="card card-answer">
           <div class="card-head">
-            <h2>Карта детектива</h2>
+            <h2>Карта</h2>
           </div>
 
           <section class="final-answer-panel">
             <p class="task-kicker">Материалы команды</p>
-            <p class="final-answer-note">Карта детектива отображается прямо в этом разделе.</p>
+            <p class="final-answer-note">Основная карта команды отображается прямо в этом разделе.</p>
             <figure class="case-map-frame">
-              <div class="case-map-viewport" id="caseMapViewport" aria-label="Карта детектива"></div>
-              <div class="case-map-controls" aria-label="Масштаб карты детектива">
+              <div class="case-map-viewport" id="caseMapViewport" aria-label="Карта"></div>
+              <div class="case-map-controls" aria-label="Масштаб карты">
                 <button class="btn ghost tiny" id="caseMapZoomOut" type="button" aria-label="Уменьшить карту">−</button>
                 <button class="btn ghost tiny" id="caseMapZoomReset" type="button" aria-label="Сбросить масштаб">100%</button>
                 <button class="btn ghost tiny" id="caseMapZoomIn" type="button" aria-label="Увеличить карту">+</button>
               </div>
             </figure>
+            <div class="row-actions case-map-actions">
+              <button class="btn ghost" id="caseMapResetViewBtn" type="button">Сбросить вид</button>
+              <button class="btn ghost" id="caseMapChangeTeamBtn" type="button">Сменить команду</button>
+            </div>
             <p class="final-answer-status" id="caseMapStatus">Загружаем карту...</p>
           </section>
         </article>
