@@ -91,16 +91,35 @@
             <p class="final-answer-note">Карта детектива отображается прямо в этом разделе.</p>
             <figure class="case-map-frame">
               <div class="case-map-viewport" id="caseMapViewport">
-                <img
-                  class="case-map-image"
-                  id="caseMapImage"
-                  src="./assets/maps/team-map.png"
-                  alt="Карта детектива команды"
-                  loading="lazy"
-                  decoding="async"
-                  fetchpriority="low"
-                  draggable="false"
-                />
+                <div class="case-map-layer" id="caseMapLayer">
+                  <img
+                    class="case-map-image"
+                    id="caseMapImage"
+                    src="./assets/maps/team-map.png"
+                    alt="Карта детектива команды"
+                    loading="lazy"
+                    decoding="async"
+                    fetchpriority="low"
+                    draggable="false"
+                  />
+                  <svg
+                    class="case-map-labels"
+                    viewBox="0 0 7680 3475"
+                    aria-hidden="true"
+                    focusable="false"
+                  >
+                    <text class="map-label map-label-main" x="1130" y="2210">Дюна</text>
+                    <text class="map-label map-label-main" x="3830" y="3160">Аргос</text>
+                    <text class="map-label map-label-main" x="5220" y="1580" transform="rotate(-10 5220 1580)">Пандория</text>
+                    <text class="map-label map-label-main" x="705" y="1965" transform="rotate(-58 705 1965)">Элеон</text>
+                    <text class="map-label map-label-city" x="3450" y="975">Верона</text>
+                    <text class="map-label map-label-minor" x="3290" y="1760">Оазис жизни</text>
+                    <text class="map-label map-label-minor" x="3010" y="1370">Ваше</text>
+                    <text class="map-label map-label-minor" x="3010" y="1475">государство</text>
+                    <text class="map-label map-label-minor" x="2960" y="1985" transform="rotate(11 2960 1985)">Нейтральные</text>
+                    <text class="map-label map-label-minor" x="2960" y="2100" transform="rotate(11 2960 2100)">земли</text>
+                  </svg>
+                </div>
               </div>
               <div class="case-map-controls" aria-label="Масштаб карты детектива">
                 <button class="btn ghost tiny" id="caseMapZoomOut" type="button" aria-label="Уменьшить карту">−</button>

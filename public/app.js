@@ -803,6 +803,7 @@ const finalAnswerStatusNode = document.getElementById('finalAnswerStatus');
 const finalAnswerLastNode = document.getElementById('finalAnswerLast');
 const finalAnswerLastTextNode = document.getElementById('finalAnswerLastText');
 const caseMapImageNode = document.getElementById('caseMapImage');
+const caseMapLayerNode = document.getElementById('caseMapLayer');
 const caseMapStatusNode = document.getElementById('caseMapStatus');
 const caseMapViewportNode = document.getElementById('caseMapViewport');
 const caseMapZoomInBtn = document.getElementById('caseMapZoomIn');
@@ -834,7 +835,7 @@ const mapState = {
 };
 
 const CASE_MAP_SOURCES = [
-  { width: 15360, src: './assets/maps/team-map.png' }
+  { width: 7680, src: './assets/maps/team-map.png' }
 ];
 
 const CASE_MAP_HD_SCALE = 1.18;
@@ -1142,11 +1143,11 @@ function clampCaseMapTranslate() {
 }
 
 function updateCaseMapTransform() {
-  if (!caseMapImageNode || !caseMapViewportNode) {
+  if (!caseMapLayerNode || !caseMapViewportNode) {
     return;
   }
 
-  caseMapImageNode.style.transform = `translate(${caseMapState.translateX}px, ${caseMapState.translateY}px) scale(${caseMapState.scale})`;
+  caseMapLayerNode.style.transform = `translate(${caseMapState.translateX}px, ${caseMapState.translateY}px) scale(${caseMapState.scale})`;
   caseMapViewportNode.classList.toggle('is-zoomed', caseMapState.scale > 1.01);
 
   if (caseMapZoomResetBtn) {
@@ -1269,7 +1270,7 @@ function bindCaseMapInteractions() {
 }
 
 function initCaseMapPanel() {
-  if (!caseMapImageNode || !caseMapStatusNode || !caseMapViewportNode) {
+  if (!caseMapImageNode || !caseMapLayerNode || !caseMapStatusNode || !caseMapViewportNode) {
     return;
   }
 
