@@ -549,7 +549,7 @@ body {
 }
 
 .case-map-viewport .leaflet-tile-container img,
-.case-map-viewport .case-map-tile {
+.case-map-viewport .leaflet-image-layer {
   image-rendering: auto;
 }
 

@@ -1037,73 +1037,6 @@ function zoomCaseMap(delta = 0) {
   caseMapState.map.setZoom(nextZoom);
 }
 
-function createCaseMapTileLayer(image, imageWidth, imageHeight) {
-  const tileSize = 256;
-  const layer = window.L.gridLayer({
-    tileSize,
-    noWrap: true,
-    updateWhenIdle: true,
-    keepBuffer: 2
-  });
-
-  layer.createTile = (coords, done) => {
-    const tile = document.createElement('canvas');
-    tile.className = 'case-map-tile';
-    tile.width = tileSize;
-    tile.height = tileSize;
-
-    const context = tile.getContext('2d');
-    if (!context) {
-      done(null, tile);
-      return tile;
-    }
-
-    context.imageSmoothingEnabled = true;
-
-    const zoomScale = Math.pow(2, coords.z);
-    const sourceTileWidth = tileSize / zoomScale;
-    const sourceTileHeight = tileSize / zoomScale;
-    const sourceX = coords.x * sourceTileWidth;
-    const sourceY = coords.y * sourceTileHeight;
-
-    const cropX = Math.max(0, sourceX);
-    const cropY = Math.max(0, sourceY);
-    const cropRight = Math.min(imageWidth, sourceX + sourceTileWidth);
-    const cropBottom = Math.min(imageHeight, sourceY + sourceTileHeight);
-
-    if (cropRight <= cropX || cropBottom <= cropY) {
-      done(null, tile);
-      return tile;
-    }
-
-    const targetX = ((cropX - sourceX) / sourceTileWidth) * tileSize;
-    const targetY = ((cropY - sourceY) / sourceTileHeight) * tileSize;
-    const targetW = ((cropRight - cropX) / sourceTileWidth) * tileSize;
-    const targetH = ((cropBottom - cropY) / sourceTileHeight) * tileSize;
-
-    try {
-      context.drawImage(
-        image,
-        cropX,
-        cropY,
-        cropRight - cropX,
-        cropBottom - cropY,
-        targetX,
-        targetY,
-        targetW,
-        targetH
-      );
-      done(null, tile);
-    } catch (error) {
-      done(error, tile);
-    }
-
-    return tile;
-  };
-
-  return layer;
-}
-
 function initCaseMapPanel() {
   if (!caseMapStatusNode || !caseMapViewportNode) {
     return;
@@ -1118,6 +1051,7 @@ function initCaseMapPanel() {
 
   caseMapState.initialized = true;
   caseMapStatusNode.textContent = 'Загружаем карту...';
+  const imageUrl = getCaseMapImageUrl();
 
   const image = new window.Image();
   image.decoding = 'async';
@@ -1140,11 +1074,18 @@ function initCaseMapPanel() {
     });
 
     const bounds = window.L.latLngBounds([0, 0], [caseMapState.height, caseMapState.width]);
-    caseMapState.layer = createCaseMapTileLayer(image, caseMapState.width, caseMapState.height).addTo(map);
+    caseMapState.layer = window.L.imageOverlay(imageUrl, bounds, {
+      interactive: false,
+      className: 'case-map-image'
+    }).addTo(map);
     caseMapState.map = map;
 
     map.fitBounds(bounds, { animate: false, padding: [0, 0] });
     caseMapState.baseZoom = map.getZoom();
+    caseMapState.minZoom = caseMapState.baseZoom - 2.5;
+    caseMapState.maxZoom = caseMapState.baseZoom + 3.5;
+    map.setMinZoom(caseMapState.minZoom);
+    map.setMaxZoom(caseMapState.maxZoom);
     map.setMaxBounds(bounds.pad(0.02));
     resetCaseMap();
 
@@ -1160,7 +1101,7 @@ function initCaseMapPanel() {
   image.onerror = () => {
     caseMapStatusNode.textContent = 'Не удалось загрузить карту: проверьте файл public/assets/maps/team-map.png.';
   };
-  image.src = getCaseMapImageUrl();
+  image.src = imageUrl;
 }
 
 function renderFinalAnswerPanel() {
