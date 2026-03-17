@@ -34,7 +34,7 @@ body {
 }
 
 .app-shell {
-  width: min(620px, 100%);
+  width: min(760px, 100%);
   min-height: 92vh;
   border-radius: 30px;
   background: linear-gradient(168deg, #f8faf5 0%, #edf2e8 100%);
@@ -146,7 +146,7 @@ body {
   flex: 1;
   position: relative;
   overflow: hidden;
-  padding: 12px;
+  padding: 10px;
 }
 
 .view {
@@ -173,6 +173,7 @@ body {
 
 .card-answer {
   min-height: 100%;
+  padding: 10px;
 }
 
 .card-head {
@@ -493,7 +494,7 @@ body {
   border-radius: 20px;
   border: 1px solid #d1dccf;
   background: linear-gradient(180deg, #f8fcf7 0%, #eff5ed 100%);
-  padding: 12px;
+  padding: 10px;
 }
 
 .final-answer-note {
@@ -533,10 +534,10 @@ body {
 .case-map-frame {
   margin: 0;
   display: grid;
-  gap: 8px;
+  gap: 6px;
   border: 1px solid #c8d8ce;
   border-radius: 16px;
-  padding: 8px;
+  padding: 6px;
   background: #f8fbf7;
 }
 
@@ -546,19 +547,11 @@ body {
   border-radius: 12px;
   background: #eef3ee;
   aspect-ratio: 7680 / 3475;
-  min-height: 180px;
 }
 
 .case-map-viewport .leaflet-tile-container img,
 .case-map-viewport .leaflet-image-layer {
   image-rendering: auto;
-}
-
-.case-map-controls {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 6px;
 }
 
 .case-map-actions {
@@ -567,11 +560,6 @@ body {
 
 .case-map-actions .btn {
   flex: 1;
-}
-
-.btn.tiny {
-  padding: 6px 10px;
-  font-size: 12px;
 }
 
 .final-answer-last {

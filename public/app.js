@@ -804,9 +804,6 @@ const finalAnswerLastNode = document.getElementById('finalAnswerLast');
 const finalAnswerLastTextNode = document.getElementById('finalAnswerLastText');
 const caseMapStatusNode = document.getElementById('caseMapStatus');
 const caseMapViewportNode = document.getElementById('caseMapViewport');
-const caseMapZoomInBtn = document.getElementById('caseMapZoomIn');
-const caseMapZoomOutBtn = document.getElementById('caseMapZoomOut');
-const caseMapZoomResetBtn = document.getElementById('caseMapZoomReset');
 const caseMapResetViewBtn = document.getElementById('caseMapResetViewBtn');
 const caseMapChangeTeamBtn = document.getElementById('caseMapChangeTeamBtn');
 
@@ -989,7 +986,6 @@ function setActiveView(viewName = 'map') {
     window.setTimeout(() => {
       if (caseMapState.map) {
         caseMapState.map.invalidateSize();
-        resetCaseMap();
       }
     }, 120);
   }
@@ -1037,16 +1033,6 @@ async function getCaseMapImageUrl() {
   return resolvedUrl;
 }
 
-function updateCaseMapZoomLabel() {
-  if (!caseMapState.map || !caseMapZoomResetBtn) {
-    return;
-  }
-
-  const baseZoom = Number.isFinite(caseMapState.baseZoom) ? caseMapState.baseZoom : caseMapState.map.getZoom();
-  const zoomPercent = Math.round(caseMapState.map.getZoomScale(caseMapState.map.getZoom(), baseZoom) * 100);
-  caseMapZoomResetBtn.textContent = `${Math.max(100, zoomPercent)}%`;
-}
-
 function resetCaseMap() {
   if (!caseMapState.map || !caseMapState.width || !caseMapState.height) {
     return;
@@ -1054,16 +1040,6 @@ function resetCaseMap() {
 
   const center = window.L.latLng(caseMapState.height / 2, caseMapState.width / 2);
   caseMapState.map.setView(center, caseMapState.baseZoom, { animate: false });
-  updateCaseMapZoomLabel();
-}
-
-function zoomCaseMap(delta = 0) {
-  if (!caseMapState.map) {
-    return;
-  }
-
-  const nextZoom = Math.min(caseMapState.maxZoom, Math.max(caseMapState.minZoom, caseMapState.map.getZoom() + delta));
-  caseMapState.map.setZoom(nextZoom);
 }
 
 function initCaseMapPanel() {
@@ -1101,6 +1077,8 @@ function initCaseMapPanel() {
         zoomControl: false,
         attributionControl: false,
         worldCopyJump: false,
+        maxBoundsViscosity: 1,
+        bounceAtZoomLimits: false,
         preferCanvas: true
       });
 
@@ -1113,19 +1091,12 @@ function initCaseMapPanel() {
 
       map.fitBounds(bounds, { animate: false, padding: [0, 0] });
       caseMapState.baseZoom = map.getZoom();
-      caseMapState.minZoom = caseMapState.baseZoom - 2.5;
+      caseMapState.minZoom = caseMapState.baseZoom;
       caseMapState.maxZoom = caseMapState.baseZoom + 3.5;
       map.setMinZoom(caseMapState.minZoom);
       map.setMaxZoom(caseMapState.maxZoom);
-      map.setMaxBounds(bounds.pad(0.02));
+      map.setMaxBounds(bounds);
       resetCaseMap();
-
-      map.on('zoomend', updateCaseMapZoomLabel);
-      map.on('moveend', updateCaseMapZoomLabel);
-
-      caseMapZoomInBtn?.addEventListener('click', () => zoomCaseMap(0.25));
-      caseMapZoomOutBtn?.addEventListener('click', () => zoomCaseMap(-0.25));
-      caseMapZoomResetBtn?.addEventListener('click', resetCaseMap);
 
       caseMapStatusNode.textContent = 'Карта подключена.';
     };
@@ -4343,7 +4314,6 @@ function bindEvents() {
     }
     if (caseMapState.map) {
       caseMapState.map.invalidateSize();
-      resetCaseMap();
     }
   });
 }
