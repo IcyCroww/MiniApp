@@ -1912,6 +1912,35 @@ body {
     padding: 4px;
     gap: 5px;
   }
+
+  .card-answer {
+    display: flex;
+    flex-direction: column;
+    min-height: calc(100dvh - 180px);
+  }
+
+  .final-answer-panel {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+  }
+
+  .case-map-frame {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+  }
+
+  .case-map-viewport {
+    flex: 1;
+    min-height: clamp(250px, 48dvh, 560px);
+  }
+
+  .final-answer-status {
+    margin-top: 4px;
+  }
 }
 
 @media (max-width: 380px) {
