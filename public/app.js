@@ -833,11 +833,19 @@ const mapState = {
   fallbackVisible: false
 };
 
+const CASE_MAP_SOURCES = [
+  { width: 15360, src: './assets/maps/team-map.png' }
+];
+
+const CASE_MAP_HD_SCALE = 1.18;
+const CASE_MAP_ULTRA_SCALE = 1.6;
+
 const caseMapState = {
   initialized: false,
+  ready: false,
   scale: 1,
   minScale: 1,
-  maxScale: 3,
+  maxScale: 5,
   translateX: 0,
   translateY: 0,
   baseWidth: 0,
@@ -848,7 +856,10 @@ const caseMapState = {
   panStartTranslateX: 0,
   panStartTranslateY: 0,
   pinchStartDistance: 0,
-  pinchStartScale: 1
+  pinchStartScale: 1,
+  currentSourceWidth: 0,
+  pendingSourceWidth: 0,
+  loadingSourceWidth: 0
 };
 
 const fallbackPointPositions = {
@@ -984,6 +995,12 @@ function setActiveView(viewName = 'map') {
       mapState.map.invalidateSize();
     }, 120);
   }
+
+  if (state.activeView === 'answer') {
+    window.setTimeout(() => {
+      upgradeCaseMapSourceIfNeeded(caseMapState.scale);
+    }, 120);
+  }
 }
 
 function formatUiDate(value = '') {
@@ -1016,6 +1033,96 @@ function updateCaseMapBaseSize() {
   const ratio = caseMapImageNode.naturalHeight / caseMapImageNode.naturalWidth;
   caseMapState.baseWidth = viewportWidth;
   caseMapState.baseHeight = viewportWidth * ratio;
+}
+
+function getCaseMapSourceByWidth(width = CASE_MAP_SOURCES[0].width) {
+  return CASE_MAP_SOURCES.find((item) => item.width === width) || CASE_MAP_SOURCES[0];
+}
+
+function getCaseMapTargetWidth(scale = caseMapState.scale) {
+  if (!caseMapViewportNode) {
+    return CASE_MAP_SOURCES[0].width;
+  }
+
+  const viewportWidth = caseMapViewportNode.clientWidth;
+  if (!viewportWidth) {
+    return CASE_MAP_SOURCES[0].width;
+  }
+
+  const dpr = Math.max(1, window.devicePixelRatio || 1);
+  let requiredWidth = viewportWidth * dpr * 1.05;
+
+  // For readable tiny labels we need source detail, not only screen-fit pixels.
+  if (scale >= CASE_MAP_HD_SCALE) {
+    requiredWidth = Math.max(requiredWidth, 2400);
+  }
+  if (scale >= CASE_MAP_ULTRA_SCALE) {
+    requiredWidth = Math.max(requiredWidth, 7680);
+  }
+
+  const match = CASE_MAP_SOURCES.find((item) => item.width >= requiredWidth);
+  return match ? match.width : CASE_MAP_SOURCES[CASE_MAP_SOURCES.length - 1].width;
+}
+
+function preloadCaseMapSource(width) {
+  const source = getCaseMapSourceByWidth(width);
+  return new Promise((resolve, reject) => {
+    const image = new window.Image();
+    image.decoding = 'async';
+    image.onload = () => resolve(source);
+    image.onerror = () => reject(new Error(`Failed to load ${source.src}`));
+    image.src = source.src;
+  });
+}
+
+function upgradeCaseMapSourceIfNeeded(scale = caseMapState.scale) {
+  if (!caseMapImageNode) {
+    return;
+  }
+
+  const targetWidth = getCaseMapTargetWidth(scale);
+  if (targetWidth <= caseMapState.currentSourceWidth) {
+    return;
+  }
+  if (targetWidth <= caseMapState.pendingSourceWidth || targetWidth <= caseMapState.loadingSourceWidth) {
+    return;
+  }
+
+  caseMapState.loadingSourceWidth = targetWidth;
+
+  if (caseMapState.ready && caseMapStatusNode) {
+    caseMapStatusNode.textContent = targetWidth >= 7680
+      ? 'Подгружаем максимальную детализацию...'
+      : 'Подгружаем карту в высоком качестве...';
+  }
+
+  preloadCaseMapSource(targetWidth)
+    .then((source) => {
+      if (!caseMapImageNode || source.width <= caseMapState.currentSourceWidth) {
+        return;
+      }
+
+      caseMapState.pendingSourceWidth = source.width;
+      caseMapImageNode.srcset = '';
+      caseMapImageNode.sizes = '';
+      caseMapImageNode.src = source.src;
+    })
+    .catch(() => {
+      if (caseMapStatusNode && caseMapState.ready) {
+        if (caseMapState.currentSourceWidth >= 7680) {
+          caseMapStatusNode.textContent = 'Карта подключена в максимальном качестве.';
+        } else if (caseMapState.currentSourceWidth >= 2400) {
+          caseMapStatusNode.textContent = 'Карта подключена в высоком качестве.';
+        } else {
+          caseMapStatusNode.textContent = 'Карта подключена.';
+        }
+      }
+    })
+    .finally(() => {
+      if (caseMapState.loadingSourceWidth === targetWidth) {
+        caseMapState.loadingSourceWidth = 0;
+      }
+    });
 }
 
 function clampCaseMapTranslate() {
@@ -1051,6 +1158,7 @@ function setCaseMapScale(nextScale) {
   caseMapState.scale = Math.min(caseMapState.maxScale, Math.max(caseMapState.minScale, nextScale));
   clampCaseMapTranslate();
   updateCaseMapTransform();
+  upgradeCaseMapSourceIfNeeded(caseMapState.scale);
 }
 
 function zoomCaseMap(delta) {
@@ -1166,11 +1274,36 @@ function initCaseMapPanel() {
   }
 
   const setReady = () => {
-    caseMapStatusNode.textContent = 'Карта подключена.';
+    const wasReady = caseMapState.ready;
+    caseMapState.ready = true;
+
+    const naturalWidth = Number(caseMapImageNode.naturalWidth) || 0;
+    if (naturalWidth > 0) {
+      caseMapState.currentSourceWidth = Math.max(caseMapState.currentSourceWidth, naturalWidth);
+      if (caseMapState.pendingSourceWidth && naturalWidth >= caseMapState.pendingSourceWidth) {
+        caseMapState.pendingSourceWidth = 0;
+      }
+    }
+
+    if (caseMapState.currentSourceWidth >= 7680) {
+      caseMapStatusNode.textContent = 'Карта подключена в максимальном качестве.';
+    } else if (caseMapState.currentSourceWidth >= 2400) {
+      caseMapStatusNode.textContent = 'Карта подключена в высоком качестве.';
+    } else {
+      caseMapStatusNode.textContent = 'Карта подключена.';
+    }
+
     window.requestAnimationFrame(() => {
       updateCaseMapBaseSize();
-      resetCaseMap();
+      if (wasReady) {
+        clampCaseMapTranslate();
+        updateCaseMapTransform();
+      } else {
+        resetCaseMap();
+      }
     });
+
+    upgradeCaseMapSourceIfNeeded(caseMapState.scale);
   };
 
   const setError = () => {
@@ -4175,15 +4308,15 @@ function addBaseTileLayerWithFallback(map) {
   const providers = [
     {
       url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-      options: { subdomains: 'abc', maxZoom: 19 }
+      options: { subdomains: 'abc', maxZoom: 19, detectRetina: true }
     },
     {
       url: 'https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png',
-      options: { subdomains: 'abc', maxZoom: 19 }
+      options: { subdomains: 'abc', maxZoom: 19, detectRetina: true }
     },
     {
       url: 'https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png',
-      options: { subdomains: 'abcd', maxZoom: 19 }
+      options: { subdomains: 'abcd', maxZoom: 20 }
     }
   ];
 
@@ -4383,6 +4516,7 @@ function bindEvents() {
     updateCaseMapBaseSize();
     clampCaseMapTranslate();
     updateCaseMapTransform();
+    upgradeCaseMapSourceIfNeeded(caseMapState.scale);
   });
 }
 
