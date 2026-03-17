@@ -802,8 +802,6 @@ const submitFinalAnswerBtn = document.getElementById('submitFinalAnswerBtn');
 const finalAnswerStatusNode = document.getElementById('finalAnswerStatus');
 const finalAnswerLastNode = document.getElementById('finalAnswerLast');
 const finalAnswerLastTextNode = document.getElementById('finalAnswerLastText');
-const caseMapImageNode = document.getElementById('caseMapImage');
-const caseMapLayerNode = document.getElementById('caseMapLayer');
 const caseMapStatusNode = document.getElementById('caseMapStatus');
 const caseMapViewportNode = document.getElementById('caseMapViewport');
 const caseMapZoomInBtn = document.getElementById('caseMapZoomIn');
@@ -834,33 +832,16 @@ const mapState = {
   fallbackVisible: false
 };
 
-const CASE_MAP_SOURCES = [
-  { width: 7680, src: './assets/maps/team-map.png' }
-];
-
-const CASE_MAP_HD_SCALE = 1.18;
-const CASE_MAP_ULTRA_SCALE = 1.6;
-
 const caseMapState = {
   initialized: false,
-  ready: false,
-  scale: 1,
-  minScale: 1,
-  maxScale: 5,
-  translateX: 0,
-  translateY: 0,
-  baseWidth: 0,
-  baseHeight: 0,
-  pointers: new Map(),
-  panStartX: 0,
-  panStartY: 0,
-  panStartTranslateX: 0,
-  panStartTranslateY: 0,
-  pinchStartDistance: 0,
-  pinchStartScale: 1,
-  currentSourceWidth: 0,
-  pendingSourceWidth: 0,
-  loadingSourceWidth: 0
+  map: null,
+  layer: null,
+  image: null,
+  width: 0,
+  height: 0,
+  baseZoom: 0,
+  minZoom: -4.5,
+  maxZoom: 0
 };
 
 const fallbackPointPositions = {
@@ -999,7 +980,10 @@ function setActiveView(viewName = 'map') {
 
   if (state.activeView === 'answer') {
     window.setTimeout(() => {
-      upgradeCaseMapSourceIfNeeded(caseMapState.scale);
+      if (caseMapState.map) {
+        caseMapState.map.invalidateSize();
+        resetCaseMap();
+      }
     }, 120);
   }
 }
@@ -1017,312 +1001,166 @@ function formatUiDate(value = '') {
   return date.toLocaleString('ru-RU');
 }
 
-function updateCaseMapBaseSize() {
-  if (!caseMapViewportNode || !caseMapImageNode) {
+function getCaseMapImageUrl() {
+  const host = String(window.location.hostname || '').toLowerCase();
+  const isLocalRun = host === 'localhost' || host === '127.0.0.1' || host === '::1';
+  const baseSrc = './assets/maps/team-map.png';
+  return isLocalRun ? `${baseSrc}?v=${Date.now()}` : baseSrc;
+}
+
+function updateCaseMapZoomLabel() {
+  if (!caseMapState.map || !caseMapZoomResetBtn) {
     return;
   }
 
-  if (!caseMapImageNode.naturalWidth) {
-    return;
-  }
-
-  const viewportWidth = caseMapViewportNode.clientWidth;
-  if (!viewportWidth) {
-    return;
-  }
-
-  const ratio = caseMapImageNode.naturalHeight / caseMapImageNode.naturalWidth;
-  caseMapState.baseWidth = viewportWidth;
-  caseMapState.baseHeight = viewportWidth * ratio;
-}
-
-function getCaseMapSourceByWidth(width = CASE_MAP_SOURCES[0].width) {
-  return CASE_MAP_SOURCES.find((item) => item.width === width) || CASE_MAP_SOURCES[0];
-}
-
-function getCaseMapTargetWidth(scale = caseMapState.scale) {
-  if (!caseMapViewportNode) {
-    return CASE_MAP_SOURCES[0].width;
-  }
-
-  const viewportWidth = caseMapViewportNode.clientWidth;
-  if (!viewportWidth) {
-    return CASE_MAP_SOURCES[0].width;
-  }
-
-  const dpr = Math.max(1, window.devicePixelRatio || 1);
-  let requiredWidth = viewportWidth * dpr * 1.05;
-
-  // For readable tiny labels we need source detail, not only screen-fit pixels.
-  if (scale >= CASE_MAP_HD_SCALE) {
-    requiredWidth = Math.max(requiredWidth, 2400);
-  }
-  if (scale >= CASE_MAP_ULTRA_SCALE) {
-    requiredWidth = Math.max(requiredWidth, 7680);
-  }
-
-  const match = CASE_MAP_SOURCES.find((item) => item.width >= requiredWidth);
-  return match ? match.width : CASE_MAP_SOURCES[CASE_MAP_SOURCES.length - 1].width;
-}
-
-function preloadCaseMapSource(width) {
-  const source = getCaseMapSourceByWidth(width);
-  return new Promise((resolve, reject) => {
-    const image = new window.Image();
-    image.decoding = 'async';
-    image.onload = () => resolve(source);
-    image.onerror = () => reject(new Error(`Failed to load ${source.src}`));
-    image.src = source.src;
-  });
-}
-
-function upgradeCaseMapSourceIfNeeded(scale = caseMapState.scale) {
-  if (!caseMapImageNode) {
-    return;
-  }
-
-  const targetWidth = getCaseMapTargetWidth(scale);
-  if (targetWidth <= caseMapState.currentSourceWidth) {
-    return;
-  }
-  if (targetWidth <= caseMapState.pendingSourceWidth || targetWidth <= caseMapState.loadingSourceWidth) {
-    return;
-  }
-
-  caseMapState.loadingSourceWidth = targetWidth;
-
-  if (caseMapState.ready && caseMapStatusNode) {
-    caseMapStatusNode.textContent = targetWidth >= 7680
-      ? 'Подгружаем максимальную детализацию...'
-      : 'Подгружаем карту в высоком качестве...';
-  }
-
-  preloadCaseMapSource(targetWidth)
-    .then((source) => {
-      if (!caseMapImageNode || source.width <= caseMapState.currentSourceWidth) {
-        return;
-      }
-
-      caseMapState.pendingSourceWidth = source.width;
-      caseMapImageNode.srcset = '';
-      caseMapImageNode.sizes = '';
-      caseMapImageNode.src = source.src;
-    })
-    .catch(() => {
-      if (caseMapStatusNode && caseMapState.ready) {
-        if (caseMapState.currentSourceWidth >= 7680) {
-          caseMapStatusNode.textContent = 'Карта подключена в максимальном качестве.';
-        } else if (caseMapState.currentSourceWidth >= 2400) {
-          caseMapStatusNode.textContent = 'Карта подключена в высоком качестве.';
-        } else {
-          caseMapStatusNode.textContent = 'Карта подключена.';
-        }
-      }
-    })
-    .finally(() => {
-      if (caseMapState.loadingSourceWidth === targetWidth) {
-        caseMapState.loadingSourceWidth = 0;
-      }
-    });
-}
-
-function clampCaseMapTranslate() {
-  if (!caseMapViewportNode) {
-    return;
-  }
-
-  const viewportWidth = caseMapViewportNode.clientWidth;
-  const viewportHeight = caseMapViewportNode.clientHeight;
-  const scaledWidth = caseMapState.baseWidth * caseMapState.scale;
-  const scaledHeight = caseMapState.baseHeight * caseMapState.scale;
-  const maxTranslateX = Math.max(0, (scaledWidth - viewportWidth) / 2);
-  const maxTranslateY = Math.max(0, (scaledHeight - viewportHeight) / 2);
-
-  caseMapState.translateX = Math.min(maxTranslateX, Math.max(-maxTranslateX, caseMapState.translateX));
-  caseMapState.translateY = Math.min(maxTranslateY, Math.max(-maxTranslateY, caseMapState.translateY));
-}
-
-function updateCaseMapTransform() {
-  if (!caseMapLayerNode || !caseMapViewportNode) {
-    return;
-  }
-
-  caseMapLayerNode.style.transform = `translate(${caseMapState.translateX}px, ${caseMapState.translateY}px) scale(${caseMapState.scale})`;
-  caseMapViewportNode.classList.toggle('is-zoomed', caseMapState.scale > 1.01);
-
-  if (caseMapZoomResetBtn) {
-    caseMapZoomResetBtn.textContent = `${Math.round(caseMapState.scale * 100)}%`;
-  }
-}
-
-function setCaseMapScale(nextScale) {
-  caseMapState.scale = Math.min(caseMapState.maxScale, Math.max(caseMapState.minScale, nextScale));
-  clampCaseMapTranslate();
-  updateCaseMapTransform();
-  upgradeCaseMapSourceIfNeeded(caseMapState.scale);
-}
-
-function zoomCaseMap(delta) {
-  setCaseMapScale(caseMapState.scale + delta);
+  const baseZoom = Number.isFinite(caseMapState.baseZoom) ? caseMapState.baseZoom : caseMapState.map.getZoom();
+  const zoomPercent = Math.round(caseMapState.map.getZoomScale(caseMapState.map.getZoom(), baseZoom) * 100);
+  caseMapZoomResetBtn.textContent = `${Math.max(100, zoomPercent)}%`;
 }
 
 function resetCaseMap() {
-  caseMapState.scale = 1;
-  caseMapState.translateX = 0;
-  caseMapState.translateY = 0;
-  updateCaseMapTransform();
+  if (!caseMapState.map || !caseMapState.width || !caseMapState.height) {
+    return;
+  }
+
+  const center = window.L.latLng(caseMapState.height / 2, caseMapState.width / 2);
+  caseMapState.map.setView(center, caseMapState.baseZoom, { animate: false });
+  updateCaseMapZoomLabel();
 }
 
-function bindCaseMapInteractions() {
-  if (!caseMapViewportNode || caseMapState.initialized) {
+function zoomCaseMap(delta = 0) {
+  if (!caseMapState.map) {
+    return;
+  }
+
+  const nextZoom = Math.min(caseMapState.maxZoom, Math.max(caseMapState.minZoom, caseMapState.map.getZoom() + delta));
+  caseMapState.map.setZoom(nextZoom);
+}
+
+function createCaseMapTileLayer(image, imageWidth, imageHeight) {
+  const tileSize = 256;
+  const layer = window.L.gridLayer({
+    tileSize,
+    noWrap: true,
+    updateWhenIdle: true,
+    keepBuffer: 2
+  });
+
+  layer.createTile = (coords, done) => {
+    const tile = document.createElement('canvas');
+    tile.className = 'case-map-tile';
+    tile.width = tileSize;
+    tile.height = tileSize;
+
+    const context = tile.getContext('2d');
+    if (!context) {
+      done(null, tile);
+      return tile;
+    }
+
+    context.imageSmoothingEnabled = true;
+
+    const zoomScale = Math.pow(2, coords.z);
+    const sourceTileWidth = tileSize / zoomScale;
+    const sourceTileHeight = tileSize / zoomScale;
+    const sourceX = coords.x * sourceTileWidth;
+    const sourceY = coords.y * sourceTileHeight;
+
+    const cropX = Math.max(0, sourceX);
+    const cropY = Math.max(0, sourceY);
+    const cropRight = Math.min(imageWidth, sourceX + sourceTileWidth);
+    const cropBottom = Math.min(imageHeight, sourceY + sourceTileHeight);
+
+    if (cropRight <= cropX || cropBottom <= cropY) {
+      done(null, tile);
+      return tile;
+    }
+
+    const targetX = ((cropX - sourceX) / sourceTileWidth) * tileSize;
+    const targetY = ((cropY - sourceY) / sourceTileHeight) * tileSize;
+    const targetW = ((cropRight - cropX) / sourceTileWidth) * tileSize;
+    const targetH = ((cropBottom - cropY) / sourceTileHeight) * tileSize;
+
+    try {
+      context.drawImage(
+        image,
+        cropX,
+        cropY,
+        cropRight - cropX,
+        cropBottom - cropY,
+        targetX,
+        targetY,
+        targetW,
+        targetH
+      );
+      done(null, tile);
+    } catch (error) {
+      done(error, tile);
+    }
+
+    return tile;
+  };
+
+  return layer;
+}
+
+function initCaseMapPanel() {
+  if (!caseMapStatusNode || !caseMapViewportNode) {
+    return;
+  }
+  if (!window.L) {
+    caseMapStatusNode.textContent = 'Не удалось загрузить карту: библиотека Leaflet недоступна.';
+    return;
+  }
+  if (caseMapState.initialized) {
     return;
   }
 
   caseMapState.initialized = true;
+  caseMapStatusNode.textContent = 'Загружаем карту...';
 
-  caseMapZoomInBtn?.addEventListener('click', () => {
-    zoomCaseMap(0.2);
-  });
+  const image = new window.Image();
+  image.decoding = 'async';
+  image.onload = () => {
+    caseMapState.image = image;
+    caseMapState.width = Number(image.naturalWidth) || 1;
+    caseMapState.height = Number(image.naturalHeight) || 1;
+    caseMapViewportNode.style.aspectRatio = `${caseMapState.width} / ${caseMapState.height}`;
 
-  caseMapZoomOutBtn?.addEventListener('click', () => {
-    zoomCaseMap(-0.2);
-  });
-
-  caseMapZoomResetBtn?.addEventListener('click', () => {
-    resetCaseMap();
-  });
-
-  caseMapViewportNode.addEventListener('wheel', (event) => {
-    event.preventDefault();
-    const delta = event.deltaY < 0 ? 0.12 : -0.12;
-    zoomCaseMap(delta);
-  }, { passive: false });
-
-  const updatePointer = (event) => {
-    caseMapState.pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
-  };
-
-  const distance = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
-
-  caseMapViewportNode.addEventListener('pointerdown', (event) => {
-    caseMapViewportNode.setPointerCapture(event.pointerId);
-    updatePointer(event);
-
-    if (caseMapState.pointers.size === 1) {
-      caseMapState.panStartX = event.clientX;
-      caseMapState.panStartY = event.clientY;
-      caseMapState.panStartTranslateX = caseMapState.translateX;
-      caseMapState.panStartTranslateY = caseMapState.translateY;
-    }
-
-    if (caseMapState.pointers.size === 2) {
-      const [first, second] = Array.from(caseMapState.pointers.values());
-      caseMapState.pinchStartDistance = distance(first, second);
-      caseMapState.pinchStartScale = caseMapState.scale;
-    }
-  });
-
-  caseMapViewportNode.addEventListener('pointermove', (event) => {
-    if (!caseMapState.pointers.has(event.pointerId)) {
-      return;
-    }
-
-    updatePointer(event);
-
-    if (caseMapState.pointers.size === 1 && caseMapState.scale > 1) {
-      const point = Array.from(caseMapState.pointers.values())[0];
-      caseMapState.translateX = caseMapState.panStartTranslateX + (point.x - caseMapState.panStartX);
-      caseMapState.translateY = caseMapState.panStartTranslateY + (point.y - caseMapState.panStartY);
-      clampCaseMapTranslate();
-      updateCaseMapTransform();
-      return;
-    }
-
-    if (caseMapState.pointers.size === 2) {
-      const [first, second] = Array.from(caseMapState.pointers.values());
-      if (caseMapState.pinchStartDistance > 0) {
-        const nextScale = caseMapState.pinchStartScale * (distance(first, second) / caseMapState.pinchStartDistance);
-        setCaseMapScale(nextScale);
-      }
-    }
-  });
-
-  const clearPointer = (event) => {
-    caseMapState.pointers.delete(event.pointerId);
-    try {
-      caseMapViewportNode.releasePointerCapture(event.pointerId);
-    } catch (_) {
-      // Ignore cases where capture was already released.
-    }
-
-    if (caseMapState.pointers.size === 1) {
-      const point = Array.from(caseMapState.pointers.values())[0];
-      caseMapState.panStartX = point.x;
-      caseMapState.panStartY = point.y;
-      caseMapState.panStartTranslateX = caseMapState.translateX;
-      caseMapState.panStartTranslateY = caseMapState.translateY;
-    }
-  };
-
-  caseMapViewportNode.addEventListener('pointerup', clearPointer);
-  caseMapViewportNode.addEventListener('pointercancel', clearPointer);
-  caseMapViewportNode.addEventListener('pointerleave', clearPointer);
-}
-
-function initCaseMapPanel() {
-  if (!caseMapImageNode || !caseMapLayerNode || !caseMapStatusNode || !caseMapViewportNode) {
-    return;
-  }
-
-  const setReady = () => {
-    const wasReady = caseMapState.ready;
-    caseMapState.ready = true;
-
-    const naturalWidth = Number(caseMapImageNode.naturalWidth) || 0;
-    if (naturalWidth > 0) {
-      caseMapState.currentSourceWidth = Math.max(caseMapState.currentSourceWidth, naturalWidth);
-      if (caseMapState.pendingSourceWidth && naturalWidth >= caseMapState.pendingSourceWidth) {
-        caseMapState.pendingSourceWidth = 0;
-      }
-    }
-
-    if (caseMapState.currentSourceWidth >= 7680) {
-      caseMapStatusNode.textContent = 'Карта подключена в максимальном качестве.';
-    } else if (caseMapState.currentSourceWidth >= 2400) {
-      caseMapStatusNode.textContent = 'Карта подключена в высоком качестве.';
-    } else {
-      caseMapStatusNode.textContent = 'Карта подключена.';
-    }
-
-    window.requestAnimationFrame(() => {
-      updateCaseMapBaseSize();
-      if (wasReady) {
-        clampCaseMapTranslate();
-        updateCaseMapTransform();
-      } else {
-        resetCaseMap();
-      }
+    const map = window.L.map(caseMapViewportNode, {
+      crs: window.L.CRS.Simple,
+      minZoom: caseMapState.minZoom,
+      maxZoom: caseMapState.maxZoom,
+      zoomSnap: 0.1,
+      zoomDelta: 0.25,
+      zoomControl: false,
+      attributionControl: false,
+      worldCopyJump: false,
+      preferCanvas: true
     });
 
-    upgradeCaseMapSourceIfNeeded(caseMapState.scale);
-  };
+    const bounds = window.L.latLngBounds([0, 0], [caseMapState.height, caseMapState.width]);
+    caseMapState.layer = createCaseMapTileLayer(image, caseMapState.width, caseMapState.height).addTo(map);
+    caseMapState.map = map;
 
-  const setError = () => {
+    map.fitBounds(bounds, { animate: false, padding: [0, 0] });
+    caseMapState.baseZoom = map.getZoom();
+    map.setMaxBounds(bounds.pad(0.02));
+    resetCaseMap();
+
+    map.on('zoomend', updateCaseMapZoomLabel);
+    map.on('moveend', updateCaseMapZoomLabel);
+
+    caseMapZoomInBtn?.addEventListener('click', () => zoomCaseMap(0.25));
+    caseMapZoomOutBtn?.addEventListener('click', () => zoomCaseMap(-0.25));
+    caseMapZoomResetBtn?.addEventListener('click', resetCaseMap);
+
+    caseMapStatusNode.textContent = 'Карта подключена.';
+  };
+  image.onerror = () => {
     caseMapStatusNode.textContent = 'Не удалось загрузить карту: проверьте файл public/assets/maps/team-map.png.';
   };
-
-  caseMapImageNode.addEventListener('load', setReady);
-  caseMapImageNode.addEventListener('error', setError);
-
-  bindCaseMapInteractions();
-
-  if (caseMapImageNode.complete) {
-    if (caseMapImageNode.naturalWidth > 0) {
-      setReady();
-    } else {
-      setError();
-    }
-  }
+  image.src = getCaseMapImageUrl();
 }
 
 function renderFinalAnswerPanel() {
@@ -4514,15 +4352,15 @@ function bindEvents() {
     if (mapState.map) {
       mapState.map.invalidateSize();
     }
-    updateCaseMapBaseSize();
-    clampCaseMapTranslate();
-    updateCaseMapTransform();
-    upgradeCaseMapSourceIfNeeded(caseMapState.scale);
+    if (caseMapState.map) {
+      caseMapState.map.invalidateSize();
+      resetCaseMap();
+    }
   });
 }
 
 async function init() {
-  setActiveView('map');
+  setActiveView('answer');
   initMap();
   bindEvents();
   initCaseMapPanel();

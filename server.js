@@ -118,7 +118,38 @@ app.use((req, res, next) => {
   next();
 });
 
-app.use(express.static(path.join(__dirname, 'public')));
+const PUBLIC_DIR = path.join(__dirname, 'public');
+
+function setNoCacheHeaders(res) {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
+}
+
+function normalizePublicAssetPath(filePath) {
+  return path.relative(PUBLIC_DIR, filePath).replace(/\\/g, '/');
+}
+
+function setStaticCacheHeaders(res, filePath) {
+  const assetPath = normalizePublicAssetPath(filePath);
+  const isHtml = assetPath.endsWith('.html');
+  const isMapAsset = assetPath.startsWith('assets/maps/');
+  const isCoreUiFile = assetPath === 'app.js' || assetPath === 'styles.css';
+
+  // Telegram WebView can aggressively cache; these files must refresh immediately after deploy/replace.
+  if (isHtml || isMapAsset || isCoreUiFile) {
+    setNoCacheHeaders(res);
+    return;
+  }
+
+  res.setHeader('Cache-Control', 'public, max-age=86400');
+}
+
+app.use(express.static(PUBLIC_DIR, {
+  etag: true,
+  lastModified: true,
+  setHeaders: setStaticCacheHeaders
+}));
 
 function nowIso() {
   return new Date().toISOString();
@@ -1007,15 +1038,18 @@ app.post('/api/admin/team/:teamName/ack-trigger', async (req, res) => {
 });
 
 app.get('/admin', (_, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'admin.html'));
+  setNoCacheHeaders(res);
+  res.sendFile(path.join(PUBLIC_DIR, 'admin.html'));
 });
 
 app.get('/', (_, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+  setNoCacheHeaders(res);
+  res.sendFile(path.join(PUBLIC_DIR, 'index.html'));
 });
 
 app.get('*', (_, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+  setNoCacheHeaders(res);
+  res.sendFile(path.join(PUBLIC_DIR, 'index.html'));
 });
 
 app.listen(PORT, HOST, async () => {
