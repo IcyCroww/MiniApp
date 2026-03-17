@@ -1872,6 +1872,48 @@ body {
   font-weight: 700;
 }
 
+@media (max-width: 680px) {
+  body {
+    padding:
+      max(8px, env(safe-area-inset-top))
+      6px
+      max(10px, env(safe-area-inset-bottom));
+  }
+
+  .app-shell {
+    border-radius: 24px;
+  }
+
+  .top-panel {
+    padding: 16px 14px 10px;
+  }
+
+  .view-tabs {
+    padding: 8px 8px 0;
+  }
+
+  .view-stack {
+    padding: 6px;
+  }
+
+  .card-answer {
+    padding: 6px;
+  }
+
+  .card-answer .card-head {
+    margin-bottom: 8px;
+  }
+
+  .final-answer-panel {
+    padding: 8px;
+  }
+
+  .case-map-frame {
+    padding: 4px;
+    gap: 5px;
+  }
+}
+
 @media (max-width: 380px) {
   .top-panel {
     padding-inline: 14px;
@@ -1882,11 +1924,15 @@ body {
   }
 
   .view-stack {
-    padding-inline: 10px;
+    padding-inline: 6px;
   }
 
   .card {
     padding: 11px;
+  }
+
+  .card-answer {
+    padding: 6px;
   }
 
   .leaflet-map {
