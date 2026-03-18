@@ -1206,8 +1206,16 @@ function openTeamGate(text = '') {
     return;
   }
 
+  setActiveView('answer');
   teamGateNode.hidden = false;
   setTeamGateStatus(text || 'Выберите команду и подтвердите вход.');
+  window.setTimeout(() => {
+    try {
+      teamGateNode.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    } catch (_) {
+      // Ignore unsupported scroll options.
+    }
+  }, 80);
 }
 
 function closeTeamGate() {
@@ -4106,7 +4114,6 @@ function openTeamSwitcher() {
   if (state.teamName) {
     teamSelectNode.value = state.teamName;
   }
-  setActiveView('map');
   openTeamGate('Смена команды сбросит только текущую сессию на этом телефоне.');
 }
 

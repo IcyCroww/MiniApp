@@ -30,14 +30,6 @@
             <h2>Карта (тест)</h2>
           </div>
 
-          <section class="team-gate" id="teamGate" hidden>
-            <p class="team-gate-title">Выберите команду</p>
-            <p class="team-gate-note">Это нужно для синхронизации прогресса и триггеров по уликам.</p>
-            <select id="teamSelect" class="team-select" aria-label="Выбор команды"></select>
-            <button class="btn primary" id="teamConfirmBtn">Войти команде</button>
-            <p class="team-gate-status" id="teamGateStatus"></p>
-          </section>
-
           <div class="map-scene">
             <div class="leaflet-map" id="worldMap" aria-label="Карта (тест)"></div>
             <div class="fallback-map" id="fallbackMap" hidden>
@@ -84,6 +76,14 @@
           <div class="card-head">
             <h2>Карта</h2>
           </div>
+
+          <section class="team-gate" id="teamGate" hidden>
+            <p class="team-gate-title">Выберите команду</p>
+            <p class="team-gate-note">Это нужно для синхронизации прогресса и триггеров по уликам.</p>
+            <select id="teamSelect" class="team-select" aria-label="Выбор команды"></select>
+            <button class="btn primary" id="teamConfirmBtn">Войти команде</button>
+            <p class="team-gate-status" id="teamGateStatus"></p>
+          </section>
 
           <section class="final-answer-panel">
             <p class="task-kicker">Материалы команды</p>
