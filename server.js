@@ -133,6 +133,131 @@ function setNoCacheHeaders(res) {
   res.setHeader('Expires', '0');
 }
 
+function readImageHeader(filePath, length = 65536) {
+  const fd = fs.openSync(filePath, 'r');
+  try {
+    const buffer = Buffer.alloc(length);
+    const bytesRead = fs.readSync(fd, buffer, 0, length, 0);
+    return buffer.subarray(0, bytesRead);
+  } finally {
+    fs.closeSync(fd);
+  }
+}
+
+function getPngSize(buffer) {
+  if (buffer.length < 24) {
+    return null;
+  }
+
+  const signature = '89504e470d0a1a0a';
+  if (buffer.subarray(0, 8).toString('hex') !== signature) {
+    return null;
+  }
+
+  return {
+    width: buffer.readUInt32BE(16),
+    height: buffer.readUInt32BE(20)
+  };
+}
+
+function getJpegSize(buffer) {
+  if (buffer.length < 4 || buffer[0] !== 0xff || buffer[1] !== 0xd8) {
+    return null;
+  }
+
+  let offset = 2;
+  while (offset + 8 < buffer.length) {
+    if (buffer[offset] !== 0xff) {
+      offset += 1;
+      continue;
+    }
+
+    const marker = buffer[offset + 1];
+    offset += 2;
+
+    if (marker === 0xd8 || marker === 0xd9) {
+      continue;
+    }
+
+    if (offset + 2 > buffer.length) {
+      break;
+    }
+
+    const segmentLength = buffer.readUInt16BE(offset);
+    if (segmentLength < 2 || offset + segmentLength > buffer.length) {
+      break;
+    }
+
+    const isStartOfFrame =
+      marker >= 0xc0 &&
+      marker <= 0xcf &&
+      marker !== 0xc4 &&
+      marker !== 0xc8 &&
+      marker !== 0xcc;
+
+    if (isStartOfFrame && offset + 7 < buffer.length) {
+      return {
+        height: buffer.readUInt16BE(offset + 3),
+        width: buffer.readUInt16BE(offset + 5)
+      };
+    }
+
+    offset += segmentLength;
+  }
+
+  return null;
+}
+
+function getWebpSize(buffer) {
+  if (buffer.length < 30 || buffer.toString('ascii', 0, 4) !== 'RIFF' || buffer.toString('ascii', 8, 12) !== 'WEBP') {
+    return null;
+  }
+
+  const chunkType = buffer.toString('ascii', 12, 16);
+
+  if (chunkType === 'VP8X' && buffer.length >= 30) {
+    const width = 1 + buffer.readUIntLE(24, 3);
+    const height = 1 + buffer.readUIntLE(27, 3);
+    return { width, height };
+  }
+
+  if (chunkType === 'VP8 ' && buffer.length >= 30) {
+    return {
+      width: buffer.readUInt16LE(26) & 0x3fff,
+      height: buffer.readUInt16LE(28) & 0x3fff
+    };
+  }
+
+  if (chunkType === 'VP8L' && buffer.length >= 25) {
+    const bits = buffer.readUInt32LE(21);
+    return {
+      width: (bits & 0x3fff) + 1,
+      height: ((bits >> 14) & 0x3fff) + 1
+    };
+  }
+
+  return null;
+}
+
+function getImageSize(filePath, fileName) {
+  const lowerName = String(fileName || '').toLowerCase();
+  const header = readImageHeader(filePath);
+
+  if (lowerName.endsWith('.png')) {
+    return getPngSize(header);
+  }
+
+  if (lowerName.endsWith('.jpg') || lowerName.endsWith('.jpeg')) {
+    return getJpegSize(header);
+  }
+
+  if (lowerName.endsWith('.webp')) {
+    return getWebpSize(header);
+  }
+
+  return null;
+}
+
 function normalizePublicAssetPath(filePath) {
   return path.relative(PUBLIC_DIR, filePath).replace(/\\/g, '/');
 }
@@ -706,12 +831,15 @@ function resolveCaseMapSource() {
 
     const stat = fs.statSync(absolutePath);
     const version = String(Math.trunc(Number(stat.mtimeMs) || Date.now()));
+    const size = getImageSize(absolutePath, candidate.fileName);
 
     return {
       src: `./assets/maps/${candidate.fileName}?v=${version}`,
       fileName: candidate.fileName,
       mimeType: candidate.mimeType,
       size: Number(stat.size) || 0,
+      width: Number(size?.width) || 0,
+      height: Number(size?.height) || 0,
       updatedAt: new Date(Number(stat.mtimeMs) || Date.now()).toISOString()
     };
   }

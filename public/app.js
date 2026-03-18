@@ -854,7 +854,9 @@ const caseMapState = {
 
 const caseMapSourceState = {
   resolved: false,
-  url: ''
+  url: '',
+  width: 0,
+  height: 0
 };
 
 const fallbackPointPositions = {
@@ -1020,26 +1022,40 @@ function getLocalCaseMapFallbackUrl() {
   return isLocalRun ? `${baseSrc}?v=${Date.now()}` : baseSrc;
 }
 
-async function getCaseMapImageUrl() {
+async function getCaseMapSource() {
   if (caseMapSourceState.resolved && caseMapSourceState.url) {
-    return caseMapSourceState.url;
+    return {
+      url: caseMapSourceState.url,
+      width: caseMapSourceState.width,
+      height: caseMapSourceState.height
+    };
   }
 
-  let resolvedUrl = getLocalCaseMapFallbackUrl();
+  let resolved = {
+    url: getLocalCaseMapFallbackUrl(),
+    width: 0,
+    height: 0
+  };
 
   try {
     const response = await fetch('./api/map-source', { cache: 'no-store' });
     const payload = await response.json().catch(() => null);
     if (response.ok && payload?.ok && typeof payload.src === 'string' && payload.src.trim()) {
-      resolvedUrl = payload.src.trim();
+      resolved = {
+        url: payload.src.trim(),
+        width: Number(payload.width) || 0,
+        height: Number(payload.height) || 0
+      };
     }
   } catch (error) {
     // Keep local fallback when API is unavailable.
   }
 
-  caseMapSourceState.url = resolvedUrl;
+  caseMapSourceState.url = resolved.url;
+  caseMapSourceState.width = resolved.width;
+  caseMapSourceState.height = resolved.height;
   caseMapSourceState.resolved = true;
-  return resolvedUrl;
+  return resolved;
 }
 
 function resetCaseMap() {
@@ -1049,6 +1065,54 @@ function resetCaseMap() {
 
   const center = window.L.latLng(caseMapState.height / 2, caseMapState.width / 2);
   caseMapState.map.setView(center, caseMapState.baseZoom, { animate: false });
+}
+
+function buildCaseMapOverlay(imageUrl, width, height) {
+  caseMapState.width = Number(width) || 1;
+  caseMapState.height = Number(height) || 1;
+  caseMapViewportNode.style.aspectRatio = `${caseMapState.width} / ${caseMapState.height}`;
+
+  const map = window.L.map(caseMapViewportNode, {
+    crs: window.L.CRS.Simple,
+    minZoom: caseMapState.minZoom,
+    maxZoom: caseMapState.maxZoom,
+    zoomSnap: 0.1,
+    zoomDelta: 0.25,
+    zoomControl: false,
+    attributionControl: false,
+    worldCopyJump: false,
+    maxBoundsViscosity: 1,
+    bounceAtZoomLimits: false,
+    preferCanvas: true
+  });
+
+  const bounds = window.L.latLngBounds([0, 0], [caseMapState.height, caseMapState.width]);
+  const overlay = window.L.imageOverlay(imageUrl, bounds, {
+    interactive: false,
+    className: 'case-map-image'
+  });
+
+  overlay.once('load', () => {
+    caseMapStatusNode.textContent = 'Карта подключена.';
+  });
+
+  overlay.once('error', () => {
+    caseMapState.initialized = false;
+    caseMapStatusNode.textContent = 'Не удалось загрузить карту: проверьте файл public/assets/maps/team-map.png.';
+  });
+
+  overlay.addTo(map);
+  caseMapState.layer = overlay;
+  caseMapState.map = map;
+
+  map.fitBounds(bounds, { animate: false, padding: [0, 0] });
+  caseMapState.baseZoom = map.getZoom();
+  caseMapState.minZoom = caseMapState.baseZoom;
+  caseMapState.maxZoom = caseMapState.baseZoom + 3.5;
+  map.setMinZoom(caseMapState.minZoom);
+  map.setMaxZoom(caseMapState.maxZoom);
+  map.setMaxBounds(bounds);
+  resetCaseMap();
 }
 
 function initCaseMapPanel() {
@@ -1067,53 +1131,26 @@ function initCaseMapPanel() {
   caseMapStatusNode.textContent = 'Загружаем карту...';
 
   void (async () => {
-    const imageUrl = await getCaseMapImageUrl();
+    const source = await getCaseMapSource();
+
+    if (source.width > 0 && source.height > 0) {
+      buildCaseMapOverlay(source.url, source.width, source.height);
+      return;
+    }
 
     const image = new window.Image();
     image.decoding = 'async';
+    image.fetchPriority = 'high';
     image.onload = () => {
       caseMapState.image = image;
-      caseMapState.width = Number(image.naturalWidth) || 1;
-      caseMapState.height = Number(image.naturalHeight) || 1;
-      caseMapViewportNode.style.aspectRatio = `${caseMapState.width} / ${caseMapState.height}`;
-
-      const map = window.L.map(caseMapViewportNode, {
-        crs: window.L.CRS.Simple,
-        minZoom: caseMapState.minZoom,
-        maxZoom: caseMapState.maxZoom,
-        zoomSnap: 0.1,
-        zoomDelta: 0.25,
-        zoomControl: false,
-        attributionControl: false,
-        worldCopyJump: false,
-        maxBoundsViscosity: 1,
-        bounceAtZoomLimits: false,
-        preferCanvas: true
-      });
-
-      const bounds = window.L.latLngBounds([0, 0], [caseMapState.height, caseMapState.width]);
-      caseMapState.layer = window.L.imageOverlay(imageUrl, bounds, {
-        interactive: false,
-        className: 'case-map-image'
-      }).addTo(map);
-      caseMapState.map = map;
-
-      map.fitBounds(bounds, { animate: false, padding: [0, 0] });
-      caseMapState.baseZoom = map.getZoom();
-      caseMapState.minZoom = caseMapState.baseZoom;
-      caseMapState.maxZoom = caseMapState.baseZoom + 3.5;
-      map.setMinZoom(caseMapState.minZoom);
-      map.setMaxZoom(caseMapState.maxZoom);
-      map.setMaxBounds(bounds);
-      resetCaseMap();
-
-      caseMapStatusNode.textContent = 'Карта подключена.';
+      caseMapState.image = image;
+      buildCaseMapOverlay(source.url, Number(image.naturalWidth) || 1, Number(image.naturalHeight) || 1);
     };
     image.onerror = () => {
       caseMapState.initialized = false;
       caseMapStatusNode.textContent = 'Не удалось загрузить карту: проверьте файл public/assets/maps/team-map.png.';
     };
-    image.src = imageUrl;
+    image.src = source.url;
   })();
 }
 
