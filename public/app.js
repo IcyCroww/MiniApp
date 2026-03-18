@@ -416,8 +416,8 @@ const points = [
       kind: 'chess',
       kicker: 'Досье Генуи',
       title: 'Генуя: мат в один ход',
-      lore: 'На полях досье лежит короткая шахматная запись: нужно сделать один точный ход, после которого партия заканчивается сразу. Любой другой легальный ход считается промахом.',
-      question: 'Белые начинают. Найдите мат в один ход.',
+      lore: 'В позиции стало чуть больше фигур, но идея всё ещё короткая: у белых есть один чистый матующий удар. Любой другой легальный ход считается промахом.',
+      question: 'Белые начинают. Найдите единственный мат в один ход.',
       success: 'Партия закрыта мгновенно.',
       answerLabel: 'Бонус',
       answerText: 'Бонус: партия завершена точным ходом.',
@@ -427,8 +427,13 @@ const points = [
           { square: 'h8', type: 'k', color: 'b' },
           { square: 'g7', type: 'p', color: 'b' },
           { square: 'h7', type: 'p', color: 'b' },
-          { square: 'c3', type: 'b', color: 'w' },
-          { square: 'g6', type: 'q', color: 'w' },
+          { square: 'f7', type: 'p', color: 'b' },
+          { square: 'f8', type: 'r', color: 'b' },
+          { square: 'e7', type: 'n', color: 'b' },
+          { square: 'd3', type: 'b', color: 'w' },
+          { square: 'h5', type: 'q', color: 'w' },
+          { square: 'e1', type: 'r', color: 'w' },
+          { square: 'c3', type: 'n', color: 'w' },
           { square: 'g1', type: 'k', color: 'w' }
         ]
       }
@@ -702,18 +707,22 @@ const points = [
       kind: 'chess',
       kicker: 'Досье Кальяри',
       title: 'Кальяри: мат в один',
-      lore: 'На островной станции сохранилась короткая шахматная запись. Нужно найти единственный ход белых, который закрывает партию сразу.',
-      question: 'Белые начинают. Найдите мат в 1 ход.',
+      lore: 'Эта концовка тоже решается сразу, но уже не так пусто на доске. Если вы уверенно видите линии фигур, матующий ход считывается быстро.',
+      question: 'Белые начинают. Найдите единственный мат в 1 ход.',
       success: 'Концовка Кальяри закрыта.',
       answerLabel: 'Бонус',
       answerText: 'Бонус: партия в Кальяри завершена одним точным ходом.',
       chess: {
         sideToMove: 'w',
         pieces: [
-          { square: 'h8', type: 'k', color: 'b' },
+          { square: 'g8', type: 'k', color: 'b' },
+          { square: 'f7', type: 'p', color: 'b' },
           { square: 'g7', type: 'p', color: 'b' },
           { square: 'h7', type: 'p', color: 'b' },
-          { square: 'd7', type: 'q', color: 'w' },
+          { square: 'e1', type: 'r', color: 'w' },
+          { square: 'h5', type: 'q', color: 'w' },
+          { square: 'c4', type: 'b', color: 'w' },
+          { square: 'c3', type: 'n', color: 'w' },
           { square: 'g1', type: 'k', color: 'w' }
         ]
       }
@@ -3506,7 +3515,7 @@ function renderChessTask(point) {
 
   const note = document.createElement('p');
   note.className = 'task-mini-note';
-  note.textContent = 'Сначала выберите белую фигуру, затем клетку назначения.';
+  note.textContent = 'Сначала выберите белую фигуру, затем клетку назначения. Засчитывается только матующий ход.';
   wrap.appendChild(note);
 
   const boardNode = document.createElement('div');
