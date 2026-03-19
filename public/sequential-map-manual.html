@@ -485,11 +485,10 @@
     <div class="content">
       <div class="panel">
         <p class="kicker">Логика</p>
-        <p class="note">Серые точки закрыты. Оранжевые уже доступны. Зеленые пройдены. Нажатие по точке или по строке маршрута открывает боковую карточку справа.</p>
+        <p class="note">На карте и в маршруте видны только открытые и уже пройденные точки. Нажатие по точке или по строке маршрута открывает боковую карточку справа.</p>
       </div>
 
       <div class="legend">
-        <span><i class="dot" style="background:#96a29b"></i> Закрыта</span>
         <span><i class="dot" style="background:#d87a30"></i> Открыта</span>
         <span><i class="dot" style="background:#249665"></i> Пройдена</span>
       </div>
@@ -700,12 +699,16 @@
 
       points.forEach((point, index) => {
         const status = getStatus(index, point.id);
+        if (status.code === 'locked') {
+          return;
+        }
+
         const button = document.createElement('button');
         button.type = 'button';
         button.className = `map-point ${status.code}${state.selectedId === point.id ? ' selected' : ''}`;
         button.style.left = `${point.x}%`;
         button.style.top = `${point.y}%`;
-        button.disabled = status.code === 'locked';
+        button.disabled = false;
         button.title = `${index + 1}. ${point.title}`;
         button.addEventListener('click', () => selectPoint(point.id));
 
@@ -728,10 +731,14 @@
 
       points.forEach((point, index) => {
         const status = getStatus(index, point.id);
+        if (status.code === 'locked') {
+          return;
+        }
+
         const button = document.createElement('button');
         button.type = 'button';
         button.className = `step-item${state.selectedId === point.id ? ' selected' : ''}`;
-        button.disabled = status.code === 'locked';
+        button.disabled = false;
         button.addEventListener('click', () => selectPoint(point.id));
         button.innerHTML = `<span>${index + 1}. ${point.title}</span><span class="status ${status.code}">${status.label}</span>`;
         stepList.appendChild(button);
