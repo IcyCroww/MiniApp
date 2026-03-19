@@ -85,6 +85,7 @@ body {
 
 .view-tabs {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
   padding: 10px 12px 0;
 }
@@ -142,6 +143,23 @@ body {
     0 2px 0 rgba(34, 26, 16, 0.16);
 }
 
+#tabPrototypeBtn.view-tab {
+  background: #dce5ef;
+  border-color: #a9bbcf;
+  color: #20364c;
+  -webkit-text-fill-color: #20364c;
+}
+
+#tabPrototypeBtn.view-tab.is-active {
+  background: #ccdaea;
+  border-color: #819ab6;
+  color: #172b3f;
+  -webkit-text-fill-color: #172b3f;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.58),
+    0 2px 0 rgba(22, 35, 51, 0.14);
+}
+
 .view-stack {
   flex: 1;
   position: relative;
@@ -172,6 +190,11 @@ body {
 }
 
 .card-answer {
+  min-height: 100%;
+  padding: 10px;
+}
+
+.card-prototype {
   min-height: 100%;
   padding: 10px;
 }
@@ -497,6 +520,13 @@ body {
   padding: 10px;
 }
 
+.prototype-panel {
+  border-radius: 20px;
+  border: 1px solid #d0d9e2;
+  background: linear-gradient(180deg, #f8fbff 0%, #eef3f9 100%);
+  padding: 10px;
+}
+
 .final-answer-note {
   margin: 8px 0 10px;
   font-size: 13px;
@@ -560,6 +590,21 @@ body {
 
 .case-map-actions .btn {
   flex: 1;
+}
+
+.prototype-frame {
+  border: 1px solid #c7d5e2;
+  border-radius: 18px;
+  overflow: hidden;
+  background: #e9f0f7;
+}
+
+.prototype-map-embed {
+  width: 100%;
+  min-height: 780px;
+  border: 0;
+  display: block;
+  background: #eff4fa;
 }
 
 .final-answer-last {
@@ -1959,11 +2004,19 @@ body {
     padding: 6px;
   }
 
+  .card-prototype {
+    padding: 6px;
+  }
+
   .card-answer .card-head {
     margin-bottom: 8px;
   }
 
   .final-answer-panel {
+    padding: 8px;
+  }
+
+  .prototype-panel {
     padding: 8px;
   }
 
@@ -2000,6 +2053,10 @@ body {
   .final-answer-status {
     margin-top: 4px;
   }
+
+  .prototype-map-embed {
+    min-height: 72dvh;
+  }
 }
 
 @media (max-width: 380px) {
@@ -2020,6 +2077,10 @@ body {
   }
 
   .card-answer {
+    padding: 6px;
+  }
+
+  .card-prototype {
     padding: 6px;
   }
 
@@ -2106,6 +2167,10 @@ body {
 
   .card-answer {
     max-width: 760px;
+  }
+
+  .card-prototype {
+    max-width: 900px;
   }
 
   .card-map {

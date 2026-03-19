@@ -780,8 +780,10 @@ const state = {
 const cardMap = document.querySelector('.card-map');
 const viewMapNode = document.getElementById('view-map');
 const viewAnswerNode = document.getElementById('view-answer');
+const viewPrototypeNode = document.getElementById('view-prototype');
 const tabMapBtn = document.getElementById('tabMapBtn');
 const tabAnswerBtn = document.getElementById('tabAnswerBtn');
+const tabPrototypeBtn = document.getElementById('tabPrototypeBtn');
 const completionNode = document.getElementById('completionBadge');
 const resetMapBtn = document.getElementById('resetMapBtn');
 const changeTeamBtn = document.getElementById('changeTeamBtn');
@@ -980,12 +982,18 @@ function setTeamGateStatus(text = '') {
 }
 
 function setActiveView(viewName = 'map') {
-  state.activeView = viewName === 'answer' ? 'answer' : 'map';
+  if (viewName === 'answer' || viewName === 'map' || viewName === 'prototype') {
+    state.activeView = viewName;
+  } else {
+    state.activeView = 'map';
+  }
 
   viewMapNode?.classList.toggle('is-active', state.activeView === 'map');
   viewAnswerNode?.classList.toggle('is-active', state.activeView === 'answer');
+  viewPrototypeNode?.classList.toggle('is-active', state.activeView === 'prototype');
   tabMapBtn?.classList.toggle('is-active', state.activeView === 'map');
   tabAnswerBtn?.classList.toggle('is-active', state.activeView === 'answer');
+  tabPrototypeBtn?.classList.toggle('is-active', state.activeView === 'prototype');
 
   if (state.activeView === 'map' && mapState.map) {
     window.setTimeout(() => {
@@ -4307,6 +4315,11 @@ function bindEvents() {
 
   tabAnswerBtn?.addEventListener('click', () => {
     setActiveView('answer');
+    triggerHaptic('light');
+  });
+
+  tabPrototypeBtn?.addEventListener('click', () => {
+    setActiveView('prototype');
     triggerHaptic('light');
   });
 
