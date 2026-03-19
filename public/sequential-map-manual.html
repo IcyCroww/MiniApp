@@ -474,6 +474,151 @@
       }
     }
   </style>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #07100f;
+      --card: rgba(11, 19, 19, 0.98);
+      --line: rgba(144, 171, 160, 0.16);
+      --text: #edf7f1;
+      --muted: #90a79d;
+      --locked: #5a655f;
+      --locked-text: #83928c;
+      --open: #e4974c;
+      --open-strong: #c6712f;
+      --done: #2cb07b;
+      --done-strong: #1f865d;
+      --selected: #6ea7d6;
+      --drawer-shadow: 0 28px 48px rgba(0, 0, 0, 0.42);
+    }
+
+    body {
+      background:
+        radial-gradient(120% 100% at 0% 0%, rgba(44, 113, 94, 0.32) 0%, transparent 46%),
+        radial-gradient(100% 100% at 100% 0%, rgba(179, 112, 56, 0.2) 0%, transparent 40%),
+        linear-gradient(180deg, #05090a 0%, #0a1414 100%);
+      color: var(--text);
+    }
+
+    .app {
+      background: linear-gradient(180deg, rgba(10, 18, 18, 0.98), rgba(7, 12, 13, 0.99));
+      border-color: rgba(150, 177, 167, 0.15);
+      box-shadow: 0 24px 44px rgba(0, 0, 0, 0.34);
+    }
+
+    .head {
+      background:
+        radial-gradient(120% 200% at 0% -50%, rgba(49, 129, 107, 0.28) 0%, transparent 52%),
+        radial-gradient(80% 120% at 100% -40%, rgba(243, 162, 75, 0.14) 0%, transparent 45%),
+        linear-gradient(135deg, #0f1d1c, #142725);
+      border-bottom: 1px solid rgba(150, 177, 167, 0.12);
+    }
+
+    .panel,
+    .workspace,
+    .drawer,
+    .legend span,
+    .step-item,
+    .final {
+      background: linear-gradient(180deg, rgba(17, 28, 27, 0.98), rgba(9, 17, 17, 0.98));
+      border-color: rgba(144, 171, 160, 0.16);
+      color: var(--text);
+    }
+
+    .kicker,
+    .drawer-kicker {
+      color: #f2bf83;
+    }
+
+    .note,
+    .head p,
+    .drawer-note,
+    .drawer-question,
+    .drawer-media figcaption,
+    .status,
+    .final {
+      color: var(--muted);
+    }
+
+    .legend span,
+    .map-point-label,
+    .drawer-media,
+    .answers button,
+    .step-item {
+      border-color: rgba(144, 171, 160, 0.16);
+    }
+
+    .workspace,
+    .map-wrap {
+      background: linear-gradient(180deg, #0c1616 0%, #111d1c 100%);
+    }
+
+    .map-point-label {
+      background: rgba(8, 14, 15, 0.94);
+      color: #edf7f1;
+      box-shadow: 0 10px 18px rgba(0, 0, 0, 0.18);
+    }
+
+    .drawer {
+      background: linear-gradient(180deg, rgba(14, 23, 25, 0.99), rgba(9, 15, 17, 0.99));
+    }
+
+    .drawer-close {
+      background: rgba(28, 43, 47, 0.95);
+      color: #eef7fb;
+    }
+
+    .drawer-media {
+      background: rgba(10, 17, 19, 0.96);
+    }
+
+    .drawer-media img {
+      background: #0f181a;
+    }
+
+    .answers button {
+      background: linear-gradient(180deg, rgba(24, 36, 35, 0.98), rgba(12, 19, 20, 0.98));
+      color: var(--text);
+    }
+
+    .answers button:hover:not(:disabled) {
+      border-color: rgba(241, 162, 75, 0.34);
+      background: linear-gradient(180deg, rgba(57, 36, 19, 0.96), rgba(24, 17, 13, 0.98));
+    }
+
+    .step-item:hover:not(:disabled) {
+      border-color: rgba(144, 171, 160, 0.26);
+      background: linear-gradient(180deg, rgba(22, 34, 33, 0.98), rgba(12, 20, 19, 0.98));
+    }
+
+    .step-item.selected {
+      border-color: rgba(110, 167, 214, 0.42);
+      background: linear-gradient(180deg, rgba(20, 38, 50, 0.98), rgba(12, 21, 29, 0.98));
+      box-shadow: 0 0 0 3px rgba(110, 167, 214, 0.12);
+    }
+
+    .status.open {
+      color: #ffc384;
+    }
+
+    .status.done,
+    .result.ok {
+      color: #73ddaa;
+    }
+
+    .result.bad {
+      color: #ff9191;
+    }
+
+    .result.info {
+      color: #9eb6ac;
+    }
+
+    .final {
+      border-style: solid;
+      background: linear-gradient(180deg, rgba(23, 32, 26, 0.98), rgba(11, 17, 14, 0.99));
+    }
+  </style>
 </head>
 <body>
   <div class="app">

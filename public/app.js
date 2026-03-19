@@ -4238,16 +4238,16 @@ function resetMapView() {
 function addBaseTileLayerWithFallback(map) {
   const providers = [
     {
+      url: 'https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png',
+      options: { subdomains: 'abcd', maxZoom: 20 }
+    },
+    {
       url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
       options: { subdomains: 'abc', maxZoom: 19, detectRetina: true }
     },
     {
       url: 'https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png',
       options: { subdomains: 'abc', maxZoom: 19, detectRetina: true }
-    },
-    {
-      url: 'https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png',
-      options: { subdomains: 'abcd', maxZoom: 20 }
     }
   ];
 
