@@ -1,0 +1,230 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sequential Map No Visible Points</title>
+  <style>
+    :root {
+      --bg: #0d1a16;
+      --card: #f4f7ef;
+      --line: #cad8ca;
+      --text: #22352d;
+      --muted: #5d6f65;
+      --open: #b55d1c;
+      --done: #1f8058;
+      --locked: #7e8883;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: linear-gradient(180deg, #163129 0%, var(--bg) 100%);
+      color: var(--text);
+      padding: 14px;
+    }
+    .app {
+      max-width: 920px;
+      margin: 0 auto;
+      background: var(--card);
+      border-radius: 24px;
+      overflow: hidden;
+      border: 1px solid rgba(255,255,255,.2);
+    }
+    .head {
+      padding: 18px;
+      background: linear-gradient(135deg, #23493d, #1a342c);
+      color: #fff;
+    }
+    .head h1 { margin: 0 0 6px; font-size: 28px; }
+    .head p { margin: 0; color: rgba(255,255,255,.85); }
+    .content { padding: 14px; display: grid; gap: 14px; }
+    .map-wrap {
+      position: relative;
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      overflow: hidden;
+      background: #dcebd4;
+    }
+    .map-wrap img { width: 100%; display: block; }
+    .panel {
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: #fbfdf8;
+      padding: 14px;
+    }
+    .kicker {
+      margin: 0 0 8px;
+      font-size: 12px;
+      text-transform: uppercase;
+      color: #5d7567;
+      font-weight: 700;
+    }
+    .note {
+      margin: 0;
+      color: #52655b;
+      line-height: 1.45;
+    }
+    .step-list { display: grid; gap: 8px; }
+    .step-item {
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 10px 12px;
+      background: #fff;
+      font-size: 14px;
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+    }
+    .status { font-weight: 700; }
+    .status.locked { color: var(--locked); }
+    .status.open { color: var(--open); }
+    .status.done { color: var(--done); }
+    h2 { margin: 0 0 8px; }
+    .question { margin: 0 0 12px; color: #465a50; line-height: 1.45; }
+    .answers { display: grid; gap: 8px; }
+    .answers button {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: #fff;
+      color: var(--text);
+      text-align: left;
+      padding: 10px 12px;
+      font-size: 14px;
+      cursor: pointer;
+    }
+    .answers button:hover { border-color: #d59b6f; background: #fff5eb; }
+    .result { min-height: 20px; margin-top: 10px; font-weight: 700; }
+    .result.ok { color: var(--done); }
+    .result.bad { color: #c04d4d; }
+    .final {
+      border: 1px dashed #b7c8b8;
+      border-radius: 14px;
+      padding: 12px;
+      background: #f6fbf5;
+      color: #406052;
+      line-height: 1.45;
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="head">
+      <h1>Карта без видимых точек</h1>
+      <p>На карте вообще нет маркеров. Игрок видит только фон карты, маршрут и текущую загадку.</p>
+    </div>
+    <div class="content">
+      <div class="map-wrap">
+        <img src="./assets/maps/sequential-city-map.svg" alt="Diplomatic City" />
+      </div>
+
+      <div class="panel">
+        <p class="kicker">Карта</p>
+        <p class="note">Метки полностью скрыты. Переход между точками идёт автоматически после правильного ответа.</p>
+      </div>
+
+      <div class="panel">
+        <p class="kicker">Маршрут</p>
+        <div class="step-list" id="stepList"></div>
+      </div>
+
+      <div class="panel">
+        <p class="kicker">Текущая загадка</p>
+        <h2 id="taskTitle">Точка маршрута</h2>
+        <p class="question" id="taskQuestion">Первая загадка уже активна.</p>
+        <div class="answers" id="taskAnswers"></div>
+        <div class="result" id="taskResult"></div>
+      </div>
+
+      <div class="final" id="finalBlock" hidden>
+        Все 5 точек пройдены. На карте за всё время не показывались никакие точки.
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const points = [
+      { id: 'market', title: 'Рынок', question: 'Что открывается первым?', answers: ['Все точки сразу', 'Только рынок', 'Только мэрия'], correct: 1, success: 'Верно. Активирована следующая точка.' },
+      { id: 'cityhall', title: 'Мэрия', question: 'Как должны открываться точки дальше?', answers: ['Случайно', 'Последовательно', 'Сразу по 3'], correct: 1, success: 'Да. Разблокировка идёт строго по порядку.' },
+      { id: 'coffee', title: 'Кофейня', question: 'Что происходит после решения загадки?', answers: ['Открывается следующая точка', 'Все блокируются', 'Карта закрывается'], correct: 0, success: 'Точно. Следующая точка стала активной.' },
+      { id: 'archive', title: 'Архив', question: 'Какой статус у пройденной точки?', answers: ['Пройдена', 'Скрыта', 'Неизвестна'], correct: 0, success: 'Да. Эта точка завершена.' },
+      { id: 'pavilion', title: 'Павильон', question: 'Что логично делать после 5-й точки?', answers: ['Открыть финал', 'Вернуть на первую', 'Скрыть прогресс'], correct: 0, success: 'Готово. Можно открывать финал.' }
+    ];
+
+    const state = {
+      solved: new Set(),
+      activeIndex: 0
+    };
+
+    const stepList = document.getElementById('stepList');
+    const taskTitle = document.getElementById('taskTitle');
+    const taskQuestion = document.getElementById('taskQuestion');
+    const taskAnswers = document.getElementById('taskAnswers');
+    const taskResult = document.getElementById('taskResult');
+    const finalBlock = document.getElementById('finalBlock');
+
+    function renderSteps() {
+      stepList.innerHTML = '';
+      points.forEach((point, index) => {
+        const row = document.createElement('div');
+        row.className = 'step-item';
+
+        let status = 'Закрыта';
+        let statusClass = 'locked';
+
+        if (state.solved.has(point.id)) {
+          status = 'Пройдена';
+          statusClass = 'done';
+        } else if (index === state.activeIndex) {
+          status = 'Активна';
+          statusClass = 'open';
+        }
+
+        row.innerHTML = `<span>${index + 1}. ${point.title}</span><span class="status ${statusClass}">${status}</span>`;
+        stepList.appendChild(row);
+      });
+    }
+
+    function renderTask() {
+      const point = points[state.activeIndex];
+      if (!point) {
+        taskTitle.textContent = 'Маршрут завершён';
+        taskQuestion.textContent = 'Все точки пройдены.';
+        taskAnswers.innerHTML = '';
+        finalBlock.hidden = false;
+        return;
+      }
+
+      taskTitle.textContent = point.title;
+      taskQuestion.textContent = point.question;
+      taskAnswers.innerHTML = '';
+
+      point.answers.forEach((answer, answerIndex) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.textContent = answer;
+        btn.addEventListener('click', () => {
+          if (answerIndex === point.correct) {
+            state.solved.add(point.id);
+            state.activeIndex += 1;
+            taskResult.textContent = point.success;
+            taskResult.className = 'result ok';
+            render();
+          } else {
+            taskResult.textContent = 'Неверно. Попробуй ещё раз.';
+            taskResult.className = 'result bad';
+          }
+        });
+        taskAnswers.appendChild(btn);
+      });
+    }
+
+    function render() {
+      renderSteps();
+      renderTask();
+    }
+
+    render();
+  </script>
+</body>
+</html>
