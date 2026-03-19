@@ -3036,3 +3036,374 @@ body {
 .final {
   background: linear-gradient(180deg, rgba(28, 39, 35, 0.96), rgba(15, 22, 19, 0.98));
 }
+
+/* Graphite + warm sand palette */
+:root {
+  --bg-main: #111315;
+  --bg-soft: #171a1d;
+  --surface: rgba(26, 29, 33, 0.975);
+  --surface-2: rgba(32, 36, 40, 0.985);
+  --text-main: #f2f2f0;
+  --text-muted: #b5b1aa;
+  --line: rgba(42, 47, 53, 0.96);
+  --accent: #c9a66b;
+  --accent-soft: #e6d3b0;
+  --shadow-xl: 0 28px 84px rgba(0, 0, 0, 0.46);
+}
+
+body {
+  background:
+    radial-gradient(120% 120% at 12% -10%, rgba(201, 166, 107, 0.08) 0%, transparent 42%),
+    radial-gradient(100% 120% at 100% 0%, rgba(114, 122, 136, 0.08) 0%, transparent 40%),
+    linear-gradient(180deg, #0d0f11 0%, var(--bg-main) 50%, #0d0f11 100%);
+}
+
+.app-shell {
+  background: linear-gradient(180deg, rgba(20, 23, 26, 0.99), rgba(16, 18, 21, 0.995));
+  border-color: rgba(56, 60, 66, 0.7);
+  box-shadow: var(--shadow-xl);
+}
+
+.top-panel {
+  background:
+    radial-gradient(120% 180% at 0% -30%, rgba(201, 166, 107, 0.08) 0%, transparent 56%),
+    linear-gradient(135deg, #1a1d21 0%, #20242a 48%, #1a1d21 100%);
+  border-bottom-color: rgba(56, 60, 66, 0.72);
+}
+
+.top-panel::after {
+  background: linear-gradient(90deg, transparent, rgba(201, 166, 107, 0.18), transparent);
+}
+
+.title,
+.card h2,
+.task-title,
+.team-gate-title,
+.task-question,
+.task-answer-text {
+  color: var(--text-main);
+}
+
+.subtitle,
+.team-strip,
+.final-answer-note,
+.task-lore,
+.team-gate-note,
+.team-gate-status,
+.final-answer-status,
+.city-task-progress,
+.city-task-status,
+.scanner-readout,
+.caesar-meta,
+.caesar-input-label,
+.match-color-hint,
+.task-mini-note,
+.task-media-title,
+.task-media-card,
+.final,
+.map-attrib,
+.map-attrib a,
+.leaflet-label,
+.scanner-readout,
+.decoder-panel-lead,
+.decoder-shift-riddle,
+.decoder-flow-chip,
+.decoder-flow-arrow,
+.decoder-card-current-label,
+.decoder-card-entry-label,
+.decoder-shift-label,
+.decoder-head,
+.chess-legend-label,
+.chess-file,
+.chess-rank {
+  color: var(--text-muted);
+}
+
+.view-stack {
+  background: linear-gradient(180deg, rgba(18, 20, 23, 0.95), rgba(17, 19, 22, 0.98));
+}
+
+.card,
+.team-gate,
+.task-panel,
+.final-answer-panel,
+.prototype-panel,
+.case-map-frame,
+.prototype-frame,
+.city-task-wrap,
+.caesar-wrap,
+.match-wrap,
+.hotspot-wrap,
+.scanner-wrap,
+.rotor-wrap,
+.decoder-wrap,
+.chess-wrap,
+.task-media-card {
+  background: linear-gradient(180deg, rgba(27, 31, 35, 0.985), rgba(22, 25, 29, 0.99));
+  border-color: rgba(42, 47, 53, 0.94);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.03),
+    0 16px 28px rgba(0, 0, 0, 0.16);
+}
+
+.badge {
+  background: rgba(44, 48, 54, 0.85);
+  border-color: rgba(62, 68, 75, 0.92);
+  color: #e6e3dd;
+}
+
+.view-tab {
+  border-color: rgba(70, 76, 84, 0.9);
+  background: linear-gradient(180deg, rgba(34, 38, 43, 0.95), rgba(24, 27, 31, 0.98));
+  color: #cbc8c1;
+  -webkit-text-fill-color: #cbc8c1;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.03),
+    0 10px 22px rgba(0, 0, 0, 0.18);
+}
+
+.view-tab:hover {
+  border-color: rgba(201, 166, 107, 0.32);
+  color: #f2f2f0;
+  -webkit-text-fill-color: #f2f2f0;
+}
+
+#tabAnswerBtn.view-tab,
+#tabMapBtn.view-tab,
+#tabPrototypeBtn.view-tab {
+  background: linear-gradient(180deg, rgba(34, 38, 43, 0.95), rgba(24, 27, 31, 0.98));
+  color: #d2cdc5;
+  -webkit-text-fill-color: #d2cdc5;
+}
+
+#tabAnswerBtn.view-tab.is-active {
+  background: linear-gradient(180deg, rgba(73, 67, 57, 0.98), rgba(39, 36, 31, 0.98));
+  border-color: rgba(201, 166, 107, 0.42);
+  color: #fff8ee;
+  -webkit-text-fill-color: #fff8ee;
+}
+
+#tabMapBtn.view-tab.is-active {
+  background: linear-gradient(180deg, rgba(58, 61, 69, 0.98), rgba(33, 36, 41, 0.98));
+  border-color: rgba(128, 136, 150, 0.34);
+  color: #f3f4f6;
+  -webkit-text-fill-color: #f3f4f6;
+}
+
+#tabPrototypeBtn.view-tab.is-active {
+  background: linear-gradient(180deg, rgba(69, 63, 54, 0.98), rgba(36, 33, 29, 0.98));
+  border-color: rgba(201, 166, 107, 0.32);
+  color: #faf2e7;
+  -webkit-text-fill-color: #faf2e7;
+}
+
+.kicker,
+.task-kicker,
+.task-answer-label {
+  color: var(--accent);
+}
+
+.btn.ghost,
+.match-btn.ghost,
+.city-poi-chip,
+.caesar-confirm,
+.scanner-confirm,
+.decoder-confirm,
+.chess-reset,
+.rotor-btn,
+.decoder-btn {
+  border-color: rgba(58, 64, 70, 0.9);
+  background: linear-gradient(180deg, rgba(38, 42, 47, 0.98), rgba(27, 30, 34, 0.99));
+  color: var(--text-main);
+}
+
+.btn.primary,
+.match-btn.primary {
+  border-color: rgba(201, 166, 107, 0.34);
+  background: linear-gradient(135deg, #d4b27a 0%, #b68a54 100%);
+  color: #241a10;
+  box-shadow: 0 12px 24px rgba(182, 138, 84, 0.22);
+}
+
+.team-select,
+.final-answer-input,
+.caesar-input,
+.scanner-input,
+.decoder-card-input {
+  border-color: rgba(58, 64, 70, 0.92);
+  background: rgba(20, 22, 25, 0.96);
+  color: var(--text-main);
+}
+
+.team-select:focus,
+.final-answer-input:focus,
+.caesar-input:focus,
+.scanner-input:focus,
+.decoder-card-input:focus {
+  border-color: rgba(201, 166, 107, 0.42);
+  box-shadow: 0 0 0 3px rgba(201, 166, 107, 0.12);
+}
+
+.map-scene,
+.leaflet-map,
+.case-map-viewport,
+.prototype-frame,
+.prototype-map-embed,
+.hotspot-scene,
+.scanner-stage,
+.decoder-scene-card,
+.decoder-dial-card,
+.decoder-panel,
+.task-media-image,
+.task-media-video {
+  background: #181b1f;
+  border-color: rgba(42, 47, 53, 0.95);
+}
+
+.case-map-frame {
+  background: linear-gradient(180deg, rgba(29, 32, 36, 0.98), rgba(23, 26, 30, 0.99));
+}
+
+.map-attrib {
+  background: rgba(18, 21, 24, 0.78);
+  border-color: rgba(58, 64, 70, 0.88);
+}
+
+.fallback-map-note {
+  background: rgba(23, 27, 30, 0.94);
+  border-color: rgba(58, 64, 70, 0.9);
+  color: #e3dfd8;
+}
+
+.fallback-map-canvas {
+  background:
+    radial-gradient(90% 100% at 50% 0%, rgba(41, 44, 49, 0.95), rgba(27, 30, 34, 0.98)),
+    linear-gradient(180deg, #25292e, #1a1d21);
+}
+
+.fallback-point-label {
+  background: rgba(25, 29, 33, 0.96);
+  border-color: rgba(58, 64, 70, 0.92);
+  color: var(--text-main);
+}
+
+.leaflet-map .leaflet-control-zoom a {
+  background: rgba(28, 32, 36, 0.96);
+  color: #f4f2ee;
+}
+
+.leaflet-map .leaflet-control-zoom a:hover {
+  background: rgba(40, 44, 49, 0.99);
+}
+
+.leaflet-label {
+  background: rgba(23, 27, 31, 0.88);
+  border-color: rgba(67, 73, 80, 0.88);
+}
+
+.task-close {
+  background: rgba(39, 43, 48, 0.96);
+  color: #f1f0ec;
+}
+
+.task-option,
+.match-item {
+  border-color: rgba(55, 61, 67, 0.9);
+  background: linear-gradient(180deg, rgba(34, 38, 43, 0.98), rgba(24, 27, 31, 0.99));
+  color: var(--text-main);
+}
+
+.task-option.is-selected {
+  border-color: rgba(201, 166, 107, 0.34);
+  background: linear-gradient(180deg, rgba(70, 58, 42, 0.96), rgba(35, 30, 24, 0.98));
+}
+
+.task-option.is-correct {
+  border-color: rgba(107, 182, 148, 0.28);
+  background: linear-gradient(180deg, rgba(36, 62, 51, 0.96), rgba(21, 33, 28, 0.98));
+}
+
+.task-option.is-wrong {
+  border-color: rgba(180, 104, 104, 0.28);
+  background: linear-gradient(180deg, rgba(68, 35, 35, 0.96), rgba(29, 18, 18, 0.98));
+}
+
+.slider-tile {
+  border-color: rgba(57, 62, 68, 0.9);
+  background: linear-gradient(180deg, rgba(42, 46, 51, 0.98), rgba(29, 33, 37, 0.99));
+  color: #f2f2f0;
+}
+
+.slider-empty {
+  border-color: rgba(57, 62, 68, 0.88);
+  background: rgba(23, 26, 30, 0.88);
+}
+
+.city-poi-chip.is-visited,
+.match-item.is-linked.match-pair-0,
+.match-item.is-linked.match-pair-4,
+.match-item.is-linked.match-pair-6,
+.step-item.selected {
+  background: linear-gradient(180deg, rgba(60, 65, 74, 0.98), rgba(33, 37, 43, 0.99));
+}
+
+.match-item.is-linked.match-pair-1,
+.match-item.is-linked.match-pair-5,
+.match-item.is-linked.match-pair-7 {
+  background: linear-gradient(180deg, rgba(75, 61, 42, 0.98), rgba(36, 30, 22, 0.99));
+}
+
+.match-item.is-linked.match-pair-2,
+.match-item.is-linked.match-pair-3 {
+  background: linear-gradient(180deg, rgba(56, 53, 61, 0.98), rgba(29, 27, 33, 0.99));
+}
+
+.decoder-clue-pill,
+.decoder-step,
+.decoder-card,
+.decoder-card-current,
+.decoder-card-entry,
+.decoder-offset-chip,
+.step-item,
+.answers button,
+.legend span {
+  border-color: rgba(55, 61, 67, 0.9);
+  background: linear-gradient(180deg, rgba(34, 38, 43, 0.98), rgba(24, 27, 31, 0.99));
+  color: var(--text-main);
+}
+
+.decoder-offset-chip.is-active,
+.decoder-clue-pill.is-found,
+.match-item-fact.is-active,
+.match-item-option.is-active {
+  border-color: rgba(201, 166, 107, 0.36);
+  box-shadow: 0 0 0 3px rgba(201, 166, 107, 0.1);
+}
+
+.rotor-stage {
+  background:
+    radial-gradient(circle at 50% 50%, rgba(84, 77, 66, 0.82), rgba(36, 38, 42, 0.9) 58%, rgba(69, 66, 59, 0.9) 59%, rgba(24, 27, 30, 0.96) 100%);
+}
+
+.task-result.ok,
+.status.done,
+.result.ok {
+  color: #84d0a7;
+}
+
+.task-result.bad,
+.result.bad {
+  color: #e4a3a3;
+}
+
+.task-result.info,
+.result.info,
+.status.open {
+  color: #d8c09a;
+}
+
+.task-answer,
+.final {
+  border-color: rgba(201, 166, 107, 0.18);
+  background: linear-gradient(180deg, rgba(43, 37, 29, 0.92), rgba(24, 21, 17, 0.97));
+}
