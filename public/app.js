@@ -3560,8 +3560,34 @@ function renderChessTask(point) {
 
   const note = document.createElement('p');
   note.className = 'task-mini-note';
-  note.textContent = 'Сначала выберите белую фигуру, затем клетку назначения. Засчитывается только матующий ход.';
+  note.textContent = 'Белые играют светлыми фигурами, черные тёмными. Сначала выберите белую фигуру, затем клетку назначения.';
   wrap.appendChild(note);
+
+  const legend = document.createElement('div');
+  legend.className = 'chess-legend';
+
+  [
+    { color: 'white', glyph: CHESS_GLYPHS.wk, label: 'Белые' },
+    { color: 'black', glyph: CHESS_GLYPHS.bk, label: 'Черные' }
+  ].forEach((item) => {
+    const legendItem = document.createElement('div');
+    legendItem.className = 'chess-legend-item';
+
+    const legendGlyph = document.createElement('span');
+    legendGlyph.className = `chess-piece ${item.color} is-sample`;
+    legendGlyph.textContent = item.glyph;
+    legendGlyph.setAttribute('aria-hidden', 'true');
+
+    const legendLabel = document.createElement('span');
+    legendLabel.className = 'chess-legend-label';
+    legendLabel.textContent = item.label;
+
+    legendItem.appendChild(legendGlyph);
+    legendItem.appendChild(legendLabel);
+    legend.appendChild(legendItem);
+  });
+
+  wrap.appendChild(legend);
 
   const boardNode = document.createElement('div');
   boardNode.className = 'chess-board';

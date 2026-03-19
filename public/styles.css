@@ -1689,6 +1689,31 @@ body {
   box-shadow: 0 10px 24px rgba(31, 48, 39, 0.1);
 }
 
+.chess-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+  margin: 0 0 10px;
+}
+
+.chess-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(241, 248, 243, 0.95);
+  border: 1px solid #c9d7cc;
+}
+
+.chess-legend-label {
+  font-size: 12px;
+  line-height: 1;
+  font-weight: 800;
+  color: #2f4c40;
+}
+
 .chess-cell {
   position: relative;
   aspect-ratio: 1 / 1;
@@ -1741,23 +1766,32 @@ body {
 }
 
 .chess-piece.white {
-  color: #5a4330;
-  background: radial-gradient(circle at 30% 25%, #fffdf6 0%, #f3e5cf 66%, #ddc09b 100%);
-  border: 1px solid rgba(158, 119, 78, 0.44);
+  color: #4d3626;
+  background: radial-gradient(circle at 30% 25%, #fffefb 0%, #fbf0dd 62%, #e1c29b 100%);
+  border: 1px solid rgba(150, 111, 71, 0.52);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.72),
-    0 3px 8px rgba(74, 52, 33, 0.18);
-  text-shadow: 0 1px 0 rgba(255, 249, 240, 0.56);
+    inset 0 1px 0 rgba(255, 255, 255, 0.84),
+    0 3px 8px rgba(74, 52, 33, 0.22),
+    0 0 0 2px rgba(255, 251, 244, 0.8);
+  text-shadow: 0 1px 0 rgba(255, 249, 240, 0.7);
 }
 
 .chess-piece.black {
-  color: #fff0dc;
-  background: radial-gradient(circle at 34% 24%, #7f6556 0%, #523c31 62%, #261a15 100%);
-  border: 1px solid rgba(255, 240, 222, 0.18);
+  color: #fff6e9;
+  background: radial-gradient(circle at 34% 24%, #6f5a4d 0%, #413028 56%, #16100d 100%);
+  border: 1px solid rgba(255, 240, 222, 0.28);
   box-shadow:
-    inset 0 1px 0 rgba(255, 248, 237, 0.18),
-    0 3px 8px rgba(22, 14, 9, 0.3);
-  text-shadow: 0 1px 0 rgba(255, 247, 236, 0.18);
+    inset 0 1px 0 rgba(255, 248, 237, 0.2),
+    0 4px 9px rgba(14, 9, 7, 0.42),
+    0 0 0 2px rgba(32, 24, 19, 0.5);
+  text-shadow: 0 1px 0 rgba(255, 247, 236, 0.24);
+}
+
+.chess-piece.is-sample {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  font-size: 24px;
 }
 
 .chess-file,
