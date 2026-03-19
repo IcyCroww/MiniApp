@@ -9,6 +9,7 @@
   "scripts": {
     "start": "node server.js",
     "dev": "node server.js",
+    "load:k6:full": "k6 run ./load-tests/miniapp-full-scenario.js",
     "deploy:surge": "npx surge public"
   },
   "dependencies": {
