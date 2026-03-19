@@ -1,0 +1,79 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900" fill="none">
+  <defs>
+    <linearGradient id="bg" x1="800" y1="0" x2="800" y2="900" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#EAF7E7"/>
+      <stop offset="1" stop-color="#D7EBCF"/>
+    </linearGradient>
+    <linearGradient id="road" x1="800" y1="120" x2="800" y2="860" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#E8D9B3"/>
+      <stop offset="1" stop-color="#D8C496"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1600" height="900" fill="url(#bg)"/>
+
+  <g opacity="0.85">
+    <rect x="0" y="0" width="1600" height="180" fill="#8BC47E"/>
+    <rect x="0" y="720" width="1600" height="180" fill="#8BC47E"/>
+    <rect x="0" y="180" width="180" height="540" fill="#8BC47E"/>
+    <rect x="1420" y="180" width="180" height="540" fill="#8BC47E"/>
+  </g>
+
+  <g opacity="0.55" fill="#4F8C53">
+    <circle cx="90" cy="70" r="45"/><circle cx="180" cy="105" r="52"/><circle cx="305" cy="75" r="50"/>
+    <circle cx="470" cy="105" r="58"/><circle cx="610" cy="70" r="50"/><circle cx="760" cy="105" r="55"/>
+    <circle cx="915" cy="70" r="48"/><circle cx="1080" cy="95" r="56"/><circle cx="1240" cy="75" r="50"/>
+    <circle cx="1390" cy="98" r="55"/><circle cx="1520" cy="72" r="44"/>
+    <circle cx="85" cy="815" r="48"/><circle cx="220" cy="790" r="54"/><circle cx="355" cy="825" r="50"/>
+    <circle cx="520" cy="790" r="60"/><circle cx="690" cy="820" r="52"/><circle cx="845" cy="790" r="54"/>
+    <circle cx="1010" cy="822" r="52"/><circle cx="1160" cy="790" r="55"/><circle cx="1315" cy="820" r="50"/>
+    <circle cx="1490" cy="792" r="58"/>
+  </g>
+
+  <path d="M800 160C977 160 1120 303 1120 480C1120 657 977 800 800 800C623 800 480 657 480 480C480 303 623 160 800 160Z" fill="#CBE3B8" stroke="#B3CAA2" stroke-width="18"/>
+  <circle cx="800" cy="480" r="170" fill="#DDECCF" stroke="#B8CBA8" stroke-width="14"/>
+  <circle cx="800" cy="480" r="84" fill="#7CC8D6" stroke="#5DA9B8" stroke-width="12"/>
+  <circle cx="800" cy="480" r="26" fill="#F4F7F8"/>
+  <path d="M800 448L812 482H788L800 448Z" fill="#F4F7F8"/>
+
+  <path d="M250 500C390 420 500 360 620 330" stroke="url(#road)" stroke-width="34" stroke-linecap="round"/>
+  <path d="M980 330C1090 362 1200 425 1340 515" stroke="url(#road)" stroke-width="34" stroke-linecap="round"/>
+  <path d="M800 640L800 820" stroke="url(#road)" stroke-width="34" stroke-linecap="round"/>
+  <path d="M800 320L800 180" stroke="url(#road)" stroke-width="34" stroke-linecap="round"/>
+
+  <g>
+    <rect x="575" y="120" width="450" height="150" rx="36" fill="#D9F0E2" stroke="#77A78F" stroke-width="12"/>
+    <rect x="705" y="150" width="190" height="48" rx="10" fill="#BEE0CF" stroke="#77A78F" stroke-width="8"/>
+    <rect x="735" y="210" width="130" height="28" rx="8" fill="#EED8A3"/>
+    <text x="800" y="185" text-anchor="middle" font-family="Manrope, Arial, sans-serif" font-size="34" font-weight="700" fill="#365A4C">Мэрия</text>
+  </g>
+
+  <g>
+    <rect x="215" y="205" width="260" height="165" rx="28" fill="#F0E2BE" stroke="#B9925C" stroke-width="10"/>
+    <rect x="240" y="228" width="56" height="46" rx="8" fill="#FFF3D4"/>
+    <rect x="308" y="228" width="56" height="46" rx="8" fill="#FFF3D4"/>
+    <rect x="376" y="228" width="56" height="46" rx="8" fill="#FFF3D4"/>
+    <rect x="250" y="300" width="190" height="42" rx="12" fill="#D67D3E"/>
+    <text x="345" y="290" text-anchor="middle" font-family="Manrope, Arial, sans-serif" font-size="30" font-weight="800" fill="#7A4A1D">Рынок</text>
+  </g>
+
+  <g>
+    <rect x="1120" y="215" width="250" height="150" rx="28" fill="#F7EED4" stroke="#B69965" stroke-width="10"/>
+    <rect x="1155" y="248" width="180" height="65" rx="14" fill="#FFF8EA"/>
+    <text x="1245" y="210" text-anchor="middle" font-family="Manrope, Arial, sans-serif" font-size="28" font-weight="800" fill="#6C5431">Кофейня</text>
+  </g>
+
+  <g>
+    <rect x="1120" y="560" width="255" height="165" rx="28" fill="#D6E7F7" stroke="#6E91B3" stroke-width="10"/>
+    <rect x="1160" y="595" width="175" height="75" rx="14" fill="#EAF4FF"/>
+    <text x="1248" y="550" text-anchor="middle" font-family="Manrope, Arial, sans-serif" font-size="28" font-weight="800" fill="#345777">Архив</text>
+  </g>
+
+  <g>
+    <rect x="235" y="585" width="275" height="170" rx="28" fill="#F5DCCB" stroke="#B77F60" stroke-width="10"/>
+    <rect x="270" y="620" width="205" height="85" rx="14" fill="#FFF1E9"/>
+    <text x="372" y="575" text-anchor="middle" font-family="Manrope, Arial, sans-serif" font-size="28" font-weight="800" fill="#73412B">Павильон</text>
+  </g>
+
+  <text x="800" y="70" text-anchor="middle" font-family="Georgia, serif" font-size="54" fill="#334A36">Diplomatic City</text>
+</svg>
