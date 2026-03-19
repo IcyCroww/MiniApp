@@ -1,0 +1,822 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Карта тестовая</title>
+  <style>
+    :root {
+      --bg: #10221b;
+      --card: #f4f7ef;
+      --line: #cad8ca;
+      --text: #22352d;
+      --muted: #5d6f65;
+      --locked: #96a29b;
+      --locked-text: #68746e;
+      --open: #d87a30;
+      --open-strong: #b85f1b;
+      --done: #249665;
+      --done-strong: #1d7e55;
+      --selected: #3c6e8f;
+      --drawer-shadow: 0 18px 30px rgba(13, 28, 22, 0.24);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: 'Manrope', 'Segoe UI', sans-serif;
+      background: linear-gradient(180deg, #163129 0%, var(--bg) 100%);
+      color: var(--text);
+      padding: 14px;
+    }
+
+    .app {
+      max-width: 960px;
+      margin: 0 auto;
+      background: var(--card);
+      border-radius: 24px;
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      box-shadow: 0 16px 32px rgba(8, 18, 15, 0.18);
+    }
+
+    .head {
+      padding: 18px;
+      background: linear-gradient(135deg, #23493d, #1a342c);
+      color: #fff;
+    }
+
+    .head h1 {
+      margin: 0 0 6px;
+      font-size: 28px;
+      line-height: 1.15;
+    }
+
+    .head p {
+      margin: 0;
+      color: rgba(255, 255, 255, 0.86);
+      line-height: 1.45;
+    }
+
+    .content {
+      padding: 14px;
+      display: grid;
+      gap: 14px;
+    }
+
+    .panel {
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: #fbfdf8;
+      padding: 14px;
+    }
+
+    .kicker {
+      margin: 0 0 8px;
+      font-size: 12px;
+      text-transform: uppercase;
+      color: #5d7567;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+    }
+
+    .note {
+      margin: 0;
+      color: #52655b;
+      line-height: 1.45;
+    }
+
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .legend span {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 8px;
+      border-radius: 999px;
+      background: #ffffff;
+      border: 1px solid rgba(197, 211, 201, 0.85);
+    }
+
+    .dot {
+      width: 14px;
+      height: 14px;
+      border-radius: 999px;
+      display: inline-block;
+    }
+
+    .workspace {
+      position: relative;
+      min-height: 620px;
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      overflow: hidden;
+      background: linear-gradient(180deg, #ecf4ea 0%, #dde9df 100%);
+    }
+
+    .map-wrap {
+      position: relative;
+      min-height: 620px;
+      background: #dcebd4;
+    }
+
+    .map-wrap img {
+      width: 100%;
+      height: 100%;
+      display: block;
+      object-fit: cover;
+    }
+
+    .map-point {
+      position: absolute;
+      transform: translate(-50%, -50%);
+      display: inline-flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      border: 0;
+      background: transparent;
+      padding: 0;
+      cursor: pointer;
+    }
+
+    .map-point:disabled {
+      cursor: default;
+    }
+
+    .map-point-dot {
+      width: 30px;
+      height: 30px;
+      border-radius: 999px;
+      border: 3px solid rgba(255, 255, 255, 0.96);
+      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.22);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 900;
+      color: #ffffff;
+      transition: transform 0.18s ease, box-shadow 0.18s ease;
+    }
+
+    .map-point-label {
+      padding: 4px 8px;
+      border-radius: 999px;
+      border: 1px solid rgba(146, 166, 152, 0.45);
+      background: rgba(248, 251, 246, 0.97);
+      color: #284338;
+      font-size: 12px;
+      font-weight: 800;
+      line-height: 1;
+      white-space: nowrap;
+      box-shadow: 0 6px 14px rgba(18, 35, 29, 0.12);
+    }
+
+    .map-point.locked .map-point-dot {
+      background: var(--locked);
+    }
+
+    .map-point.locked .map-point-label {
+      color: var(--locked-text);
+      opacity: 0.88;
+    }
+
+    .map-point.open .map-point-dot {
+      background: linear-gradient(145deg, var(--open) 0%, var(--open-strong) 100%);
+    }
+
+    .map-point.done .map-point-dot {
+      background: linear-gradient(145deg, var(--done) 0%, var(--done-strong) 100%);
+    }
+
+    .map-point.selected .map-point-dot {
+      transform: scale(1.12);
+      box-shadow:
+        0 10px 18px rgba(0, 0, 0, 0.24),
+        0 0 0 4px rgba(60, 110, 143, 0.2);
+    }
+
+    .map-point.selected .map-point-label {
+      border-color: rgba(76, 123, 154, 0.52);
+      box-shadow:
+        0 6px 14px rgba(18, 35, 29, 0.12),
+        0 0 0 3px rgba(76, 123, 154, 0.14);
+    }
+
+    .drawer {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      bottom: 12px;
+      width: min(360px, calc(100% - 24px));
+      border-radius: 22px;
+      border: 1px solid #cad7dd;
+      background: linear-gradient(180deg, #fdfefe 0%, #eef4f7 100%);
+      box-shadow: var(--drawer-shadow);
+      transform: translateX(calc(100% + 18px));
+      opacity: 0;
+      pointer-events: none;
+      transition: transform 0.24s ease, opacity 0.24s ease;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .drawer.is-open {
+      transform: translateX(0);
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .drawer-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 16px 16px 10px;
+    }
+
+    .drawer-kicker {
+      margin: 0 0 6px;
+      font-size: 12px;
+      text-transform: uppercase;
+      color: #5a7588;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+    }
+
+    .drawer h2 {
+      margin: 0;
+      font-size: 24px;
+      line-height: 1.15;
+    }
+
+    .drawer-close {
+      flex: none;
+      width: 34px;
+      height: 34px;
+      border: 0;
+      border-radius: 50%;
+      background: #dce8ef;
+      color: #355164;
+      font-size: 22px;
+      line-height: 1;
+      cursor: pointer;
+    }
+
+    .drawer-copy {
+      padding: 0 16px 14px;
+      overflow-y: auto;
+      display: grid;
+      gap: 12px;
+    }
+
+    .drawer-note {
+      margin: 0;
+      color: #4c6270;
+      line-height: 1.45;
+    }
+
+    .drawer-media {
+      margin: 0;
+      border-radius: 16px;
+      overflow: hidden;
+      border: 1px solid #c8d7df;
+      background: #eef4f7;
+    }
+
+    .drawer-media img {
+      width: 100%;
+      display: block;
+      aspect-ratio: 16 / 10;
+      object-fit: cover;
+      background: #dfe8ed;
+    }
+
+    .drawer-media figcaption {
+      padding: 10px 12px;
+      font-size: 12px;
+      line-height: 1.4;
+      color: #516773;
+      background: rgba(252, 254, 255, 0.92);
+    }
+
+    .drawer-question {
+      margin: 0;
+      color: #364c59;
+      line-height: 1.45;
+      font-weight: 700;
+    }
+
+    .answers {
+      display: grid;
+      gap: 8px;
+    }
+
+    .answers button {
+      border: 1px solid #cad8ca;
+      border-radius: 12px;
+      background: #fff;
+      color: var(--text);
+      text-align: left;
+      padding: 10px 12px;
+      font-size: 14px;
+      cursor: pointer;
+      transition: border-color 0.18s ease, background 0.18s ease;
+    }
+
+    .answers button:hover:not(:disabled) {
+      border-color: #d59b6f;
+      background: #fff5eb;
+    }
+
+    .answers button:disabled {
+      cursor: default;
+      opacity: 0.76;
+    }
+
+    .result {
+      min-height: 20px;
+      font-weight: 800;
+      line-height: 1.4;
+    }
+
+    .result.ok {
+      color: #1f8a5d;
+    }
+
+    .result.bad {
+      color: #c04d4d;
+    }
+
+    .result.info {
+      color: #476356;
+    }
+
+    .step-list {
+      display: grid;
+      gap: 8px;
+    }
+
+    .step-item {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 10px 12px;
+      background: #fff;
+      font-size: 14px;
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      text-align: left;
+      color: var(--text);
+      cursor: pointer;
+      transition: border-color 0.18s ease, background 0.18s ease;
+    }
+
+    .step-item:hover:not(:disabled) {
+      border-color: #b8cbbd;
+      background: #f9fcf8;
+    }
+
+    .step-item:disabled {
+      cursor: default;
+      opacity: 0.78;
+    }
+
+    .step-item.selected {
+      border-color: rgba(76, 123, 154, 0.55);
+      background: #f3f8fc;
+      box-shadow: 0 0 0 3px rgba(76, 123, 154, 0.12);
+    }
+
+    .status {
+      font-weight: 800;
+      white-space: nowrap;
+    }
+
+    .status.locked {
+      color: #7e8883;
+    }
+
+    .status.open {
+      color: #b55d1c;
+    }
+
+    .status.done {
+      color: #1f8058;
+    }
+
+    .final {
+      border: 1px dashed #b7c8b8;
+      border-radius: 14px;
+      padding: 12px;
+      background: #f6fbf5;
+      color: #406052;
+      line-height: 1.45;
+    }
+
+    @media (max-width: 900px) {
+      .workspace,
+      .map-wrap {
+        min-height: 560px;
+      }
+    }
+
+    @media (max-width: 720px) {
+      body {
+        padding: 8px;
+      }
+
+      .head {
+        padding: 16px;
+      }
+
+      .head h1 {
+        font-size: 24px;
+      }
+
+      .content {
+        padding: 10px;
+      }
+
+      .workspace,
+      .map-wrap {
+        min-height: 520px;
+      }
+
+      .map-point-label {
+        font-size: 11px;
+        padding: 4px 7px;
+      }
+
+      .drawer {
+        top: auto;
+        left: 8px;
+        right: 8px;
+        bottom: 8px;
+        width: auto;
+        max-height: min(76vh, 640px);
+        transform: translateY(calc(100% + 18px));
+      }
+
+      .drawer.is-open {
+        transform: translateY(0);
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="head">
+      <h1>Карта тестовая</h1>
+      <p>Точка открывает боковую карточку с изображением, описанием и вопросом. Следующая точка только разблокируется, а переключение между уже открытыми точками игрок делает сам.</p>
+    </div>
+
+    <div class="content">
+      <div class="panel">
+        <p class="kicker">Логика</p>
+        <p class="note">Серые точки закрыты. Оранжевые уже доступны. Зеленые пройдены. Нажатие по точке или по строке маршрута открывает боковую карточку справа.</p>
+      </div>
+
+      <div class="legend">
+        <span><i class="dot" style="background:#96a29b"></i> Закрыта</span>
+        <span><i class="dot" style="background:#d87a30"></i> Открыта</span>
+        <span><i class="dot" style="background:#249665"></i> Пройдена</span>
+      </div>
+
+      <section class="workspace">
+        <div class="map-wrap" id="mapWrap">
+          <img src="./assets/maps/sequential-city-map.svg" alt="Карта города" />
+        </div>
+
+        <aside class="drawer is-open" id="drawer">
+          <div class="drawer-head">
+            <div>
+              <p class="drawer-kicker" id="drawerStatus">Открыта</p>
+              <h2 id="drawerTitle">Рынок</h2>
+            </div>
+            <button class="drawer-close" id="drawerClose" type="button" aria-label="Закрыть карточку">×</button>
+          </div>
+
+          <div class="drawer-copy">
+            <p class="drawer-note" id="drawerLead">Нажмите на открытую точку на карте или в маршруте, чтобы открыть её карточку.</p>
+
+            <figure class="drawer-media">
+              <img id="drawerImage" src="./assets/media/test-photo.svg" alt="Изображение точки" />
+              <figcaption id="drawerCaption">Изображение выбранной точки.</figcaption>
+            </figure>
+
+            <p class="drawer-question" id="drawerQuestion">Что по сценарию открывается первым?</p>
+            <div class="answers" id="taskAnswers"></div>
+            <div class="result info" id="taskResult"></div>
+          </div>
+        </aside>
+      </section>
+
+      <div class="panel">
+        <p class="kicker">Маршрут</p>
+        <div class="step-list" id="stepList"></div>
+      </div>
+
+      <div class="final" id="finalBlock" hidden>
+        Все 5 точек пройдены. На этой архитектуре уже можно вешать реальный контент, фотографии, ключи и переход к финалу.
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const points = [
+      {
+        id: 'market',
+        title: 'Рынок',
+        x: 21.5,
+        y: 30,
+        lead: 'Стартовая точка маршрута. После первого правильного ответа открывается следующая зона, но игрок сам решает, когда к ней перейти.',
+        image: {
+          src: './assets/media/test-photo.svg',
+          alt: 'Тестовое изображение рынка',
+          caption: 'Пример изображения, которое показывается сбоку при открытии точки.'
+        },
+        question: 'Что по сценарию открывается первым?',
+        answers: ['Все точки сразу', 'Только рынок', 'Только мэрия'],
+        correct: 1,
+        success: 'Верно. Следующая точка только открылась. Теперь можно вручную перейти к ней по карте или через маршрут.'
+      },
+      {
+        id: 'cityhall',
+        title: 'Мэрия',
+        x: 50,
+        y: 20,
+        lead: 'Административный узел маршрута. Точка становится доступной только после прохождения предыдущей.',
+        image: {
+          src: './assets/puzzles/bari-board.svg',
+          alt: 'Материалы мэрии',
+          caption: 'Карточка точки может показывать отдельный визуальный материал или схему.'
+        },
+        question: 'Как должны открываться точки дальше?',
+        answers: ['Случайно', 'Последовательно', 'Сразу по три'],
+        correct: 1,
+        success: 'Да. Маршрут раскрывается строго по порядку.'
+      },
+      {
+        id: 'coffee',
+        title: 'Кофейня',
+        x: 77.8,
+        y: 29.5,
+        lead: 'Промежуточная точка маршрута. После ответа игрок сам выбирает, открыть ли следующую точку прямо сейчас или вернуться к уже пройденной.',
+        image: {
+          src: './assets/puzzles/verona-scanner.svg',
+          alt: 'Сцена кофейни',
+          caption: 'Вместо обычного текста сбоку можно выводить связанную иллюстрацию или фото.'
+        },
+        question: 'Что происходит после решения загадки?',
+        answers: ['Открывается следующая точка', 'Все снова блокируются', 'Карта закрывается'],
+        correct: 0,
+        success: 'Точно. Следующая точка стала доступной.'
+      },
+      {
+        id: 'archive',
+        title: 'Архив',
+        x: 78,
+        y: 71.5,
+        lead: 'Архивная зона хранит промежуточный прогресс и должна ясно показывать, что точка уже завершена.',
+        image: {
+          src: './assets/puzzles/palermo-board.svg',
+          alt: 'Материалы архива',
+          caption: 'Для каждой точки можно привязать свой отдельный визуальный блок.'
+        },
+        question: 'Какой статус у уже пройденной точки?',
+        answers: ['Пройдена', 'Скрыта', 'Неизвестна'],
+        correct: 0,
+        success: 'Да. Пройденную точку стоит явно показывать как завершенную.'
+      },
+      {
+        id: 'pavilion',
+        title: 'Павильон',
+        x: 23,
+        y: 74,
+        lead: 'Финальная тестовая точка маршрута. После нее можно выводить отдельный финальный блок.',
+        image: {
+          src: './assets/puzzles/bologna-room.svg',
+          alt: 'Материалы павильона',
+          caption: 'После пятой точки можно показать финальный экран или следующий этап сценария.'
+        },
+        question: 'Что логично делать после пятой точки?',
+        answers: ['Открыть финал', 'Вернуться на первую', 'Скрыть прогресс'],
+        correct: 0,
+        success: 'Готово. После пятой точки можно открывать финальный блок.'
+      }
+    ];
+
+    const state = {
+      solved: new Set(),
+      unlockedIndex: 0,
+      selectedId: points[0].id,
+      drawerOpen: true,
+      results: new Map()
+    };
+
+    const mapWrap = document.getElementById('mapWrap');
+    const stepList = document.getElementById('stepList');
+    const drawer = document.getElementById('drawer');
+    const drawerClose = document.getElementById('drawerClose');
+    const drawerStatus = document.getElementById('drawerStatus');
+    const drawerTitle = document.getElementById('drawerTitle');
+    const drawerLead = document.getElementById('drawerLead');
+    const drawerImage = document.getElementById('drawerImage');
+    const drawerCaption = document.getElementById('drawerCaption');
+    const drawerQuestion = document.getElementById('drawerQuestion');
+    const taskAnswers = document.getElementById('taskAnswers');
+    const taskResult = document.getElementById('taskResult');
+    const finalBlock = document.getElementById('finalBlock');
+
+    function getPointIndex(pointId) {
+      return points.findIndex((point) => point.id === pointId);
+    }
+
+    function getPoint(pointId) {
+      return points.find((point) => point.id === pointId) || points[0];
+    }
+
+    function isUnlocked(index) {
+      return index >= 0 && index <= state.unlockedIndex;
+    }
+
+    function isSolved(pointId) {
+      return state.solved.has(pointId);
+    }
+
+    function setPointResult(pointId, text, tone) {
+      state.results.set(pointId, { text, tone });
+    }
+
+    function getPointResult(pointId) {
+      return state.results.get(pointId) || null;
+    }
+
+    function getStatus(index, pointId) {
+      if (isSolved(pointId)) {
+        return { code: 'done', label: 'Пройдена' };
+      }
+
+      if (isUnlocked(index)) {
+        return { code: 'open', label: 'Открыта' };
+      }
+
+      return { code: 'locked', label: 'Закрыта' };
+    }
+
+    function selectPoint(pointId) {
+      const index = getPointIndex(pointId);
+      if (index === -1 || (!isUnlocked(index) && !isSolved(pointId))) {
+        return;
+      }
+
+      state.selectedId = pointId;
+      state.drawerOpen = true;
+      render();
+    }
+
+    function unlockNext(index) {
+      if (index >= points.length) {
+        return;
+      }
+
+      state.unlockedIndex = Math.max(state.unlockedIndex, index);
+    }
+
+    function renderPoints() {
+      mapWrap.querySelectorAll('.map-point').forEach((node) => node.remove());
+
+      points.forEach((point, index) => {
+        const status = getStatus(index, point.id);
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = `map-point ${status.code}${state.selectedId === point.id ? ' selected' : ''}`;
+        button.style.left = `${point.x}%`;
+        button.style.top = `${point.y}%`;
+        button.disabled = status.code === 'locked';
+        button.title = `${index + 1}. ${point.title}`;
+        button.addEventListener('click', () => selectPoint(point.id));
+
+        const dot = document.createElement('span');
+        dot.className = 'map-point-dot';
+        dot.textContent = String(index + 1);
+
+        const label = document.createElement('span');
+        label.className = 'map-point-label';
+        label.textContent = point.title;
+
+        button.appendChild(dot);
+        button.appendChild(label);
+        mapWrap.appendChild(button);
+      });
+    }
+
+    function renderSteps() {
+      stepList.innerHTML = '';
+
+      points.forEach((point, index) => {
+        const status = getStatus(index, point.id);
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = `step-item${state.selectedId === point.id ? ' selected' : ''}`;
+        button.disabled = status.code === 'locked';
+        button.addEventListener('click', () => selectPoint(point.id));
+        button.innerHTML = `<span>${index + 1}. ${point.title}</span><span class="status ${status.code}">${status.label}</span>`;
+        stepList.appendChild(button);
+      });
+    }
+
+    function renderDrawer() {
+      if (!state.drawerOpen) {
+        drawer.classList.remove('is-open');
+        return;
+      }
+
+      const point = getPoint(state.selectedId);
+      const index = getPointIndex(point.id);
+      const status = getStatus(index, point.id);
+      const result = getPointResult(point.id);
+
+      drawer.classList.add('is-open');
+      drawerStatus.textContent = status.label;
+      drawerTitle.textContent = point.title;
+      drawerLead.textContent = point.lead;
+      drawerImage.src = point.image.src;
+      drawerImage.alt = point.image.alt;
+      drawerCaption.textContent = point.image.caption;
+      drawerQuestion.textContent = status.code === 'locked'
+        ? 'Эта точка пока закрыта. Сначала пройдите предыдущую.'
+        : point.question;
+
+      taskAnswers.innerHTML = '';
+
+      if (status.code === 'locked') {
+        taskResult.textContent = '';
+        taskResult.className = 'result info';
+        return;
+      }
+
+      point.answers.forEach((answer, answerIndex) => {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.textContent = answer;
+        button.disabled = isSolved(point.id);
+        button.addEventListener('click', () => {
+          if (answerIndex === point.correct) {
+            state.solved.add(point.id);
+            unlockNext(index + 1);
+            setPointResult(point.id, point.success, 'ok');
+            render();
+            return;
+          }
+
+          setPointResult(point.id, 'Неверно. Попробуйте ещё раз.', 'bad');
+          render();
+        });
+        taskAnswers.appendChild(button);
+      });
+
+      if (result) {
+        taskResult.textContent = result.text;
+        taskResult.className = `result ${result.tone}`;
+      } else if (isSolved(point.id)) {
+        taskResult.textContent = 'Точка уже пройдена. Можно вручную переключиться на любую другую открытую точку.';
+        taskResult.className = 'result ok';
+      } else {
+        taskResult.textContent = 'Выберите ответ. Следующая точка не откроется, пока текущая не решена.';
+        taskResult.className = 'result info';
+      }
+    }
+
+    function renderFinal() {
+      finalBlock.hidden = state.solved.size !== points.length;
+    }
+
+    function render() {
+      renderPoints();
+      renderSteps();
+      renderDrawer();
+      renderFinal();
+    }
+
+    drawerClose.addEventListener('click', () => {
+      state.drawerOpen = false;
+      render();
+    });
+
+    render();
+  </script>
+</body>
+</html>
