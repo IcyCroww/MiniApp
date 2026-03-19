@@ -1,13 +1,65 @@
 ﻿const tg = window.Telegram?.WebApp;
 
+function compareTelegramVersions(current = '0', target = '0') {
+  const currentParts = String(current || '0').split('.').map((part) => Number(part) || 0);
+  const targetParts = String(target || '0').split('.').map((part) => Number(part) || 0);
+  const maxLength = Math.max(currentParts.length, targetParts.length);
+
+  for (let index = 0; index < maxLength; index += 1) {
+    const currentValue = currentParts[index] || 0;
+    const targetValue = targetParts[index] || 0;
+
+    if (currentValue > targetValue) {
+      return 1;
+    }
+
+    if (currentValue < targetValue) {
+      return -1;
+    }
+  }
+
+  return 0;
+}
+
+function telegramVersionAtLeast(minVersion = '0') {
+  if (!tg) {
+    return false;
+  }
+
+  if (typeof tg.isVersionAtLeast === 'function') {
+    try {
+      return tg.isVersionAtLeast(minVersion);
+    } catch (_) {
+      // Fall back to local compare below.
+    }
+  }
+
+  return compareTelegramVersions(tg.version || '0', minVersion) >= 0;
+}
+
+function canUseTelegramThemeColors() {
+  return telegramVersionAtLeast('6.1');
+}
+
+function canUseTelegramHaptics() {
+  return telegramVersionAtLeast('6.1') && Boolean(tg?.HapticFeedback);
+}
+
+function canUseTelegramAlert() {
+  return telegramVersionAtLeast('6.2') && typeof tg?.showAlert === 'function';
+}
+
 if (tg) {
   tg.ready();
   tg.expand();
-  try {
-    tg.setHeaderColor('#103026');
-    tg.setBackgroundColor('#091615');
-  } catch (_) {
-    // Unsupported in some Telegram clients.
+
+  if (canUseTelegramThemeColors()) {
+    try {
+      tg.setHeaderColor('#103026');
+      tg.setBackgroundColor('#091615');
+    } catch (_) {
+      // Unsupported in some Telegram clients.
+    }
   }
 }
 
@@ -886,7 +938,7 @@ const pointsById = new Map(points.map((point) => [point.id, point]));
 const totalQuestCount = points.filter((point) => point.task.kind !== 'empty').length;
 
 function triggerHaptic(type = 'light') {
-  if (!tg?.HapticFeedback) {
+  if (!canUseTelegramHaptics()) {
     return;
   }
 
@@ -1287,7 +1339,7 @@ function showTriggerNotice(triggers = []) {
     setTaskResult(`Триггер: ${text}`, 'info');
   }
 
-  if (tg?.showAlert) {
+  if (canUseTelegramAlert()) {
     try {
       tg.showAlert(text);
     } catch (_) {
