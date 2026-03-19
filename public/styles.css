@@ -2729,3 +2729,310 @@ body {
     border-radius: 24px;
   }
 }
+
+/* Soft palette tuning */
+:root {
+  --bg-main: #0b1317;
+  --bg-soft: #16242b;
+  --surface: rgba(18, 28, 34, 0.96);
+  --surface-2: rgba(25, 38, 45, 0.98);
+  --text-main: #eef3ee;
+  --text-muted: #9cadad;
+  --line: rgba(167, 187, 182, 0.15);
+  --accent: #d6b17b;
+  --accent-soft: #f0dabc;
+  --shadow-xl: 0 28px 80px rgba(0, 0, 0, 0.42);
+}
+
+body {
+  background:
+    radial-gradient(120% 120% at 8% -10%, rgba(74, 121, 116, 0.34) 0%, transparent 48%),
+    radial-gradient(110% 110% at 100% 0%, rgba(165, 118, 74, 0.18) 0%, transparent 38%),
+    radial-gradient(120% 120% at 50% 120%, rgba(52, 80, 95, 0.24) 0%, transparent 44%),
+    linear-gradient(180deg, #091014 0%, #0c1519 54%, #091014 100%);
+}
+
+.app-shell {
+  background:
+    linear-gradient(180deg, rgba(15, 22, 27, 0.985) 0%, rgba(12, 19, 23, 0.99) 100%);
+  border-color: rgba(168, 188, 182, 0.14);
+}
+
+.top-panel {
+  background:
+    radial-gradient(115% 180% at 0% -30%, rgba(74, 121, 116, 0.28) 0%, transparent 54%),
+    radial-gradient(90% 160% at 100% -40%, rgba(214, 177, 123, 0.12) 0%, transparent 52%),
+    linear-gradient(135deg, #142126 0%, #183138 46%, #15272d 100%);
+  border-bottom-color: rgba(174, 193, 187, 0.11);
+}
+
+.top-panel::after {
+  background: linear-gradient(90deg, transparent, rgba(240, 218, 188, 0.22), transparent);
+}
+
+.view-stack {
+  background:
+    linear-gradient(180deg, rgba(13, 20, 25, 0.9), rgba(12, 19, 23, 0.96));
+}
+
+.card,
+.team-gate,
+.task-panel,
+.final-answer-panel,
+.prototype-panel,
+.case-map-frame,
+.prototype-frame,
+.city-task-wrap,
+.caesar-wrap,
+.match-wrap,
+.hotspot-wrap,
+.scanner-wrap,
+.rotor-wrap,
+.decoder-wrap,
+.chess-wrap,
+.task-media-card {
+  background: linear-gradient(180deg, rgba(22, 33, 39, 0.98), rgba(16, 24, 29, 0.98));
+  border-color: rgba(167, 187, 182, 0.14);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.035),
+    0 16px 30px rgba(0, 0, 0, 0.12);
+}
+
+.view-tab {
+  border-color: rgba(169, 189, 183, 0.16);
+  background: linear-gradient(180deg, rgba(29, 41, 47, 0.9), rgba(18, 28, 33, 0.95));
+  color: #b9c7c5;
+  -webkit-text-fill-color: #b9c7c5;
+}
+
+#tabAnswerBtn.view-tab,
+#tabMapBtn.view-tab,
+#tabPrototypeBtn.view-tab {
+  background: linear-gradient(180deg, rgba(28, 40, 45, 0.92), rgba(18, 28, 33, 0.98));
+  color: #c4d0cd;
+  -webkit-text-fill-color: #c4d0cd;
+}
+
+#tabAnswerBtn.view-tab.is-active {
+  background: linear-gradient(180deg, rgba(52, 84, 85, 0.98), rgba(28, 49, 49, 0.98));
+  border-color: rgba(142, 187, 179, 0.28);
+  color: #f2f8f6;
+  -webkit-text-fill-color: #f2f8f6;
+}
+
+#tabMapBtn.view-tab.is-active {
+  background: linear-gradient(180deg, rgba(88, 72, 49, 0.98), rgba(48, 37, 27, 0.98));
+  border-color: rgba(214, 177, 123, 0.28);
+  color: #fff3e4;
+  -webkit-text-fill-color: #fff3e4;
+}
+
+#tabPrototypeBtn.view-tab.is-active {
+  background: linear-gradient(180deg, rgba(61, 77, 95, 0.98), rgba(31, 42, 54, 0.98));
+  border-color: rgba(156, 180, 208, 0.28);
+  color: #eef5ff;
+  -webkit-text-fill-color: #eef5ff;
+}
+
+.kicker,
+.task-kicker,
+.task-answer-label {
+  color: var(--accent);
+}
+
+.subtitle,
+.team-strip {
+  color: rgba(231, 239, 235, 0.84);
+}
+
+.btn.ghost,
+.match-btn.ghost,
+.city-poi-chip,
+.caesar-confirm,
+.scanner-confirm,
+.decoder-confirm,
+.chess-reset,
+.rotor-btn,
+.decoder-btn {
+  border-color: rgba(171, 191, 185, 0.14);
+  background: linear-gradient(180deg, rgba(35, 49, 55, 0.96), rgba(22, 34, 40, 0.98));
+  color: #edf4f0;
+}
+
+.btn.primary,
+.match-btn.primary {
+  border-color: rgba(214, 177, 123, 0.26);
+  background: linear-gradient(135deg, #e1bf8d 0%, #c98d56 100%);
+  color: #2f2116;
+  box-shadow: 0 12px 26px rgba(201, 141, 86, 0.2);
+}
+
+.team-select,
+.final-answer-input,
+.caesar-input,
+.scanner-input,
+.decoder-card-input {
+  border-color: rgba(169, 189, 183, 0.16);
+  background: rgba(12, 20, 24, 0.94);
+  color: #edf3ef;
+}
+
+.team-select:focus,
+.final-answer-input:focus,
+.caesar-input:focus,
+.scanner-input:focus,
+.decoder-card-input:focus {
+  border-color: rgba(214, 177, 123, 0.34);
+  box-shadow: 0 0 0 3px rgba(214, 177, 123, 0.11);
+}
+
+.map-scene,
+.leaflet-map,
+.case-map-viewport,
+.prototype-frame,
+.prototype-map-embed {
+  background: #111c21;
+  border-color: rgba(164, 184, 179, 0.14);
+}
+
+.case-map-frame {
+  background: linear-gradient(180deg, rgba(19, 29, 34, 0.98), rgba(14, 23, 28, 0.98));
+}
+
+.map-attrib {
+  background: rgba(11, 18, 22, 0.72);
+  border-color: rgba(163, 183, 178, 0.16);
+  color: rgba(234, 240, 244, 0.84);
+}
+
+.fallback-map-note {
+  background: rgba(16, 25, 29, 0.92);
+  border-color: rgba(170, 190, 184, 0.15);
+  color: #dce8e4;
+}
+
+.fallback-map-canvas {
+  background:
+    radial-gradient(90% 100% at 50% 0%, rgba(28, 42, 46, 0.95), rgba(17, 28, 31, 0.98)),
+    linear-gradient(180deg, #162126, #111a1f);
+}
+
+.fallback-point-label {
+  background: rgba(17, 27, 31, 0.96);
+  border-color: rgba(172, 191, 185, 0.16);
+  color: #edf4f0;
+}
+
+.leaflet-map .leaflet-control-zoom a {
+  background: rgba(18, 29, 35, 0.94);
+  color: #f2f7fa;
+}
+
+.leaflet-map .leaflet-control-zoom a:hover {
+  background: rgba(29, 44, 52, 0.98);
+}
+
+.leaflet-label {
+  background: rgba(14, 22, 26, 0.86);
+  border-color: rgba(156, 180, 208, 0.24);
+  color: #f4f8ff;
+}
+
+.task-option,
+.match-item,
+.match-btn.ghost {
+  background: linear-gradient(180deg, rgba(26, 38, 43, 0.98), rgba(17, 27, 31, 0.98));
+  color: #ebf3ef;
+}
+
+.task-option.is-selected {
+  border-color: rgba(214, 177, 123, 0.3);
+  background: linear-gradient(180deg, rgba(71, 53, 33, 0.96), rgba(32, 24, 18, 0.96));
+}
+
+.task-option.is-correct {
+  border-color: rgba(105, 192, 155, 0.28);
+  background: linear-gradient(180deg, rgba(29, 66, 58, 0.96), rgba(16, 34, 31, 0.96));
+}
+
+.task-option.is-wrong {
+  border-color: rgba(202, 112, 112, 0.28);
+  background: linear-gradient(180deg, rgba(72, 31, 31, 0.96), rgba(30, 16, 16, 0.96));
+}
+
+.task-media-image,
+.task-media-video,
+.hotspot-scene,
+.scanner-stage,
+.decoder-scene-card,
+.decoder-dial-card,
+.decoder-panel {
+  background: rgba(15, 24, 28, 0.96);
+}
+
+.slider-tile {
+  background: linear-gradient(180deg, rgba(38, 53, 56, 0.98), rgba(22, 33, 37, 0.98));
+}
+
+.slider-empty {
+  background: rgba(16, 25, 29, 0.84);
+}
+
+.city-poi-chip.is-visited,
+.match-item.is-linked.match-pair-0,
+.match-item.is-linked.match-pair-4,
+.match-item.is-linked.match-pair-6 {
+  background: linear-gradient(180deg, rgba(34, 61, 77, 0.96), rgba(17, 31, 40, 0.98));
+}
+
+.match-item.is-linked.match-pair-1,
+.match-item.is-linked.match-pair-5,
+.match-item.is-linked.match-pair-7 {
+  background: linear-gradient(180deg, rgba(78, 60, 36, 0.96), rgba(34, 24, 16, 0.98));
+}
+
+.match-item.is-linked.match-pair-2,
+.match-item.is-linked.match-pair-3 {
+  background: linear-gradient(180deg, rgba(61, 44, 82, 0.96), rgba(27, 20, 38, 0.98));
+}
+
+.decoder-clue-pill,
+.decoder-step,
+.decoder-card,
+.decoder-card-current,
+.decoder-card-entry,
+.decoder-offset-chip {
+  background: linear-gradient(180deg, rgba(24, 37, 42, 0.98), rgba(16, 26, 30, 0.98));
+}
+
+.decoder-offset-chip.is-active,
+.decoder-clue-pill.is-found {
+  border-color: rgba(214, 177, 123, 0.32);
+  box-shadow: 0 0 0 3px rgba(214, 177, 123, 0.1);
+}
+
+.rotor-stage {
+  background:
+    radial-gradient(circle at 50% 50%, rgba(71, 79, 76, 0.88), rgba(28, 36, 37, 0.9) 58%, rgba(67, 78, 75, 0.92) 59%, rgba(18, 25, 26, 0.95) 100%);
+}
+
+.task-result.ok {
+  color: #7bd6ac;
+}
+
+.task-result.bad {
+  color: #f49d9d;
+}
+
+.task-result.info {
+  color: #8fc2cb;
+}
+
+.task-answer {
+  background: linear-gradient(180deg, rgba(56, 47, 31, 0.9), rgba(25, 20, 14, 0.95));
+  border-color: rgba(214, 177, 123, 0.18);
+}
+
+.final {
+  background: linear-gradient(180deg, rgba(28, 39, 35, 0.96), rgba(15, 22, 19, 0.98));
+}
