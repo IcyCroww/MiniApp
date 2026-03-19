@@ -1,0 +1,324 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sequential Map Prototype</title>
+  <style>
+    :root {
+      --bg: #0d1a16;
+      --card: #f4f7ef;
+      --line: #cad8ca;
+      --text: #22352d;
+      --muted: #5d6f65;
+      --accent: #d97931;
+      --locked: #9aa7a0;
+      --open: #f08a3c;
+      --done: #249665;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: linear-gradient(180deg, #163129 0%, var(--bg) 100%);
+      color: var(--text);
+      padding: 14px;
+    }
+    .app {
+      max-width: 920px;
+      margin: 0 auto;
+      background: var(--card);
+      border-radius: 24px;
+      overflow: hidden;
+      border: 1px solid rgba(255,255,255,.2);
+    }
+    .head {
+      padding: 18px;
+      background: linear-gradient(135deg, #23493d, #1a342c);
+      color: #fff;
+    }
+    .head h1 { margin: 0 0 6px; font-size: 28px; }
+    .head p { margin: 0; color: rgba(255,255,255,.85); }
+    .content { padding: 14px; display: grid; gap: 14px; }
+    .map-wrap {
+      position: relative;
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      overflow: hidden;
+      background: #dcebd4;
+    }
+    .map-wrap img { width: 100%; display: block; }
+    .point {
+      position: absolute;
+      transform: translate(-50%, -50%);
+      width: 26px;
+      height: 26px;
+      border-radius: 999px;
+      border: 3px solid #fff;
+      box-shadow: 0 8px 16px rgba(0,0,0,.2);
+      cursor: pointer;
+    }
+    .point.locked { background: var(--locked); cursor: not-allowed; }
+    .point.open { background: var(--open); }
+    .point.done { background: var(--done); }
+    .point.active { width: 32px; height: 32px; }
+    .legend {
+      display: flex; gap: 10px; flex-wrap: wrap; color: var(--muted); font-size: 13px;
+    }
+    .legend span { display: inline-flex; align-items: center; gap: 6px; }
+    .dot { width: 14px; height: 14px; border-radius: 999px; display: inline-block; }
+    .panel {
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: #fbfdf8;
+      padding: 14px;
+    }
+    .step-list {
+      display: grid; gap: 8px;
+    }
+    .step-item {
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 10px 12px;
+      background: #fff;
+      font-size: 14px;
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+    }
+    .status { font-weight: 700; }
+    .status.locked { color: #7e8883; }
+    .status.open { color: #b55d1c; }
+    .status.done { color: #1f8058; }
+    .kicker { margin: 0 0 8px; font-size: 12px; text-transform: uppercase; color: #5d7567; font-weight: 700; }
+    h2 { margin: 0 0 8px; }
+    .question { margin: 0 0 12px; color: #465a50; line-height: 1.45; }
+    .answers { display: grid; gap: 8px; }
+    .answers button {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: #fff;
+      color: var(--text);
+      text-align: left;
+      padding: 10px 12px;
+      font-size: 14px;
+      cursor: pointer;
+    }
+    .answers button:hover { border-color: #d59b6f; background: #fff5eb; }
+    .result { min-height: 20px; margin-top: 10px; font-weight: 700; }
+    .result.ok { color: #1f8a5d; }
+    .result.bad { color: #c04d4d; }
+    .final {
+      border: 1px dashed #b7c8b8;
+      border-radius: 14px;
+      padding: 12px;
+      background: #f6fbf5;
+      color: #406052;
+      line-height: 1.45;
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="head">
+      <h1>Новая карта с 5 точками</h1>
+      <p>Точки открываются строго по порядку: сначала рынок, потом остальные.</p>
+    </div>
+    <div class="content">
+      <div class="map-wrap" id="mapWrap">
+        <img src="./assets/maps/sequential-city-map.svg" alt="Diplomatic City" />
+      </div>
+
+      <div class="legend">
+        <span><i class="dot" style="background:#9aa7a0"></i> Заблокировано</span>
+        <span><i class="dot" style="background:#f08a3c"></i> Доступно</span>
+        <span><i class="dot" style="background:#249665"></i> Пройдено</span>
+      </div>
+
+      <div class="panel">
+        <p class="kicker">Маршрут</p>
+        <div class="step-list" id="stepList"></div>
+      </div>
+
+      <div class="panel" id="taskPanel">
+        <p class="kicker">Загадка точки</p>
+        <h2 id="taskTitle">Выберите доступную точку</h2>
+        <p class="question" id="taskQuestion">Сейчас активна только первая точка на рынке.</p>
+        <div class="answers" id="taskAnswers"></div>
+        <div class="result" id="taskResult"></div>
+      </div>
+
+      <div class="final" id="finalBlock" hidden>
+        Все 5 точек пройдены. На такой же логике можно сразу подвязать открытие следующей локации или новой главы квеста.
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const points = [
+      {
+        id: 'market',
+        title: 'Рынок',
+        x: 21.5,
+        y: 30,
+        question: 'Что открывается первым по твоему сценарию?',
+        answers: ['Все точки сразу', 'Только рынок', 'Только мэрия'],
+        correct: 1,
+        success: 'Верно. После рынка открывается следующая точка.'
+      },
+      {
+        id: 'cityhall',
+        title: 'Мэрия',
+        x: 50,
+        y: 20,
+        question: 'Как должны открываться точки дальше?',
+        answers: ['Случайно', 'Последовательно', 'Сразу по 3'],
+        correct: 1,
+        success: 'Да. Разблокировка идёт строго по порядку.'
+      },
+      {
+        id: 'coffee',
+        title: 'Кофейня',
+        x: 77.8,
+        y: 29.5,
+        question: 'Что должно происходить после решения загадки?',
+        answers: ['Открывается следующая точка', 'Все снова блокируются', 'Карта закрывается'],
+        correct: 0,
+        success: 'Точно. Следующая точка становится доступной.'
+      },
+      {
+        id: 'archive',
+        title: 'Архив',
+        x: 78,
+        y: 71.5,
+        question: 'Какой статус у пройденной точки?',
+        answers: ['Пройдена', 'Скрыта', 'Неизвестна'],
+        correct: 0,
+        success: 'Да. Пройденную точку лучше отдельно подсвечивать.'
+      },
+      {
+        id: 'pavilion',
+        title: 'Павильон',
+        x: 23,
+        y: 74,
+        question: 'Что логично делать после 5-й точки?',
+        answers: ['Открыть финал/новую главу', 'Вернуть на первую точку', 'Скрыть прогресс'],
+        correct: 0,
+        success: 'Готово. После 5-й точки можно открывать финал.'
+      }
+    ];
+
+    const state = {
+      solved: new Set(),
+      activeId: points[0].id
+    };
+
+    const mapWrap = document.getElementById('mapWrap');
+    const stepList = document.getElementById('stepList');
+    const taskTitle = document.getElementById('taskTitle');
+    const taskQuestion = document.getElementById('taskQuestion');
+    const taskAnswers = document.getElementById('taskAnswers');
+    const taskResult = document.getElementById('taskResult');
+    const finalBlock = document.getElementById('finalBlock');
+
+    function getUnlockedIndex() {
+      return Math.min(state.solved.size, points.length - 1);
+    }
+
+    function isUnlocked(index) {
+      return index <= getUnlockedIndex();
+    }
+
+    function isCompleted(index) {
+      return state.solved.has(points[index].id);
+    }
+
+    function renderSteps() {
+      stepList.innerHTML = '';
+      points.forEach((point, index) => {
+        const row = document.createElement('div');
+        row.className = 'step-item';
+        const status = isCompleted(index)
+          ? 'Пройдена'
+          : isUnlocked(index)
+            ? 'Доступна'
+            : 'Закрыта';
+        const statusClass = isCompleted(index)
+          ? 'done'
+          : isUnlocked(index)
+            ? 'open'
+            : 'locked';
+        row.innerHTML = `<span>${index + 1}. ${point.title}</span><span class="status ${statusClass}">${status}</span>`;
+        stepList.appendChild(row);
+      });
+    }
+
+    function renderPoints() {
+      mapWrap.querySelectorAll('.point').forEach((node) => node.remove());
+      points.forEach((point, index) => {
+        const button = document.createElement('button');
+        button.type = 'button';
+        const unlocked = isUnlocked(index);
+        const completed = isCompleted(index);
+        button.className = `point ${completed ? 'done' : unlocked ? 'open' : 'locked'} ${state.activeId === point.id ? 'active' : ''}`;
+        button.style.left = point.x + '%';
+        button.style.top = point.y + '%';
+        button.title = point.title;
+        button.addEventListener('click', () => {
+          if (!unlocked) return;
+          state.activeId = point.id;
+          taskResult.textContent = '';
+          taskResult.className = 'result';
+          render();
+        });
+        mapWrap.appendChild(button);
+      });
+    }
+
+    function renderTask() {
+      const point = points.find((item) => item.id === state.activeId) || points[0];
+      const index = points.findIndex((item) => item.id === point.id);
+      const unlocked = isUnlocked(index);
+      taskTitle.textContent = point.title;
+      taskQuestion.textContent = unlocked ? point.question : 'Эта точка пока закрыта.';
+      taskAnswers.innerHTML = '';
+
+      if (!unlocked) return;
+      if (state.solved.has(point.id)) {
+        taskResult.textContent = 'Эта точка уже пройдена.';
+        taskResult.className = 'result ok';
+      }
+
+      point.answers.forEach((answer, answerIndex) => {
+        const btn = document.createElement('button');
+        btn.textContent = answer;
+        btn.disabled = state.solved.has(point.id);
+        btn.addEventListener('click', () => {
+          if (answerIndex === point.correct) {
+            state.solved.add(point.id);
+            const nextIndex = Math.min(index + 1, points.length - 1);
+            state.activeId = points[nextIndex].id;
+            taskResult.textContent = point.success;
+            taskResult.className = 'result ok';
+            render();
+          } else {
+            taskResult.textContent = 'Неверно. Попробуй ещё раз.';
+            taskResult.className = 'result bad';
+          }
+        });
+        taskAnswers.appendChild(btn);
+      });
+
+      finalBlock.hidden = state.solved.size !== points.length;
+    }
+
+    function render() {
+      renderSteps();
+      renderPoints();
+      renderTask();
+    }
+
+    render();
+  </script>
+</body>
+</html>
