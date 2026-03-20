@@ -4,13 +4,16 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Карта тестовая</title>
-    <script>
+  <script>
     (() => {
       try {
+        const isEmbed = new URLSearchParams(window.location.search).get('embed') === '1';
         const storedTheme = window.localStorage.getItem('miniapp.theme');
         document.documentElement.dataset.theme = storedTheme === 'dark' || storedTheme === 'light' ? storedTheme : 'light';
+        document.documentElement.dataset.embed = isEmbed ? 'true' : 'false';
       } catch (_) {
         document.documentElement.dataset.theme = 'light';
+        document.documentElement.dataset.embed = 'false';
       }
     })();
   </script>
@@ -1071,6 +1074,56 @@
     html[data-theme] .answers button,
     html[data-theme] .drawer-media {
       box-shadow: none;
+    }
+
+    html[data-embed="true"] body {
+      padding: 0;
+      background: transparent;
+    }
+
+    html[data-embed="true"] .app {
+      max-width: none;
+      margin: 0;
+      border: 0;
+      border-radius: 0;
+      background: transparent;
+      box-shadow: none;
+    }
+
+    html[data-embed="true"] .head,
+    html[data-embed="true"] .content > .panel:first-child {
+      display: none;
+    }
+
+    html[data-embed="true"] .content {
+      padding: 0;
+      gap: 10px;
+    }
+
+    html[data-embed="true"] .legend {
+      margin: 0 0 2px;
+    }
+
+    html[data-embed="true"] .panel {
+      padding: 0;
+      border: 0;
+      background: transparent;
+      box-shadow: none;
+    }
+
+    html[data-embed="true"] .workspace {
+      min-height: 600px;
+    }
+
+    html[data-embed="true"] .step-list {
+      margin-top: 0;
+    }
+
+    @media (max-width: 760px) {
+      html[data-embed="true"] .workspace,
+      html[data-embed="true"] .map-wrap {
+        min-height: 540px;
+      }
     }
   </style>
 

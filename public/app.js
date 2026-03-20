@@ -876,6 +876,7 @@ const themeColorMetaNode = document.querySelector('meta[name="theme-color"]');
 
 const mapState = {
   map: null,
+  tileController: null,
   markers: new Map(),
   visited: new Set(),
   solved: new Set(),
@@ -993,6 +994,10 @@ function getStoredTheme() {
   return normalizeThemeName(safeStorageGet(STORAGE_KEYS.theme));
 }
 
+function getActiveTheme() {
+  return normalizeThemeName(rootNode?.dataset.theme || document.body?.getAttribute('data-theme') || getStoredTheme());
+}
+
 function syncThemeButton(themeName = THEME_MODES.light) {
   if (!themeToggleBtn) {
     return;
@@ -1042,6 +1047,7 @@ function applyTheme(themeName = THEME_MODES.light, persist = true) {
 
   syncThemeButton(normalizedTheme);
   syncThemeMeta(normalizedTheme);
+  mapState.tileController?.refresh?.(normalizedTheme);
   broadcastTheme(normalizedTheme);
 }
 
@@ -4314,10 +4320,15 @@ function resetMapView() {
   closeCityMode();
 }
 
-function addBaseTileLayerWithFallback(map) {
-  const providers = [
+function getBaseTileProviders(themeName = THEME_MODES.light) {
+  const normalizedTheme = normalizeThemeName(themeName);
+  const primaryUrl = normalizedTheme === THEME_MODES.dark
+    ? 'https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png'
+    : 'https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png';
+
+  return [
     {
-      url: 'https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png',
+      url: primaryUrl,
       options: { subdomains: 'abcd', maxZoom: 20 }
     },
     {
@@ -4329,7 +4340,10 @@ function addBaseTileLayerWithFallback(map) {
       options: { subdomains: 'abc', maxZoom: 19, detectRetina: true }
     }
   ];
+}
 
+function addBaseTileLayerWithFallback(map, themeName = THEME_MODES.light) {
+  let providers = getBaseTileProviders(themeName);
   let providerIndex = -1;
   let activeLayer = null;
   let errorCount = 0;
@@ -4387,6 +4401,14 @@ function addBaseTileLayerWithFallback(map) {
   };
 
   switchProvider();
+
+  return {
+    refresh(nextTheme = THEME_MODES.light) {
+      providers = getBaseTileProviders(nextTheme);
+      providerIndex = -1;
+      switchProvider();
+    }
+  };
 }
 
 function initMap() {
@@ -4408,7 +4430,7 @@ function initMap() {
 
   window.L.control.zoom({ position: 'topright' }).addTo(mapState.map);
 
-  addBaseTileLayerWithFallback(mapState.map);
+  mapState.tileController = addBaseTileLayerWithFallback(mapState.map, getActiveTheme());
 
   mapState.map.setView([42.5, 12.5], 5);
 
