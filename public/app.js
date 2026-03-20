@@ -923,8 +923,8 @@ const THEME_MODES = {
 };
 
 const THEME_META_COLORS = {
-  light: '#e1eee6',
-  dark: '#225876'
+  light: '#f3f6fa',
+  dark: '#252b40'
 };
 
 const fallbackPointPositions = {
@@ -1015,7 +1015,7 @@ function syncThemeMeta(themeName = THEME_MODES.light) {
 
   try {
     tg.setHeaderColor(THEME_META_COLORS[themeName] || THEME_META_COLORS.light);
-    tg.setBackgroundColor(themeName === THEME_MODES.dark ? '#111315' : '#f8faf5');
+    tg.setBackgroundColor(themeName === THEME_MODES.dark ? '#12151b' : '#f5f7fa');
   } catch (_) {
     // Ignore unsupported clients.
   }
