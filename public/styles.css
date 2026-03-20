@@ -4086,3 +4086,48 @@ html[data-theme] .prototype-map-embed {
     min-height: 720px;
   }
 }
+
+/* Outline cleanup */
+html[data-theme] .card-answer,
+html[data-theme] .card-prototype {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+html[data-theme] .card-answer .card-head,
+html[data-theme] .card-prototype .card-head {
+  margin: 0 0 12px;
+  padding: 0 4px;
+}
+
+html[data-theme] .final-answer-panel {
+  padding: 0 4px 4px;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+html[data-theme] .case-map-frame {
+  padding: 4px;
+  box-shadow: none;
+}
+
+html[data-theme] .case-map-actions {
+  margin-top: 6px;
+}
+
+html[data-theme] .case-map-actions .btn {
+  box-shadow: none;
+}
+
+html[data-theme="light"] .case-map-frame {
+  border-color: rgba(215, 220, 235, 0.82);
+  background: rgba(255, 255, 255, 0.72);
+}
+
+html[data-theme="dark"] .case-map-frame {
+  border-color: rgba(63, 75, 90, 0.7);
+  background: linear-gradient(180deg, rgba(24, 29, 36, 0.98), rgba(20, 24, 30, 0.99));
+}
