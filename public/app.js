@@ -792,7 +792,8 @@ const defaultTaskState = {
 const STORAGE_KEYS = {
   teamName: 'miniapp.teamName',
   sessionId: 'miniapp.sessionId',
-  deviceId: 'miniapp.deviceId'
+  deviceId: 'miniapp.deviceId',
+  theme: 'miniapp.theme'
 };
 
 const TEAM_NAME_ALIASES = {
@@ -830,6 +831,7 @@ const state = {
 };
 
 const cardMap = document.querySelector('.card-map');
+const rootNode = document.documentElement;
 const viewMapNode = document.getElementById('view-map');
 const viewAnswerNode = document.getElementById('view-answer');
 const viewPrototypeNode = document.getElementById('view-prototype');
@@ -844,6 +846,7 @@ const fallbackMapNode = document.getElementById('fallbackMap');
 const fallbackMapNoteNode = document.getElementById('fallbackMapNote');
 const fallbackMapPointsNode = document.getElementById('fallbackMapPoints');
 const teamStripNode = document.getElementById('teamStrip');
+const themeToggleBtn = document.getElementById('themeToggleBtn');
 const teamGateNode = document.getElementById('teamGate');
 const teamSelectNode = document.getElementById('teamSelect');
 const teamConfirmBtn = document.getElementById('teamConfirmBtn');
@@ -869,6 +872,7 @@ const caseMapStatusNode = document.getElementById('caseMapStatus');
 const caseMapViewportNode = document.getElementById('caseMapViewport');
 const caseMapResetViewBtn = document.getElementById('caseMapResetViewBtn');
 const caseMapChangeTeamBtn = document.getElementById('caseMapChangeTeamBtn');
+const themeColorMetaNode = document.querySelector('meta[name="theme-color"]');
 
 const mapState = {
   map: null,
@@ -911,6 +915,16 @@ const caseMapSourceState = {
   url: '',
   width: 0,
   height: 0
+};
+
+const THEME_MODES = {
+  light: 'light',
+  dark: 'dark'
+};
+
+const THEME_META_COLORS = {
+  light: '#e1eee6',
+  dark: '#225876'
 };
 
 const fallbackPointPositions = {
@@ -969,6 +983,71 @@ function safeStorageSet(key, value) {
   } catch (_) {
     // No-op.
   }
+}
+
+function normalizeThemeName(raw = '') {
+  return raw === THEME_MODES.dark ? THEME_MODES.dark : THEME_MODES.light;
+}
+
+function getStoredTheme() {
+  return normalizeThemeName(safeStorageGet(STORAGE_KEYS.theme));
+}
+
+function syncThemeButton(themeName = THEME_MODES.light) {
+  if (!themeToggleBtn) {
+    return;
+  }
+
+  const isDark = themeName === THEME_MODES.dark;
+  themeToggleBtn.textContent = `Тема: ${isDark ? 'Тёмная' : 'Светлая'}`;
+  themeToggleBtn.setAttribute('aria-pressed', String(isDark));
+  themeToggleBtn.setAttribute('aria-label', isDark ? 'Переключить на светлую тему' : 'Переключить на тёмную тему');
+}
+
+function syncThemeMeta(themeName = THEME_MODES.light) {
+  if (themeColorMetaNode) {
+    themeColorMetaNode.setAttribute('content', THEME_META_COLORS[themeName] || THEME_META_COLORS.light);
+  }
+
+  if (!canUseTelegramThemeColors()) {
+    return;
+  }
+
+  try {
+    tg.setHeaderColor(THEME_META_COLORS[themeName] || THEME_META_COLORS.light);
+    tg.setBackgroundColor(themeName === THEME_MODES.dark ? '#111315' : '#f8faf5');
+  } catch (_) {
+    // Ignore unsupported clients.
+  }
+}
+
+function broadcastTheme(themeName = THEME_MODES.light) {
+  document.querySelectorAll('.prototype-map-embed').forEach((frame) => {
+    try {
+      frame.contentWindow?.postMessage({ type: 'miniapp-theme', theme: themeName }, window.location.origin);
+    } catch (_) {
+      // Ignore cross-window sync issues.
+    }
+  });
+}
+
+function applyTheme(themeName = THEME_MODES.light, persist = true) {
+  const normalizedTheme = normalizeThemeName(themeName);
+  rootNode.dataset.theme = normalizedTheme;
+  document.body?.setAttribute('data-theme', normalizedTheme);
+
+  if (persist) {
+    safeStorageSet(STORAGE_KEYS.theme, normalizedTheme);
+  }
+
+  syncThemeButton(normalizedTheme);
+  syncThemeMeta(normalizedTheme);
+  broadcastTheme(normalizedTheme);
+}
+
+function toggleTheme() {
+  const currentTheme = normalizeThemeName(rootNode.dataset.theme || getStoredTheme());
+  applyTheme(currentTheme === THEME_MODES.dark ? THEME_MODES.light : THEME_MODES.dark);
 }
 
 function normalizeClientTeamName(raw = '') {
@@ -4395,6 +4474,11 @@ function bindEvents() {
     triggerHaptic('light');
   });
 
+  themeToggleBtn?.addEventListener('click', () => {
+    toggleTheme();
+    triggerHaptic('light');
+  });
+
   teamConfirmBtn.addEventListener('click', async () => {
     const selectedTeam = String(teamSelectNode.value || '').trim();
     if (!selectedTeam) {
@@ -4460,9 +4544,18 @@ function bindEvents() {
       caseMapState.map.invalidateSize();
     }
   });
+
+  window.addEventListener('storage', (event) => {
+    if (event.key !== STORAGE_KEYS.theme) {
+      return;
+    }
+
+    applyTheme(normalizeThemeName(event.newValue || THEME_MODES.light), false);
+  });
 }
 
 async function init() {
+  applyTheme(getStoredTheme(), false);
   setActiveView('answer');
   initMap();
   bindEvents();
