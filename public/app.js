@@ -856,6 +856,7 @@ const taskKickerNode = document.getElementById('taskKicker');
 const taskTitleNode = document.getElementById('taskTitle');
 const taskLoreNode = document.getElementById('taskLore');
 const taskQuestionNode = document.getElementById('taskQuestion');
+const taskTextSkipBtn = document.getElementById('taskTextSkipBtn');
 const taskOptionsNode = document.getElementById('taskOptions');
 const taskResultNode = document.getElementById('taskResult');
 const taskAnswerNode = document.getElementById('taskAnswer');
@@ -951,6 +952,8 @@ const fallbackPointPositions = {
 
 const pointsById = new Map(points.map((point) => [point.id, point]));
 const totalQuestCount = points.filter((point) => point.task.kind !== 'empty').length;
+const activeTextAnimations = new Map();
+let textAnimationFrameId = 0;
 
 function triggerHaptic(type = 'light') {
   if (!canUseTelegramHaptics()) {
@@ -996,6 +999,149 @@ function getStoredTheme() {
 
 function getActiveTheme() {
   return normalizeThemeName(rootNode?.dataset.theme || document.body?.getAttribute('data-theme') || getStoredTheme());
+}
+
+function prefersReducedMotion() {
+  try {
+    return Boolean(window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches);
+  } catch (_) {
+    return false;
+  }
+}
+
+function updateTaskTextSkipButton() {
+  if (!taskTextSkipBtn) {
+    return;
+  }
+
+  taskTextSkipBtn.hidden = activeTextAnimations.size === 0;
+}
+
+function clearTextAnimationFrame() {
+  if (!textAnimationFrameId) {
+    return;
+  }
+
+  window.cancelAnimationFrame(textAnimationFrameId);
+  textAnimationFrameId = 0;
+}
+
+function clearTextAnimation(node, revealFullText = false) {
+  if (!node) {
+    return;
+  }
+
+  const animation = activeTextAnimations.get(node);
+  if (!animation) {
+    return;
+  }
+
+  if (revealFullText) {
+    node.textContent = animation.fullText;
+  }
+
+  activeTextAnimations.delete(node);
+
+  if (activeTextAnimations.size === 0) {
+    clearTextAnimationFrame();
+  }
+
+  updateTaskTextSkipButton();
+}
+
+function flushAnimatedTaskText() {
+  if (!activeTextAnimations.size) {
+    return;
+  }
+
+  [...activeTextAnimations.keys()].forEach((node) => {
+    clearTextAnimation(node, true);
+  });
+}
+
+function stepTextAnimations(timestamp = performance.now()) {
+  let hasRunningAnimations = false;
+
+  activeTextAnimations.forEach((animation, node) => {
+    if (!node?.isConnected) {
+      activeTextAnimations.delete(node);
+      return;
+    }
+
+    const elapsed = Math.max(0, timestamp - animation.startedAt);
+    const nextChunk = Math.max(animation.currentLength, Math.floor(elapsed / animation.msPerChar));
+
+    if (nextChunk >= animation.fullText.length) {
+      node.textContent = animation.fullText;
+      activeTextAnimations.delete(node);
+      return;
+    }
+
+    animation.currentLength = nextChunk;
+    node.textContent = animation.fullText.slice(0, animation.currentLength);
+    hasRunningAnimations = true;
+  });
+
+  updateTaskTextSkipButton();
+
+  if (!hasRunningAnimations || activeTextAnimations.size === 0) {
+    clearTextAnimationFrame();
+    return;
+  }
+
+  textAnimationFrameId = window.requestAnimationFrame(stepTextAnimations);
+}
+
+function animateTextNode(node, text = '', options = {}) {
+  if (!node) {
+    return;
+  }
+
+  const {
+    hideWhenEmpty = false,
+    msPerChar = 18,
+    instant = false
+  } = options;
+
+  clearTextAnimation(node, false);
+
+  const preparedText = String(text || '');
+
+  if (hideWhenEmpty) {
+    node.hidden = !preparedText;
+  }
+
+  if (!preparedText) {
+    node.textContent = '';
+    updateTaskTextSkipButton();
+    return;
+  }
+
+  const shouldAnimate = !instant && !prefersReducedMotion() && preparedText.length > 8;
+
+  if (!shouldAnimate) {
+    node.textContent = preparedText;
+    updateTaskTextSkipButton();
+    return;
+  }
+
+  node.textContent = '';
+  activeTextAnimations.set(node, {
+    fullText: preparedText,
+    currentLength: 0,
+    startedAt: performance.now(),
+    msPerChar
+  });
+
+  updateTaskTextSkipButton();
+
+  if (!textAnimationFrameId) {
+    textAnimationFrameId = window.requestAnimationFrame(stepTextAnimations);
+  }
+}
+
+function setTaskQuestion(text = '', options = {}) {
+  animateTextNode(taskQuestionNode, text, { msPerChar: 16, ...options });
 }
 
 function syncThemeButton(themeName = THEME_MODES.light) {
@@ -1618,7 +1764,7 @@ async function initTeamState() {
 }
 
 function setTaskResult(text, tone = '') {
-  taskResultNode.textContent = text;
+  animateTextNode(taskResultNode, text, { msPerChar: 14, instant: !tone });
   taskResultNode.classList.remove('ok', 'bad', 'info');
 
   if (!text || !tone) {
@@ -1629,20 +1775,19 @@ function setTaskResult(text, tone = '') {
 }
 
 function setTaskLore(text = '') {
-  taskLoreNode.textContent = text;
-  taskLoreNode.hidden = !text;
+  animateTextNode(taskLoreNode, text, { hideWhenEmpty: true, msPerChar: 17 });
 }
 
 function setTaskAnswer(text = '', label = 'Ключ') {
   if (!text) {
     taskAnswerLabelNode.textContent = 'Ключ';
-    taskAnswerTextNode.textContent = '';
+    animateTextNode(taskAnswerTextNode, '', { instant: true });
     taskAnswerNode.hidden = true;
     return;
   }
 
   taskAnswerLabelNode.textContent = label;
-  taskAnswerTextNode.textContent = text;
+  animateTextNode(taskAnswerTextNode, text, { msPerChar: 15 });
   taskAnswerNode.hidden = false;
 }
 
@@ -1783,7 +1928,7 @@ function setTaskPlaceholder() {
   taskKickerNode.textContent = defaultTaskState.kicker;
   taskTitleNode.textContent = defaultTaskState.title;
   setTaskLore(defaultTaskState.lore);
-  taskQuestionNode.textContent = defaultTaskState.question;
+  setTaskQuestion(defaultTaskState.question);
   taskOptionsNode.innerHTML = '';
   setTaskResult('');
   setTaskAnswer('');
@@ -4106,7 +4251,7 @@ function renderTask(point) {
   taskKickerNode.textContent = point.task.kicker;
   taskTitleNode.textContent = point.task.title || `${point.title}: загадка`;
   setTaskLore(point.task.lore || '');
-  taskQuestionNode.textContent = point.task.question || '';
+  setTaskQuestion(point.task.question || '');
   taskOptionsNode.innerHTML = '';
   setTaskResult('');
   setTaskAnswer('');
@@ -4547,6 +4692,11 @@ function bindEvents() {
 
   closeTaskBtn.addEventListener('click', () => {
     closeCityMode();
+    triggerHaptic('light');
+  });
+
+  taskTextSkipBtn?.addEventListener('click', () => {
+    flushAnimatedTaskText();
     triggerHaptic('light');
   });
 

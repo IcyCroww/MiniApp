@@ -660,6 +660,34 @@ body {
   color: #475c51;
 }
 
+.task-text-controls {
+  display: flex;
+  justify-content: flex-end;
+  margin: -2px 0 10px;
+  min-height: 32px;
+}
+
+.task-text-skip {
+  border: 1px solid #cad7d2;
+  border-radius: 999px;
+  background: #f7fbf8;
+  color: #38534b;
+  padding: 6px 10px;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+  transition:
+    transform 0.16s ease,
+    border-color 0.16s ease,
+    background-color 0.16s ease,
+    color 0.16s ease;
+}
+
+.task-text-skip:hover {
+  transform: translateY(-1px);
+}
+
 .task-options {
   display: grid;
   grid-template-columns: 1fr;
@@ -4130,4 +4158,21 @@ html[data-theme="light"] .case-map-frame {
 html[data-theme="dark"] .case-map-frame {
   border-color: rgba(63, 75, 90, 0.7);
   background: linear-gradient(180deg, rgba(24, 29, 36, 0.98), rgba(20, 24, 30, 0.99));
+}
+
+html[data-theme] .task-text-skip {
+  background: var(--theme-button-bg);
+  border-color: var(--theme-button-border);
+  color: var(--theme-button-text);
+  box-shadow: none;
+}
+
+html[data-theme="light"] .task-text-skip:hover {
+  border-color: rgba(141, 152, 232, 0.28);
+  background: linear-gradient(180deg, #ffffff 0%, #f8f9fc 100%);
+}
+
+html[data-theme="dark"] .task-text-skip:hover {
+  border-color: rgba(146, 163, 255, 0.42);
+  background: linear-gradient(180deg, rgba(35, 40, 50, 0.98) 0%, rgba(28, 33, 41, 0.98) 100%);
 }
