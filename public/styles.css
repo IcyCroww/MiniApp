@@ -239,6 +239,10 @@ body {
   transition: border-color 0.28s ease;
 }
 
+.map-scene.is-image-mode {
+  min-height: clamp(248px, 42vh, 320px);
+}
+
 .leaflet-map {
   width: 100%;
   height: clamp(248px, 42vh, 320px);
@@ -2277,6 +2281,10 @@ body {
 
   .leaflet-map {
     height: clamp(500px, 68vh, 760px);
+  }
+
+  .map-scene.is-image-mode {
+    min-height: clamp(500px, 68vh, 760px);
   }
 
   .card-map.has-task .leaflet-map {

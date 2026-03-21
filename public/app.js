@@ -903,6 +903,7 @@ const answerHeadingNode = document.getElementById('answerHeading');
 const prototypeHeadingNode = document.getElementById('prototypeHeading');
 const completionNode = document.getElementById('completionBadge');
 const worldMapNode = document.getElementById('worldMap');
+const mapSceneNode = document.querySelector('.map-scene');
 const resetMapBtn = document.getElementById('resetMapBtn');
 const changeTeamBtn = document.getElementById('changeTeamBtn');
 const mapAttribNode = document.querySelector('.map-attrib');
@@ -1450,6 +1451,7 @@ function applyScenarioRouteConfig(scenarioData = null) {
   if (!routeMap || !Array.isArray(routeMap.points) || routeMap.points.length === 0) {
     scenarioState.routeMapMode = 'leaflet';
     scenarioState.routeMapImageSrc = './assets/maps/italy-schematic.svg';
+    mapSceneNode?.classList.remove('is-image-mode');
     setActivePoints(DEFAULT_POINTS, DEFAULT_FALLBACK_POINT_POSITIONS);
     setFallbackMapImage('./assets/maps/italy-schematic.svg');
     return;
@@ -1469,6 +1471,7 @@ function applyScenarioRouteConfig(scenarioData = null) {
 
   scenarioState.routeMapMode = String(routeMap.mode || 'image').trim().toLowerCase() || 'image';
   scenarioState.routeMapImageSrc = String(routeMap.imageSrc || './assets/maps/italy-schematic.svg').trim() || './assets/maps/italy-schematic.svg';
+  mapSceneNode?.classList.toggle('is-image-mode', scenarioState.routeMapMode === 'image');
   setActivePoints(nextPoints, nextFallbackPositions);
   setFallbackMapImage(scenarioState.routeMapImageSrc);
 }
