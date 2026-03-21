@@ -970,7 +970,8 @@ const mapState = {
   fallbackVisible: false,
   imageWidth: 0,
   imageHeight: 0,
-  imageBaseZoom: 0
+  imageBaseZoom: 0,
+  imageCityPointId: null
 };
 
 const caseMapState = {
@@ -1465,6 +1466,7 @@ function destroyWorldMap() {
   mapState.imageWidth = 0;
   mapState.imageHeight = 0;
   mapState.imageBaseZoom = 0;
+  mapState.imageCityPointId = null;
 }
 
 function getImageMapLatLngFromPosition(position) {
@@ -4754,11 +4756,22 @@ function renderCityImageTask(point) {
   title.textContent = config.title || `Карта ${point.title}`;
   wrap.appendChild(title);
 
+  const isOpenedInMainMap = scenarioState.routeMapMode === 'image'
+    && mapState.imageCityPointId === point.id
+    && Boolean(config.src);
+
   if (config.note) {
     const note = document.createElement('p');
     note.className = 'city-image-note';
-    note.textContent = config.note;
+    note.textContent = isOpenedInMainMap
+      ? 'Карта города открыта слева. Здесь останется только логика и загадки по этой локации.'
+      : config.note;
     wrap.appendChild(note);
+  }
+
+  if (isOpenedInMainMap) {
+    taskOptionsNode.appendChild(wrap);
+    return;
   }
 
   if (config.src) {
@@ -4947,9 +4960,13 @@ function focusPoint(point) {
 
   const hasCityMap = Boolean(point.task.cityMap);
   const canUseLeafletGeoMap = Boolean(mapState.map) && !mapState.fallbackVisible && scenarioState.routeMapMode !== 'image';
+  const cityImageMap = getPointInlineCityImageMap(point);
+  const canUseRouteImageCityMap = scenarioState.routeMapMode === 'image' && Boolean(cityImageMap?.src);
 
   if (hasCityMap && canUseLeafletGeoMap) {
     activateCityOverlay(point);
+  } else if (canUseRouteImageCityMap) {
+    initImageRouteMap(point);
   } else if (mapState.map) {
     if (scenarioState.routeMapMode === 'image') {
       const imageLatLng = getPointImageMapLatLng(point.id);
@@ -4983,11 +5000,18 @@ function focusPoint(point) {
   refreshMarkers();
   renderTask(point);
   setCityMode(true);
-  void postTeamEvent('travel', point.id, { source: hasCityMap && canUseLeafletGeoMap ? 'city-entry' : 'point' });
+  void postTeamEvent('travel', point.id, {
+    source: hasCityMap && canUseLeafletGeoMap
+      ? 'city-entry'
+      : (canUseRouteImageCityMap ? 'image-city-entry' : 'point')
+  });
 }
 
 function closeCityMode() {
   destroyCityTaskMap();
+  if (scenarioState.routeMapMode === 'image' && mapState.imageCityPointId) {
+    initImageRouteMap();
+  }
   state.selectedPointId = null;
   refreshMarkers();
   setCityMode(false);
@@ -5006,8 +5030,17 @@ function resetMapView() {
     return;
   }
 
+  const wasImageCityMap = scenarioState.routeMapMode === 'image' && Boolean(mapState.imageCityPointId);
   destroyCityTaskMap();
   state.selectedPointId = null;
+
+  if (wasImageCityMap) {
+    setCityMode(false);
+    setTaskPlaceholder();
+    initImageRouteMap();
+    return;
+  }
+
   refreshMarkers();
 
   if (!mapState.map) {
@@ -5030,7 +5063,8 @@ function resetMapView() {
     });
   }
 
-  closeCityMode();
+  setCityMode(false);
+  setTaskPlaceholder();
 }
 
 function getBaseTileProviders(themeName = THEME_MODES.light) {
@@ -5128,7 +5162,7 @@ function addBaseTileLayerWithFallback(map, themeName = THEME_MODES.light) {
   };
 }
 
-function buildRouteImageMap(imageUrl, width, height) {
+function buildRouteImageMap(imageUrl, width, height, options = {}) {
   worldMapNode && (worldMapNode.hidden = false);
   hideFallbackMap();
   mapAttribNode && (mapAttribNode.hidden = true);
@@ -5170,32 +5204,35 @@ function buildRouteImageMap(imageUrl, width, height) {
   mapState.map = map;
   mapState.tileController = null;
   mapState.bounds = bounds;
+  mapState.imageCityPointId = String(options.cityPointId || '').trim() || null;
 
-  points.forEach((point) => {
-    const latLng = getPointImageMapLatLng(point.id);
-    if (!latLng) {
-      return;
-    }
+  if (options.showPoints !== false) {
+    points.forEach((point) => {
+      const latLng = getPointImageMapLatLng(point.id);
+      if (!latLng) {
+        return;
+      }
 
-    const marker = window.L.circleMarker(latLng, markerStyle(point.id));
-    marker.addTo(map);
-    marker.bindTooltip(point.title, {
-      className: 'leaflet-label',
-      direction: 'top',
-      offset: [0, -10],
-      permanent: true
+      const marker = window.L.circleMarker(latLng, markerStyle(point.id));
+      marker.addTo(map);
+      marker.bindTooltip(point.title, {
+        className: 'leaflet-label',
+        direction: 'top',
+        offset: [0, -10],
+        permanent: true
+      });
+      marker.on('click', () => {
+        focusPoint(point);
+        triggerHaptic('light');
+      });
+      mapState.markers.set(point.id, marker);
     });
-    marker.on('click', () => {
-      focusPoint(point);
-      triggerHaptic('light');
-    });
-    mapState.markers.set(point.id, marker);
-  });
+  }
 
   map.fitBounds(bounds, { animate: false, padding: [0, 0] });
   mapState.imageBaseZoom = map.getZoom();
-  map.setMinZoom(mapState.imageBaseZoom);
-  map.setMaxZoom(mapState.imageBaseZoom + 3.5);
+  map.setMinZoom(mapState.imageBaseZoom - 0.6);
+  map.setMaxZoom(mapState.imageBaseZoom + 4);
   map.setMaxBounds(bounds);
 
   setTimeout(() => {
@@ -5203,7 +5240,7 @@ function buildRouteImageMap(imageUrl, width, height) {
   }, 120);
 }
 
-function initImageRouteMap() {
+function initImageRouteMap(point = null) {
   if (!window.L) {
     setTaskPlaceholder();
     showFallbackMap('Библиотека карты не загрузилась. Используйте резервную схему и нажимайте на точки.');
@@ -5212,12 +5249,23 @@ function initImageRouteMap() {
     return;
   }
 
-  const imageUrl = scenarioState.routeMapImageSrc || './assets/maps/team-map.png';
+  destroyWorldMap();
+
+  const cityImage = point ? getPointInlineCityImageMap(point) : null;
+  const useCityImage = Boolean(cityImage?.src);
+  const imageUrl = useCityImage
+    ? String(cityImage.src || '').trim()
+    : (scenarioState.routeMapImageSrc || './assets/maps/team-map.png');
+  mapState.imageCityPointId = useCityImage ? point.id : null;
+
   const image = new window.Image();
   image.decoding = 'async';
   image.fetchPriority = 'high';
   image.onload = () => {
-    buildRouteImageMap(imageUrl, Number(image.naturalWidth) || 1, Number(image.naturalHeight) || 1);
+    buildRouteImageMap(imageUrl, Number(image.naturalWidth) || 1, Number(image.naturalHeight) || 1, {
+      showPoints: !useCityImage,
+      cityPointId: useCityImage ? point.id : ''
+    });
   };
   image.onerror = () => {
     showFallbackMap('Файл основной карты не загрузился. Пока можно работать по резервной схеме.');
