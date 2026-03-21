@@ -967,7 +967,10 @@ const mapState = {
   cityOverlayPointId: null,
   cityPoiMarkers: new Map(),
   bounds: null,
-  fallbackVisible: false
+  fallbackVisible: false,
+  imageWidth: 0,
+  imageHeight: 0,
+  imageBaseZoom: 0
 };
 
 const caseMapState = {
@@ -988,6 +991,21 @@ const caseMapSourceState = {
   url: '',
   width: 0,
   height: 0
+};
+
+const INLINE_CITY_IMAGE_MAPS = {
+  al_kasir: {
+    title: 'Карта Аль-Касира',
+    src: './scenarios/emirates-dune/assets/source/image2.png',
+    alt: 'Карта города Аль-Касир',
+    note: 'Это локальная карта города. Дальше загадки по Аль-Касиру будем открывать уже из неё.'
+  },
+  zarak_mir: {
+    title: 'Карта Зарак-Мира',
+    src: '',
+    alt: 'Карта города Зарак-Мир',
+    note: 'Слот под вторую городскую карту уже готов. Как только файл карты будет в проекте, она откроется здесь.'
+  }
 };
 
 const THEME_MODES = {
@@ -1428,6 +1446,63 @@ function setFallbackMapImage(src = './assets/maps/italy-schematic.svg') {
   }
 
   fallbackMapImageNode.src = src || './assets/maps/italy-schematic.svg';
+}
+
+function destroyWorldMap() {
+  if (mapState.map) {
+    try {
+      mapState.map.off();
+      mapState.map.remove();
+    } catch (_) {
+      // Ignore map teardown errors.
+    }
+  }
+
+  mapState.map = null;
+  mapState.tileController = null;
+  mapState.markers.clear();
+  mapState.bounds = null;
+  mapState.imageWidth = 0;
+  mapState.imageHeight = 0;
+  mapState.imageBaseZoom = 0;
+}
+
+function getImageMapLatLngFromPosition(position) {
+  if (!position || !mapState.imageWidth || !mapState.imageHeight) {
+    return null;
+  }
+
+  return [
+    mapState.imageHeight * (position.y / 100),
+    mapState.imageWidth * (position.x / 100)
+  ];
+}
+
+function getPointImageMapLatLng(pointId) {
+  return getImageMapLatLngFromPosition(fallbackPointPositions[pointId]);
+}
+
+function getPointInlineCityImageMap(point) {
+  if (!point) {
+    return null;
+  }
+
+  if (point.task?.cityImageMap) {
+    return point.task.cityImageMap;
+  }
+
+  return INLINE_CITY_IMAGE_MAPS[point.id] || null;
+}
+
+function getTaskMediaItems(point) {
+  const items = Array.isArray(point.task?.media) ? point.task.media : [];
+  const cityImage = getPointInlineCityImageMap(point);
+
+  if (!cityImage?.src) {
+    return items;
+  }
+
+  return items.filter((item) => String(item?.src || '').trim() !== String(cityImage.src || '').trim());
 }
 
 function normalizeScenarioPoint(rawPoint = {}) {
@@ -2363,7 +2438,10 @@ function setCityMode(enabled) {
 
   cardMap.classList.toggle('has-task', enabled);
   const selectedPoint = pointsById.get(state.selectedPointId);
-  const keepMapInteractive = !enabled || Boolean(selectedPoint?.task?.cityMap);
+  const keepMapInteractive = !enabled
+    || Boolean(selectedPoint?.task?.cityMap)
+    || Boolean(getPointInlineCityImageMap(selectedPoint))
+    || scenarioState.routeMapMode === 'image';
   setMapInteractionsEnabled(keepMapInteractive);
 
   window.setTimeout(() => {
@@ -4548,7 +4626,7 @@ function renderCityMapTask(point) {
 }
 
 function renderTaskMedia(point) {
-  const items = Array.isArray(point.task?.media) ? point.task.media : [];
+  const items = getTaskMediaItems(point);
   if (items.length === 0) {
     return;
   }
@@ -4662,6 +4740,48 @@ function renderAnagramTask(point) {
   taskOptionsNode.appendChild(wrap);
 }
 
+function renderCityImageTask(point) {
+  const config = getPointInlineCityImageMap(point);
+  if (!config) {
+    return;
+  }
+
+  const wrap = document.createElement('div');
+  wrap.className = 'city-image-wrap';
+
+  const title = document.createElement('p');
+  title.className = 'city-image-title';
+  title.textContent = config.title || `Карта ${point.title}`;
+  wrap.appendChild(title);
+
+  if (config.note) {
+    const note = document.createElement('p');
+    note.className = 'city-image-note';
+    note.textContent = config.note;
+    wrap.appendChild(note);
+  }
+
+  if (config.src) {
+    const frame = document.createElement('div');
+    frame.className = 'city-image-frame';
+
+    const image = document.createElement('img');
+    image.className = 'city-image-map';
+    image.src = config.src;
+    image.alt = config.alt || config.title || `Карта ${point.title}`;
+    image.loading = 'lazy';
+    frame.appendChild(image);
+    wrap.appendChild(frame);
+  } else {
+    const placeholder = document.createElement('div');
+    placeholder.className = 'city-image-placeholder';
+    placeholder.textContent = 'Здесь откроется карта города, как только файл будет добавлен в проект.';
+    wrap.appendChild(placeholder);
+  }
+
+  taskOptionsNode.appendChild(wrap);
+}
+
 function renderTask(point) {
   taskKickerNode.textContent = point.task.kicker;
   taskTitleNode.textContent = point.task.title || `${point.title}: загадка`;
@@ -4673,6 +4793,7 @@ function renderTask(point) {
 
   if (point.task.kind === 'empty') {
     setTaskResult(point.task.info || 'В этой точке нет активной загадки.', 'info');
+    renderCityImageTask(point);
     renderTaskMedia(point);
     if (point.task.cityMap) {
       renderCityMapTask(point);
@@ -4682,6 +4803,7 @@ function renderTask(point) {
   }
 
   if (point.task.kind === 'slider') {
+    renderCityImageTask(point);
     renderTaskMedia(point);
     renderSliderBoard(point);
     if (mapState.solved.has(point.id)) {
@@ -4692,6 +4814,7 @@ function renderTask(point) {
   }
 
   if (point.task.kind === 'caesar') {
+    renderCityImageTask(point);
     renderTaskMedia(point);
     renderCaesarTask(point);
     if (mapState.solved.has(point.id)) {
@@ -4702,6 +4825,7 @@ function renderTask(point) {
   }
 
   if (point.task.kind === 'match') {
+    renderCityImageTask(point);
     renderTaskMedia(point);
     renderMatchTask(point);
     if (mapState.solved.has(point.id)) {
@@ -4712,6 +4836,7 @@ function renderTask(point) {
   }
 
   if (point.task.kind === 'hotspot') {
+    renderCityImageTask(point);
     renderTaskMedia(point);
     renderHotspotTask(point);
     if (mapState.solved.has(point.id)) {
@@ -4722,6 +4847,7 @@ function renderTask(point) {
   }
 
   if (point.task.kind === 'scanner') {
+    renderCityImageTask(point);
     renderTaskMedia(point);
     renderScannerTask(point);
     if (mapState.solved.has(point.id)) {
@@ -4732,6 +4858,7 @@ function renderTask(point) {
   }
 
   if (point.task.kind === 'rotor') {
+    renderCityImageTask(point);
     renderTaskMedia(point);
     renderRotorTask(point);
     if (mapState.solved.has(point.id)) {
@@ -4742,6 +4869,7 @@ function renderTask(point) {
   }
 
   if (point.task.kind === 'decoder') {
+    renderCityImageTask(point);
     renderTaskMedia(point);
     renderDecoderTask(point);
     if (mapState.solved.has(point.id)) {
@@ -4752,6 +4880,7 @@ function renderTask(point) {
   }
 
   if (point.task.kind === 'anagram') {
+    renderCityImageTask(point);
     renderTaskMedia(point);
     renderAnagramTask(point);
     if (mapState.solved.has(point.id)) {
@@ -4762,6 +4891,7 @@ function renderTask(point) {
   }
 
   if (point.task.kind === 'chess') {
+    renderCityImageTask(point);
     renderTaskMedia(point);
     renderChessTask(point);
     if (mapState.solved.has(point.id)) {
@@ -4771,6 +4901,7 @@ function renderTask(point) {
     return;
   }
 
+  renderCityImageTask(point);
   renderTaskMedia(point);
   point.task.options.forEach((optionText, index) => {
     const button = document.createElement('button');
@@ -4815,20 +4946,32 @@ function focusPoint(point) {
   mapState.visited.add(point.id);
 
   const hasCityMap = Boolean(point.task.cityMap);
-  const canUseLeafletMap = Boolean(mapState.map) && !mapState.fallbackVisible;
+  const canUseLeafletGeoMap = Boolean(mapState.map) && !mapState.fallbackVisible && scenarioState.routeMapMode !== 'image';
 
-  if (hasCityMap && canUseLeafletMap) {
+  if (hasCityMap && canUseLeafletGeoMap) {
     activateCityOverlay(point);
   } else if (mapState.map) {
-    mapState.map.flyTo([point.lat, point.lng], point.zoom, {
-      animate: true,
-      duration: 1.05,
-      easeLinearity: 0.2
-    });
+    if (scenarioState.routeMapMode === 'image') {
+      const imageLatLng = getPointImageMapLatLng(point.id);
+      if (imageLatLng) {
+        const nextZoom = Math.max(mapState.imageBaseZoom + 1.1, mapState.map.getZoom());
+        mapState.map.flyTo(imageLatLng, nextZoom, {
+          animate: true,
+          duration: 1.05,
+          easeLinearity: 0.2
+        });
+      }
+    } else {
+      mapState.map.flyTo([point.lat, point.lng], point.zoom, {
+        animate: true,
+        duration: 1.05,
+        easeLinearity: 0.2
+      });
 
-    mapState.map.once('moveend', () => {
-      mapState.map.setView([point.lat, point.lng], point.zoom, { animate: false });
-    });
+      mapState.map.once('moveend', () => {
+        mapState.map.setView([point.lat, point.lng], point.zoom, { animate: false });
+      });
+    }
   }
 
   const marker = mapState.markers.get(point.id);
@@ -4840,7 +4983,7 @@ function focusPoint(point) {
   refreshMarkers();
   renderTask(point);
   setCityMode(true);
-  void postTeamEvent('travel', point.id, { source: hasCityMap && canUseLeafletMap ? 'city-entry' : 'point' });
+  void postTeamEvent('travel', point.id, { source: hasCityMap && canUseLeafletGeoMap ? 'city-entry' : 'point' });
 }
 
 function closeCityMode() {
@@ -4985,17 +5128,111 @@ function addBaseTileLayerWithFallback(map, themeName = THEME_MODES.light) {
   };
 }
 
-function initMap() {
-  if (scenarioState.routeMapMode === 'image') {
-    worldMapNode && (worldMapNode.hidden = true);
-    mapAttribNode && (mapAttribNode.hidden = true);
-    mapState.map = null;
-    mapState.tileController = null;
-    mapState.markers.clear();
-    mapState.bounds = null;
-    setTaskPlaceholder();
-    showFallbackMap();
+function buildRouteImageMap(imageUrl, width, height) {
+  worldMapNode && (worldMapNode.hidden = false);
+  hideFallbackMap();
+  mapAttribNode && (mapAttribNode.hidden = true);
+
+  mapState.imageWidth = Number(width) || 1;
+  mapState.imageHeight = Number(height) || 1;
+
+  const map = window.L.map('worldMap', {
+    crs: window.L.CRS.Simple,
+    minZoom: -4.5,
+    maxZoom: 4,
+    zoomSnap: 0.1,
+    zoomDelta: 0.25,
+    zoomControl: false,
+    attributionControl: false,
+    worldCopyJump: false,
+    maxBoundsViscosity: 1,
+    bounceAtZoomLimits: false,
+    preferCanvas: true
+  });
+
+  window.L.control.zoom({ position: 'topright' }).addTo(map);
+
+  const bounds = window.L.latLngBounds([0, 0], [mapState.imageHeight, mapState.imageWidth]);
+  const overlay = window.L.imageOverlay(imageUrl, bounds, {
+    interactive: false,
+    className: 'route-map-image'
+  });
+
+  overlay.once('error', () => {
+    destroyWorldMap();
+    showFallbackMap('Файл основной карты не загрузился. Пока можно работать по резервной схеме.');
     renderFallbackMap();
+    setTaskResult('Не удалось загрузить основную карту маршрута. Включена резервная схема.', 'info');
+  });
+
+  overlay.addTo(map);
+
+  mapState.map = map;
+  mapState.tileController = null;
+  mapState.bounds = bounds;
+
+  points.forEach((point) => {
+    const latLng = getPointImageMapLatLng(point.id);
+    if (!latLng) {
+      return;
+    }
+
+    const marker = window.L.circleMarker(latLng, markerStyle(point.id));
+    marker.addTo(map);
+    marker.bindTooltip(point.title, {
+      className: 'leaflet-label',
+      direction: 'top',
+      offset: [0, -10],
+      permanent: true
+    });
+    marker.on('click', () => {
+      focusPoint(point);
+      triggerHaptic('light');
+    });
+    mapState.markers.set(point.id, marker);
+  });
+
+  map.fitBounds(bounds, { animate: false, padding: [0, 0] });
+  mapState.imageBaseZoom = map.getZoom();
+  map.setMinZoom(mapState.imageBaseZoom);
+  map.setMaxZoom(mapState.imageBaseZoom + 3.5);
+  map.setMaxBounds(bounds);
+
+  setTimeout(() => {
+    map.invalidateSize();
+  }, 120);
+}
+
+function initImageRouteMap() {
+  if (!window.L) {
+    setTaskPlaceholder();
+    showFallbackMap('Библиотека карты не загрузилась. Используйте резервную схему и нажимайте на точки.');
+    setTaskResult('Карта не загрузилась. Включена резервная схема.', 'info');
+    renderFallbackMap();
+    return;
+  }
+
+  const imageUrl = scenarioState.routeMapImageSrc || './assets/maps/team-map.png';
+  const image = new window.Image();
+  image.decoding = 'async';
+  image.fetchPriority = 'high';
+  image.onload = () => {
+    buildRouteImageMap(imageUrl, Number(image.naturalWidth) || 1, Number(image.naturalHeight) || 1);
+  };
+  image.onerror = () => {
+    showFallbackMap('Файл основной карты не загрузился. Пока можно работать по резервной схеме.');
+    setTaskResult('Не удалось загрузить основную карту маршрута. Включена резервная схема.', 'info');
+    renderFallbackMap();
+  };
+  image.src = imageUrl;
+}
+
+function initMap() {
+  destroyWorldMap();
+
+  if (scenarioState.routeMapMode === 'image') {
+    setTaskPlaceholder();
+    initImageRouteMap();
     return;
   }
 
@@ -5008,6 +5245,7 @@ function initMap() {
   }
 
   worldMapNode && (worldMapNode.hidden = false);
+  hideFallbackMap();
   mapState.map = window.L.map('worldMap', {
     zoomControl: false,
     attributionControl: false,

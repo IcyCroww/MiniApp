@@ -811,6 +811,55 @@ body {
   padding: 10px;
 }
 
+.city-image-wrap {
+  border: 1px solid #c9d9ce;
+  border-radius: 14px;
+  background: #f4faf6;
+  padding: 10px;
+  margin-bottom: 10px;
+}
+
+.city-image-title {
+  margin: 0 0 6px;
+  font-size: 13px;
+  line-height: 1.35;
+  font-weight: 800;
+  color: #36584b;
+}
+
+.city-image-note {
+  margin: 0 0 8px;
+  font-size: 12px;
+  line-height: 1.45;
+  color: #4d6a5c;
+}
+
+.city-image-frame,
+.city-image-placeholder {
+  border-radius: 12px;
+  border: 1px solid rgba(122, 146, 138, 0.45);
+  background: rgba(238, 245, 242, 0.9);
+  overflow: hidden;
+}
+
+.city-image-map {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.city-image-placeholder {
+  min-height: 140px;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  text-align: center;
+  color: #5a7368;
+  font-size: 12px;
+  line-height: 1.45;
+  font-weight: 700;
+}
+
 .city-task-progress {
   margin: 0 0 7px;
   font-size: 12px;
@@ -2447,6 +2496,7 @@ body {
 .case-map-frame,
 .prototype-frame,
 .city-task-wrap,
+.city-image-wrap,
 .caesar-wrap,
 .match-wrap,
 .hotspot-wrap,
@@ -2491,6 +2541,8 @@ body {
 .final-answer-status,
 .city-task-progress,
 .city-task-status,
+.city-image-title,
+.city-image-note,
 .scanner-readout,
 .caesar-meta,
 .caesar-input-label,
@@ -2576,6 +2628,8 @@ body {
 
 .map-scene,
 .leaflet-map,
+.city-image-frame,
+.city-image-placeholder,
 .case-map-viewport,
 .prototype-frame,
 .prototype-map-embed {
@@ -2853,6 +2907,7 @@ body {
 .case-map-frame,
 .prototype-frame,
 .city-task-wrap,
+.city-image-wrap,
 .caesar-wrap,
 .match-wrap,
 .hotspot-wrap,
@@ -2959,6 +3014,8 @@ body {
 
 .map-scene,
 .leaflet-map,
+.city-image-frame,
+.city-image-placeholder,
 .case-map-viewport,
 .prototype-frame,
 .prototype-map-embed {
@@ -3164,6 +3221,8 @@ body {
 .final-answer-status,
 .city-task-progress,
 .city-task-status,
+.city-image-title,
+.city-image-note,
 .scanner-readout,
 .caesar-meta,
 .caesar-input-label,
@@ -3202,6 +3261,7 @@ body {
 .case-map-frame,
 .prototype-frame,
 .city-task-wrap,
+.city-image-wrap,
 .caesar-wrap,
 .match-wrap,
 .hotspot-wrap,
@@ -3318,6 +3378,8 @@ body {
 
 .map-scene,
 .leaflet-map,
+.city-image-frame,
+.city-image-placeholder,
 .case-map-viewport,
 .prototype-frame,
 .prototype-map-embed,
@@ -3696,6 +3758,8 @@ html[data-theme] .team-gate-status,
 html[data-theme] .final-answer-status,
 html[data-theme] .city-task-progress,
 html[data-theme] .city-task-status,
+html[data-theme] .city-image-title,
+html[data-theme] .city-image-note,
 html[data-theme] .scanner-readout,
 html[data-theme] .caesar-meta,
 html[data-theme] .caesar-input-label,
@@ -3729,6 +3793,7 @@ html[data-theme] .prototype-panel,
 html[data-theme] .case-map-frame,
 html[data-theme] .prototype-frame,
 html[data-theme] .city-task-wrap,
+html[data-theme] .city-image-wrap,
 html[data-theme] .caesar-wrap,
 html[data-theme] .match-wrap,
 html[data-theme] .hotspot-wrap,
@@ -3829,6 +3894,8 @@ html[data-theme] .decoder-card-input:focus {
 
 html[data-theme] .map-scene,
 html[data-theme] .leaflet-map,
+html[data-theme] .city-image-frame,
+html[data-theme] .city-image-placeholder,
 html[data-theme] .case-map-viewport,
 html[data-theme] .prototype-frame,
 html[data-theme] .prototype-map-embed,
