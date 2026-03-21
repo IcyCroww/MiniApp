@@ -83,7 +83,7 @@
           "media": [
             {
               "type": "image",
-              "src": "./scenarios/emirates-dune/assets/source/image2.png",
+              "src": "./scenarios/emirates-dune/assets/al-kasir-map.png",
               "title": "Схема Аль-Касира",
               "alt": "Схема города Аль-Касир"
             }

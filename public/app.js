@@ -997,7 +997,7 @@ const caseMapSourceState = {
 const INLINE_CITY_IMAGE_MAPS = {
   al_kasir: {
     title: 'Карта Аль-Касира',
-    src: './scenarios/emirates-dune/assets/source/image2.png',
+    src: './scenarios/emirates-dune/assets/al-kasir-map.png',
     alt: 'Карта города Аль-Касир',
     note: 'Это локальная карта города. Дальше загадки по Аль-Касиру будем открывать уже из неё.'
   },
@@ -5030,16 +5030,20 @@ function resetMapView() {
     return;
   }
 
-  const wasImageCityMap = scenarioState.routeMapMode === 'image' && Boolean(mapState.imageCityPointId);
+  const isImageRouteMap = scenarioState.routeMapMode === 'image';
   destroyCityTaskMap();
-  state.selectedPointId = null;
 
-  if (wasImageCityMap) {
-    setCityMode(false);
-    setTaskPlaceholder();
-    initImageRouteMap();
+  if (isImageRouteMap && mapState.map && mapState.bounds) {
+    mapState.map.flyToBounds(mapState.bounds, {
+      animate: true,
+      duration: 0.9,
+      easeLinearity: 0.22,
+      padding: [0, 0]
+    });
     return;
   }
+
+  state.selectedPointId = null;
 
   refreshMarkers();
 
