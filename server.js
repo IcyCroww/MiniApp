@@ -56,7 +56,10 @@ const POINT_LABELS = {
   cagliari: 'Кальяри',
   pisa: 'Пиза',
   palermo: 'Палермо',
-  genoa_media: 'Генуя'
+  genoa_media: 'Генуя',
+  al_kasir: 'Аль-Касир',
+  zarak_mir: 'Зарак-Мир',
+  zarif: 'Зариф'
 };
 
 const PISA_POI_LABELS = {

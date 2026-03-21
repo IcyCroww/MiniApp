@@ -1082,6 +1082,7 @@ body {
 
 .hotspot-wrap,
 .scanner-wrap,
+.anagram-wrap,
 .rotor-wrap,
 .decoder-wrap,
 .chess-wrap {
@@ -1185,6 +1186,7 @@ body {
 }
 
 .scanner-confirm,
+.anagram-confirm,
 .decoder-confirm,
 .chess-reset {
   border: 1px solid #78b797;
@@ -1195,6 +1197,29 @@ body {
   font-weight: 700;
   padding: 9px 11px;
   cursor: pointer;
+}
+
+.anagram-letters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.anagram-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 42px;
+  padding: 8px 10px;
+  border-radius: 12px;
+  border: 1px solid #c7d4ca;
+  background: #ffffff;
+  color: #274539;
+  font-size: 18px;
+  font-weight: 800;
+  text-transform: lowercase;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.72);
 }
 
 .rotor-stage {
@@ -2495,6 +2520,7 @@ body {
 .city-poi-chip,
 .caesar-confirm,
 .scanner-confirm,
+.anagram-confirm,
 .decoder-confirm,
 .chess-reset,
 .rotor-btn,
@@ -2516,6 +2542,7 @@ body {
 .final-answer-input,
 .caesar-input,
 .scanner-input,
+.anagram-input,
 .decoder-card-input {
   border-color: rgba(155, 181, 171, 0.18);
   background: rgba(8, 14, 14, 0.9);
@@ -2906,6 +2933,7 @@ body {
 .final-answer-input,
 .caesar-input,
 .scanner-input,
+.anagram-input,
 .decoder-card-input {
   border-color: rgba(169, 189, 183, 0.16);
   background: rgba(12, 20, 24, 0.94);
@@ -3274,6 +3302,7 @@ body {
 .final-answer-input:focus,
 .caesar-input:focus,
 .scanner-input:focus,
+.anagram-input:focus,
 .decoder-card-input:focus {
   border-color: rgba(201, 166, 107, 0.42);
   box-shadow: 0 0 0 3px rgba(201, 166, 107, 0.12);
@@ -3293,6 +3322,12 @@ body {
 .task-media-video {
   background: #181b1f;
   border-color: rgba(42, 47, 53, 0.95);
+}
+
+.anagram-chip {
+  border-color: rgba(55, 61, 67, 0.9);
+  background: linear-gradient(180deg, rgba(34, 38, 43, 0.98), rgba(24, 27, 31, 0.99));
+  color: var(--text-main);
 }
 
 .case-map-frame {

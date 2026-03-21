@@ -10,7 +10,7 @@
     {
       "id": "emirates-dune",
       "title": "Эмираты Дюны",
-      "playable": false,
+      "playable": true,
       "src": "./scenarios/emirates-dune/scenario.json"
     },
     {

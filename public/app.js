@@ -63,7 +63,7 @@ if (tg) {
   }
 }
 
-const points = [
+const DEFAULT_POINTS = [
   {
     id: 'vatican',
     title: 'Ватикан',
@@ -826,6 +826,12 @@ const DEFAULT_SCENARIO_REGISTRY = {
       src: './scenarios/italy/scenario.json'
     },
     {
+      id: 'emirates-dune',
+      title: 'Эмираты Дюны',
+      playable: true,
+      src: './scenarios/emirates-dune/scenario.json'
+    },
+    {
       id: 'verona',
       title: 'Государство Верона',
       playable: false,
@@ -890,6 +896,7 @@ const mapHeadingNode = document.getElementById('mapHeading');
 const answerHeadingNode = document.getElementById('answerHeading');
 const prototypeHeadingNode = document.getElementById('prototypeHeading');
 const completionNode = document.getElementById('completionBadge');
+const worldMapNode = document.getElementById('worldMap');
 const resetMapBtn = document.getElementById('resetMapBtn');
 const changeTeamBtn = document.getElementById('changeTeamBtn');
 const mapAttribNode = document.querySelector('.map-attrib');
@@ -941,6 +948,7 @@ const mapState = {
   matchLinks: new Map(),
   matchActiveFacts: new Map(),
   scannerStates: new Map(),
+  anagramInputs: new Map(),
   decoderOffsets: new Map(),
   decoderInputs: new Map(),
   decoderClues: new Map(),
@@ -958,6 +966,7 @@ const mapState = {
 const caseMapState = {
   initialized: false,
   map: null,
+  markers: new Map(),
   layer: null,
   image: null,
   width: 0,
@@ -984,7 +993,7 @@ const THEME_META_COLORS = {
   dark: '#252b40'
 };
 
-const fallbackPointPositions = {
+const DEFAULT_FALLBACK_POINT_POSITIONS = {
   turin: { x: 39, y: 21 },
   genoa_media: { x: 42, y: 29 },
   milan: { x: 48, y: 22 },
@@ -1005,17 +1014,34 @@ const fallbackPointPositions = {
   cagliari: { x: 42, y: 84 }
 };
 
-const pointsById = new Map(points.map((point) => [point.id, point]));
-const totalQuestCount = points.filter((point) => point.task.kind !== 'empty').length;
+let points = DEFAULT_POINTS;
+let fallbackPointPositions = { ...DEFAULT_FALLBACK_POINT_POSITIONS };
+let pointsById = new Map();
+let totalQuestCount = 0;
 const activeTextAnimations = new Map();
 let textAnimationFrameId = 0;
 let prototypeFrameLoaded = false;
+
+function rebuildPointIndexes() {
+  pointsById = new Map(points.map((point) => [point.id, point]));
+  totalQuestCount = points.filter((point) => point.task.kind !== 'empty').length;
+}
+
+function setActivePoints(nextPoints = DEFAULT_POINTS, nextFallbackPositions = DEFAULT_FALLBACK_POINT_POSITIONS) {
+  points = Array.isArray(nextPoints) && nextPoints.length ? nextPoints : DEFAULT_POINTS;
+  fallbackPointPositions = { ...(nextFallbackPositions && Object.keys(nextFallbackPositions).length ? nextFallbackPositions : DEFAULT_FALLBACK_POINT_POSITIONS) };
+  rebuildPointIndexes();
+}
+
+rebuildPointIndexes();
 
 const scenarioState = {
   registry: DEFAULT_SCENARIO_REGISTRY,
   activeId: DEFAULT_SCENARIO_REGISTRY.defaultScenarioId,
   activeTitle: 'Италия',
-  activeConfig: null
+  activeConfig: null,
+  routeMapMode: 'leaflet',
+  routeMapImageSrc: './assets/maps/italy-schematic.svg'
 };
 
 function triggerHaptic(type = 'light') {
@@ -1389,6 +1415,58 @@ function applyScenarioUi(uiConfig = DEFAULT_SCENARIO_UI, scenarioEntry = null, s
   setFallbackMapNote(uiConfig.fallbackMapNote || DEFAULT_SCENARIO_UI.fallbackMapNote);
 }
 
+function setFallbackMapImage(src = './assets/maps/italy-schematic.svg') {
+  if (!fallbackMapImageNode) {
+    return;
+  }
+
+  fallbackMapImageNode.src = src || './assets/maps/italy-schematic.svg';
+}
+
+function normalizeScenarioPoint(rawPoint = {}) {
+  return {
+    id: String(rawPoint.id || '').trim(),
+    title: String(rawPoint.title || '').trim(),
+    text: String(rawPoint.text || '').trim(),
+    lat: Number(rawPoint.lat) || 0,
+    lng: Number(rawPoint.lng) || 0,
+    zoom: Number(rawPoint.zoom) || 6,
+    markerColor: String(rawPoint.markerColor || '').trim(),
+    task: {
+      ...(rawPoint.task || {})
+    }
+  };
+}
+
+function applyScenarioRouteConfig(scenarioData = null) {
+  const routeMap = scenarioData?.routeMap;
+
+  if (!routeMap || !Array.isArray(routeMap.points) || routeMap.points.length === 0) {
+    scenarioState.routeMapMode = 'leaflet';
+    scenarioState.routeMapImageSrc = './assets/maps/italy-schematic.svg';
+    setActivePoints(DEFAULT_POINTS, DEFAULT_FALLBACK_POINT_POSITIONS);
+    setFallbackMapImage('./assets/maps/italy-schematic.svg');
+    return;
+  }
+
+  const nextPoints = routeMap.points.map((point) => normalizeScenarioPoint(point)).filter((point) => point.id);
+  const nextFallbackPositions = {};
+  routeMap.points.forEach((point) => {
+    const id = String(point?.id || '').trim();
+    const x = Number(point?.mapPosition?.x);
+    const y = Number(point?.mapPosition?.y);
+    if (!id || Number.isNaN(x) || Number.isNaN(y)) {
+      return;
+    }
+    nextFallbackPositions[id] = { x, y };
+  });
+
+  scenarioState.routeMapMode = String(routeMap.mode || 'image').trim().toLowerCase() || 'image';
+  scenarioState.routeMapImageSrc = String(routeMap.imageSrc || './assets/maps/italy-schematic.svg').trim() || './assets/maps/italy-schematic.svg';
+  setActivePoints(nextPoints, nextFallbackPositions);
+  setFallbackMapImage(scenarioState.routeMapImageSrc);
+}
+
 async function fetchJsonSafely(url) {
   const response = await fetch(url, { cache: 'no-store' });
   if (!response.ok) {
@@ -1434,6 +1512,7 @@ async function loadScenarioConfig() {
   scenarioState.activeConfig = scenarioData;
 
   applyScenarioUi(mergeScenarioUi(scenarioData?.ui || {}), selectedEntry, scenarioData);
+  applyScenarioRouteConfig(scenarioData);
 }
 
 function ensureCaseMapPanelInitialized() {
@@ -1508,7 +1587,9 @@ function formatUiDate(value = '') {
 function getLocalCaseMapFallbackUrl() {
   const host = String(window.location.hostname || '').toLowerCase();
   const isLocalRun = host === 'localhost' || host === '127.0.0.1' || host === '::1';
-  const baseSrc = './assets/maps/team-map.png';
+  const baseSrc = scenarioState.routeMapMode === 'image' && scenarioState.routeMapImageSrc
+    ? scenarioState.routeMapImageSrc
+    : './assets/maps/team-map.png';
   return isLocalRun ? `${baseSrc}?v=${Date.now()}` : baseSrc;
 }
 
@@ -1603,6 +1684,53 @@ function buildCaseMapOverlay(imageUrl, width, height) {
   map.setMaxZoom(caseMapState.maxZoom);
   map.setMaxBounds(bounds);
   resetCaseMap();
+  renderCaseMapPoints();
+}
+
+function clearCaseMapPoints() {
+  caseMapState.markers.forEach((marker) => {
+    try {
+      marker.remove();
+    } catch (_) {
+      // Ignore marker cleanup errors.
+    }
+  });
+  caseMapState.markers.clear();
+}
+
+function refreshCaseMapPoints() {
+  caseMapState.markers.forEach((marker, pointId) => {
+    marker.setStyle(markerStyle(pointId));
+  });
+}
+
+function renderCaseMapPoints() {
+  clearCaseMapPoints();
+
+  if (!caseMapState.map || scenarioState.routeMapMode !== 'image' || !caseMapState.width || !caseMapState.height) {
+    return;
+  }
+
+  points.forEach((point) => {
+    const position = fallbackPointPositions[point.id];
+    if (!position) {
+      return;
+    }
+
+    const marker = window.L.circleMarker(
+      [caseMapState.height * (position.y / 100), caseMapState.width * (position.x / 100)],
+      markerStyle(point.id)
+    );
+
+    marker.addTo(caseMapState.map);
+    marker.bindTooltip(point.title, { direction: 'top', offset: [0, -10] });
+    marker.on('click', () => {
+      setActiveView('map');
+      focusPoint(point);
+      triggerHaptic('light');
+    });
+    caseMapState.markers.set(point.id, marker);
+  });
 }
 
 function initCaseMapPanel() {
@@ -2187,6 +2315,10 @@ function refreshMarkers() {
 
   if (mapState.fallbackVisible) {
     renderFallbackMap();
+  }
+
+  if (caseMapState.markers.size) {
+    refreshCaseMapPoints();
   }
 }
 
@@ -4454,6 +4586,73 @@ function renderTaskMedia(point) {
   taskOptionsNode.appendChild(wrap);
 }
 
+function normalizeAnagramWord(value = '') {
+  return String(value || '')
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, '');
+}
+
+function renderAnagramTask(point) {
+  const config = point.task.anagram || {};
+  const isSolved = mapState.solved.has(point.id);
+  const wrap = document.createElement('div');
+  wrap.className = 'anagram-wrap';
+
+  const lead = document.createElement('p');
+  lead.className = 'task-mini-note';
+  lead.textContent = 'Соберите слово из подсказанных букв и введите его без пробелов.';
+  wrap.appendChild(lead);
+
+  const letters = document.createElement('div');
+  letters.className = 'anagram-letters';
+  (config.letters || []).forEach((letter) => {
+    const chip = document.createElement('span');
+    chip.className = 'anagram-chip';
+    chip.textContent = letter;
+    letters.appendChild(chip);
+  });
+  wrap.appendChild(letters);
+
+  const input = document.createElement('input');
+  input.className = 'anagram-input';
+  input.type = 'text';
+  input.autocomplete = 'off';
+  input.spellcheck = false;
+  input.placeholder = config.placeholder || 'Введите слово';
+  input.value = mapState.anagramInputs.get(point.id) || '';
+  input.disabled = isSolved;
+  input.addEventListener('input', (event) => {
+    mapState.anagramInputs.set(point.id, event.target.value);
+  });
+  wrap.appendChild(input);
+
+  const checkBtn = document.createElement('button');
+  checkBtn.type = 'button';
+  checkBtn.className = 'anagram-confirm';
+  checkBtn.textContent = isSolved ? 'Слово подтверждено' : 'Проверить слово';
+  checkBtn.disabled = isSolved;
+  checkBtn.addEventListener('click', () => {
+    const typed = normalizeAnagramWord(input.value);
+    const target = normalizeAnagramWord(config.targetWord || '');
+
+    if (typed && typed === target) {
+      mapState.anagramInputs.set(point.id, target);
+      completeTask(point);
+      setTaskResult(point.task.success || 'Слово собрано.', 'ok');
+      setTaskAnswer(point.task.answerText, point.task.answerLabel || 'Ключ');
+      renderTask(point);
+      return;
+    }
+
+    setTaskResult('Слово пока не сходится. Проверьте буквы и порядок.', 'bad');
+    triggerHaptic('error');
+  });
+  wrap.appendChild(checkBtn);
+
+  taskOptionsNode.appendChild(wrap);
+}
+
 function renderTask(point) {
   taskKickerNode.textContent = point.task.kicker;
   taskTitleNode.textContent = point.task.title || `${point.title}: загадка`;
@@ -4536,6 +4735,16 @@ function renderTask(point) {
   if (point.task.kind === 'decoder') {
     renderTaskMedia(point);
     renderDecoderTask(point);
+    if (mapState.solved.has(point.id)) {
+      setTaskResult(point.task.success || 'Загадка уже решена.', 'ok');
+      setTaskAnswer(point.task.answerText, point.task.answerLabel || 'Ключ');
+    }
+    return;
+  }
+
+  if (point.task.kind === 'anagram') {
+    renderTaskMedia(point);
+    renderAnagramTask(point);
     if (mapState.solved.has(point.id)) {
       setTaskResult(point.task.success || 'Загадка уже решена.', 'ok');
       setTaskAnswer(point.task.answerText, point.task.answerLabel || 'Ключ');
@@ -4768,6 +4977,19 @@ function addBaseTileLayerWithFallback(map, themeName = THEME_MODES.light) {
 }
 
 function initMap() {
+  if (scenarioState.routeMapMode === 'image') {
+    worldMapNode && (worldMapNode.hidden = true);
+    mapAttribNode && (mapAttribNode.hidden = true);
+    mapState.map = null;
+    mapState.tileController = null;
+    mapState.markers.clear();
+    mapState.bounds = null;
+    setTaskPlaceholder();
+    showFallbackMap();
+    renderFallbackMap();
+    return;
+  }
+
   if (!window.L) {
     setTaskPlaceholder();
     showFallbackMap('Библиотека карты не загрузилась. Используйте резервную схему и нажимайте на точки.');
@@ -4776,6 +4998,7 @@ function initMap() {
     return;
   }
 
+  worldMapNode && (worldMapNode.hidden = false);
   mapState.map = window.L.map('worldMap', {
     zoomControl: false,
     attributionControl: false,
