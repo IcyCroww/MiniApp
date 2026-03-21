@@ -1,0 +1,20 @@
+Сюда потом можно складывать финальные карты и портреты для сценария Вероны.
+
+Рекомендуемые имена файлов:
+
+- verona-country-map.png
+- verona-tour-agent.png
+- luka-advisor.png
+- verona-leader.png
+- bellavista-map.png
+- castello-map.png
+- monteria-map.png
+- santario-map.png
+- veronetta-map.png
+- portovero-map.png
+- lucario-map.png
+- valdoro-map.png
+- sant-fiore-map.png
+- rivante-map.png
+
+Если какие-то карты будут в webp/jpg, это тоже ок, но лучше держать единый нейминг.

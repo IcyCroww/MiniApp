@@ -1,0 +1,23 @@
+Сюда складываем ассеты для сценария Эмиратов Дюны.
+
+Рекомендуемые имена:
+
+- emirates-dune-country-map.png
+- dune-tour-agent.png
+- sheikh-said-al-nasir.png
+- al-kasir-map.png
+- zarak-mir-map.png
+- zarif-map.png
+- lamp-post.png
+- zarak-carpet.png
+
+По текущим материалам уже есть хорошие референсы для:
+
+- tour-agent -> пожилой проводник в пустыне
+- leader -> шейх в белом одеянии
+- al-kasir-map -> карта Аль-Касира
+- zarak-mir-map -> карта Зарак-Мира
+- lamp-post -> изображение фонаря
+- zarak-carpet -> изображение ковра
+
+Пока под вопросом только отдельная карта Зарифа и общая карта страны.

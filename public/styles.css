@@ -83,6 +83,13 @@ body {
   font-weight: 700;
 }
 
+.scenario-strip {
+  margin: 8px 0 0;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.82);
+  font-weight: 700;
+}
+
 .view-tabs {
   display: flex;
   flex-wrap: wrap;

@@ -1,0 +1,23 @@
+{
+  "defaultScenarioId": "italy",
+  "scenarios": [
+    {
+      "id": "italy",
+      "title": "Италия",
+      "playable": true,
+      "src": "./scenarios/italy/scenario.json"
+    },
+    {
+      "id": "emirates-dune",
+      "title": "Эмираты Дюны",
+      "playable": false,
+      "src": "./scenarios/emirates-dune/scenario.json"
+    },
+    {
+      "id": "verona",
+      "title": "Государство Верона",
+      "playable": false,
+      "src": "./scenarios/verona/scenario.json"
+    }
+  ]
+}

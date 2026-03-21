@@ -782,11 +782,56 @@ const points = [
   }
 ];
 
-const defaultTaskState = {
+const DEFAULT_SCENARIO_UI = {
+  appTitle: 'Маршрут делегации',
+  appSubtitle: 'Сценарий можно менять по государствам. Сейчас подготовлена база под Верону, карты подключим отдельно.',
+  scenarioLabel: 'Сценарий: Италия',
+  tabs: {
+    answer: 'Команда',
+    map: 'Маршрут',
+    prototype: 'Черновик'
+  },
+  headings: {
+    map: 'Карта маршрута',
+    answer: 'Карта команды',
+    prototype: 'Черновик карты'
+  },
+  mapAriaLabel: 'Карта маршрута',
+  fallbackMapNote: 'Резервная схема: если фон карты не загрузился, нажимайте на точки здесь.',
+  fallbackMapAlt: 'Резервная схема маршрута',
+  teamMapNote: 'Основная карта команды отображается прямо в этом разделе.',
+  prototypeNote: 'Эта вкладка грузится только при открытии, чтобы не тянуть лишний iframe на старте.',
+  taskPlaceholder: {
+    kicker: 'Досье саммита',
+    title: 'Выберите локацию',
+    lore: 'Вы команда юных переговорщиков: нужно собрать правила саммита по фрагментам из разных городов.',
+    question: 'Нажмите на точку на карте, чтобы открыть локацию.'
+  }
+};
+
+let defaultTaskState = {
   kicker: 'Досье саммита',
-  title: 'Выберите город',
+  title: 'Выберите локацию',
   lore: 'Вы команда юных переговорщиков: нужно собрать правила саммита по фрагментам из разных городов.',
-  question: 'Нажмите на точку на карте Италии, чтобы открыть локацию.'
+  question: 'Нажмите на точку на карте, чтобы открыть локацию.'
+};
+
+const DEFAULT_SCENARIO_REGISTRY = {
+  defaultScenarioId: 'italy',
+  scenarios: [
+    {
+      id: 'italy',
+      title: 'Италия',
+      playable: true,
+      src: './scenarios/italy/scenario.json'
+    },
+    {
+      id: 'verona',
+      title: 'Государство Верона',
+      playable: false,
+      src: './scenarios/verona/scenario.json'
+    }
+  ]
 };
 
 const STORAGE_KEYS = {
@@ -813,7 +858,7 @@ const API_BASE = (() => {
 })();
 
 const state = {
-  activeView: 'answer',
+  activeView: 'map',
   selectedPointId: null,
   cityMode: false,
   teamReady: false,
@@ -832,18 +877,25 @@ const state = {
 
 const cardMap = document.querySelector('.card-map');
 const rootNode = document.documentElement;
+const appTitleNode = document.getElementById('appTitle');
+const appSubtitleNode = document.getElementById('appSubtitle');
+const scenarioStripNode = document.getElementById('scenarioStrip');
 const viewMapNode = document.getElementById('view-map');
 const viewAnswerNode = document.getElementById('view-answer');
 const viewPrototypeNode = document.getElementById('view-prototype');
 const tabMapBtn = document.getElementById('tabMapBtn');
 const tabAnswerBtn = document.getElementById('tabAnswerBtn');
 const tabPrototypeBtn = document.getElementById('tabPrototypeBtn');
+const mapHeadingNode = document.getElementById('mapHeading');
+const answerHeadingNode = document.getElementById('answerHeading');
+const prototypeHeadingNode = document.getElementById('prototypeHeading');
 const completionNode = document.getElementById('completionBadge');
 const resetMapBtn = document.getElementById('resetMapBtn');
 const changeTeamBtn = document.getElementById('changeTeamBtn');
 const mapAttribNode = document.querySelector('.map-attrib');
 const fallbackMapNode = document.getElementById('fallbackMap');
 const fallbackMapNoteNode = document.getElementById('fallbackMapNote');
+const fallbackMapImageNode = document.getElementById('fallbackMapImage');
 const fallbackMapPointsNode = document.getElementById('fallbackMapPoints');
 const teamStripNode = document.getElementById('teamStrip');
 const themeToggleBtn = document.getElementById('themeToggleBtn');
@@ -873,6 +925,9 @@ const caseMapStatusNode = document.getElementById('caseMapStatus');
 const caseMapViewportNode = document.getElementById('caseMapViewport');
 const caseMapResetViewBtn = document.getElementById('caseMapResetViewBtn');
 const caseMapChangeTeamBtn = document.getElementById('caseMapChangeTeamBtn');
+const teamMapNoteNode = document.getElementById('teamMapNote');
+const prototypeNoteNode = document.getElementById('prototypeNote');
+const prototypeFrameNode = document.querySelector('.prototype-map-embed');
 const themeColorMetaNode = document.querySelector('meta[name="theme-color"]');
 
 const mapState = {
@@ -954,6 +1009,14 @@ const pointsById = new Map(points.map((point) => [point.id, point]));
 const totalQuestCount = points.filter((point) => point.task.kind !== 'empty').length;
 const activeTextAnimations = new Map();
 let textAnimationFrameId = 0;
+let prototypeFrameLoaded = false;
+
+const scenarioState = {
+  registry: DEFAULT_SCENARIO_REGISTRY,
+  activeId: DEFAULT_SCENARIO_REGISTRY.defaultScenarioId,
+  activeTitle: 'Италия',
+  activeConfig: null
+};
 
 function triggerHaptic(type = 'light') {
   if (!canUseTelegramHaptics()) {
@@ -1264,6 +1327,135 @@ function setTeamGateStatus(text = '') {
   teamGateStatusNode.textContent = text;
 }
 
+function getRequestedScenarioId() {
+  try {
+    const fromQuery = new URLSearchParams(window.location.search).get('scenario');
+    return String(fromQuery || '').trim().toLowerCase();
+  } catch (_) {
+    return '';
+  }
+}
+
+function mergeScenarioUi(rawUi = {}) {
+  return {
+    ...DEFAULT_SCENARIO_UI,
+    ...rawUi,
+    tabs: {
+      ...DEFAULT_SCENARIO_UI.tabs,
+      ...(rawUi.tabs || {})
+    },
+    headings: {
+      ...DEFAULT_SCENARIO_UI.headings,
+      ...(rawUi.headings || {})
+    },
+    taskPlaceholder: {
+      ...DEFAULT_SCENARIO_UI.taskPlaceholder,
+      ...(rawUi.taskPlaceholder || {})
+    }
+  };
+}
+
+function applyScenarioUi(uiConfig = DEFAULT_SCENARIO_UI, scenarioEntry = null, scenarioData = null) {
+  const scenarioTitle = String(scenarioData?.title || scenarioEntry?.title || scenarioState.activeTitle || 'Сценарий').trim();
+  const scenarioLabel = String(uiConfig.scenarioLabel || `Сценарий: ${scenarioTitle}`).trim();
+
+  appTitleNode && (appTitleNode.textContent = uiConfig.appTitle || DEFAULT_SCENARIO_UI.appTitle);
+  appSubtitleNode && (appSubtitleNode.textContent = uiConfig.appSubtitle || DEFAULT_SCENARIO_UI.appSubtitle);
+  scenarioStripNode && (scenarioStripNode.textContent = scenarioLabel);
+  tabAnswerBtn && (tabAnswerBtn.textContent = uiConfig.tabs.answer || DEFAULT_SCENARIO_UI.tabs.answer);
+  tabMapBtn && (tabMapBtn.textContent = uiConfig.tabs.map || DEFAULT_SCENARIO_UI.tabs.map);
+  tabPrototypeBtn && (tabPrototypeBtn.textContent = uiConfig.tabs.prototype || DEFAULT_SCENARIO_UI.tabs.prototype);
+  mapHeadingNode && (mapHeadingNode.textContent = uiConfig.headings.map || DEFAULT_SCENARIO_UI.headings.map);
+  answerHeadingNode && (answerHeadingNode.textContent = uiConfig.headings.answer || DEFAULT_SCENARIO_UI.headings.answer);
+  prototypeHeadingNode && (prototypeHeadingNode.textContent = uiConfig.headings.prototype || DEFAULT_SCENARIO_UI.headings.prototype);
+  document.title = uiConfig.documentTitle || `${scenarioTitle} · MiniApp Quest`;
+
+  if (viewMapNode?.querySelector('#worldMap')) {
+    viewMapNode.querySelector('#worldMap').setAttribute('aria-label', uiConfig.mapAriaLabel || DEFAULT_SCENARIO_UI.mapAriaLabel);
+  }
+
+  if (fallbackMapImageNode) {
+    fallbackMapImageNode.alt = uiConfig.fallbackMapAlt || DEFAULT_SCENARIO_UI.fallbackMapAlt;
+  }
+
+  teamMapNoteNode && (teamMapNoteNode.textContent = uiConfig.teamMapNote || DEFAULT_SCENARIO_UI.teamMapNote);
+  prototypeNoteNode && (prototypeNoteNode.textContent = uiConfig.prototypeNote || DEFAULT_SCENARIO_UI.prototypeNote);
+
+  defaultTaskState = {
+    ...DEFAULT_SCENARIO_UI.taskPlaceholder,
+    ...(uiConfig.taskPlaceholder || {})
+  };
+
+  setFallbackMapNote(uiConfig.fallbackMapNote || DEFAULT_SCENARIO_UI.fallbackMapNote);
+}
+
+async function fetchJsonSafely(url) {
+  const response = await fetch(url, { cache: 'no-store' });
+  if (!response.ok) {
+    throw new Error(`http_${response.status}`);
+  }
+  return response.json();
+}
+
+async function loadScenarioConfig() {
+  let registry = DEFAULT_SCENARIO_REGISTRY;
+
+  try {
+    const payload = await fetchJsonSafely('./scenarios/index.json');
+    if (payload && Array.isArray(payload.scenarios) && payload.scenarios.length > 0) {
+      registry = payload;
+    }
+  } catch (_) {
+    // Keep bundled registry fallback.
+  }
+
+  scenarioState.registry = registry;
+  const requestedId = getRequestedScenarioId();
+  const defaultId = String(registry.defaultScenarioId || DEFAULT_SCENARIO_REGISTRY.defaultScenarioId || 'italy').trim().toLowerCase();
+  const registryMap = new Map((registry.scenarios || []).map((entry) => [String(entry.id || '').trim().toLowerCase(), entry]));
+
+  let selectedEntry = registryMap.get(requestedId) || registryMap.get(defaultId) || registry.scenarios[0] || DEFAULT_SCENARIO_REGISTRY.scenarios[0];
+
+  if (selectedEntry && selectedEntry.playable === false) {
+    selectedEntry = registryMap.get(defaultId) || DEFAULT_SCENARIO_REGISTRY.scenarios[0];
+  }
+
+  let scenarioData = null;
+  if (selectedEntry?.src) {
+    try {
+      scenarioData = await fetchJsonSafely(selectedEntry.src);
+    } catch (_) {
+      scenarioData = null;
+    }
+  }
+
+  scenarioState.activeId = String(selectedEntry?.id || defaultId || 'italy').trim().toLowerCase();
+  scenarioState.activeTitle = String(scenarioData?.title || selectedEntry?.title || 'Сценарий').trim();
+  scenarioState.activeConfig = scenarioData;
+
+  applyScenarioUi(mergeScenarioUi(scenarioData?.ui || {}), selectedEntry, scenarioData);
+}
+
+function ensureCaseMapPanelInitialized() {
+  if (!caseMapState.initialized) {
+    initCaseMapPanel();
+  }
+}
+
+function ensurePrototypeFrameLoaded() {
+  if (!prototypeFrameNode || prototypeFrameLoaded) {
+    return;
+  }
+
+  const frameSrc = String(prototypeFrameNode.dataset.src || '').trim();
+  if (!frameSrc) {
+    return;
+  }
+
+  prototypeFrameNode.src = frameSrc;
+  prototypeFrameLoaded = true;
+}
+
 function setActiveView(viewName = 'map') {
   if (viewName === 'answer' || viewName === 'map' || viewName === 'prototype') {
     state.activeView = viewName;
@@ -1285,11 +1477,18 @@ function setActiveView(viewName = 'map') {
   }
 
   if (state.activeView === 'answer') {
+    if (!teamGateNode || teamGateNode.hidden) {
+      ensureCaseMapPanelInitialized();
+    }
     window.setTimeout(() => {
       if (caseMapState.map) {
         caseMapState.map.invalidateSize();
       }
     }, 120);
+  }
+
+  if (state.activeView === 'prototype') {
+    ensurePrototypeFrameLoaded();
   }
 }
 
@@ -1434,7 +1633,6 @@ function initCaseMapPanel() {
     image.fetchPriority = 'high';
     image.onload = () => {
       caseMapState.image = image;
-      caseMapState.image = image;
       buildCaseMapOverlay(source.url, Number(image.naturalWidth) || 1, Number(image.naturalHeight) || 1);
     };
     image.onerror = () => {
@@ -1516,6 +1714,15 @@ function closeTeamGate() {
 
   teamGateNode.hidden = true;
   setTeamGateStatus('');
+
+  if (state.activeView === 'answer') {
+    ensureCaseMapPanelInitialized();
+    window.setTimeout(() => {
+      if (caseMapState.map) {
+        caseMapState.map.invalidateSize();
+      }
+    }, 120);
+  }
 }
 
 function renderTeamOptions(teams = []) {
@@ -4470,19 +4677,23 @@ function getBaseTileProviders(themeName = THEME_MODES.light) {
   const primaryUrl = normalizedTheme === THEME_MODES.dark
     ? 'https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png'
     : 'https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png';
+  const sharedOptions = {
+    updateWhenIdle: true,
+    keepBuffer: 2
+  };
 
   return [
     {
       url: primaryUrl,
-      options: { subdomains: 'abcd', maxZoom: 20 }
+      options: { ...sharedOptions, subdomains: 'abcd', maxZoom: 20 }
     },
     {
       url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-      options: { subdomains: 'abc', maxZoom: 19, detectRetina: true }
+      options: { ...sharedOptions, subdomains: 'abc', maxZoom: 19, detectRetina: true }
     },
     {
       url: 'https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png',
-      options: { subdomains: 'abc', maxZoom: 19, detectRetina: true }
+      options: { ...sharedOptions, subdomains: 'abc', maxZoom: 19, detectRetina: true }
     }
   ];
 }
@@ -4570,7 +4781,8 @@ function initMap() {
     attributionControl: false,
     minZoom: 2,
     maxZoom: 19,
-    worldCopyJump: false
+    worldCopyJump: false,
+    preferCanvas: true
   });
 
   window.L.control.zoom({ position: 'topright' }).addTo(mapState.map);
@@ -4727,11 +4939,11 @@ function bindEvents() {
 }
 
 async function init() {
+  await loadScenarioConfig();
   applyTheme(getStoredTheme(), false);
-  setActiveView('answer');
+  setActiveView('map');
   initMap();
   bindEvents();
-  initCaseMapPanel();
   updateBadge();
   setTaskPlaceholder();
   renderFinalAnswerPanel();
