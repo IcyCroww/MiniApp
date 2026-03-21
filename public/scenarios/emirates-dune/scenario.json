@@ -67,8 +67,8 @@
     "tourAgentPortrait": "public/scenarios/emirates-dune/assets/dune-tour-agent.png",
     "leaderPortrait": "public/scenarios/emirates-dune/assets/sheikh-said-al-nasir.png",
     "cityMaps": {
-      "al_kasir": "public/scenarios/emirates-dune/assets/al-kasir-map.png",
-      "zarak_mir": "public/scenarios/emirates-dune/assets/zarak-mir-map.png",
+      "al_kasir": "public/assets/maps/Al-kasir.jpg",
+      "zarak_mir": "public/assets/maps/zarak.jpg",
       "zarif": "public/scenarios/emirates-dune/assets/zarif-map.png"
     },
     "props": {
@@ -133,7 +133,7 @@
           "media": [
             {
               "type": "image",
-              "src": "./scenarios/emirates-dune/assets/al-kasir-map.png",
+              "src": "./assets/maps/Al-kasir.jpg",
               "title": "Схема Аль-Касира",
               "alt": "Схема города Аль-Касир"
             }

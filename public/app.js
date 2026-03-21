@@ -997,15 +997,15 @@ const caseMapSourceState = {
 const INLINE_CITY_IMAGE_MAPS = {
   al_kasir: {
     title: 'Карта Аль-Касира',
-    src: './scenarios/emirates-dune/assets/al-kasir-map.png',
+    src: './assets/maps/Al-kasir.jpg',
     alt: 'Карта города Аль-Касир',
     note: 'Это локальная карта города. Дальше загадки по Аль-Касиру будем открывать уже из неё.'
   },
   zarak_mir: {
     title: 'Карта Зарак-Мира',
-    src: '',
+    src: './assets/maps/zarak.jpg',
     alt: 'Карта города Зарак-Мир',
-    note: 'Слот под вторую городскую карту уже готов. Как только файл карты будет в проекте, она откроется здесь.'
+    note: 'Это локальная карта Зарака. Позже можно будет открыть его внутренние точки уже с неё.'
   }
 };
 
@@ -5034,12 +5034,18 @@ function resetMapView() {
   destroyCityTaskMap();
 
   if (isImageRouteMap && mapState.map && mapState.bounds) {
-    mapState.map.flyToBounds(mapState.bounds, {
-      animate: true,
-      duration: 0.9,
-      easeLinearity: 0.22,
-      padding: [0, 0]
-    });
+    mapState.map.stop?.();
+    mapState.map.invalidateSize();
+    mapState.map.setMaxBounds(mapState.bounds);
+    mapState.map.setView(
+      mapState.bounds.getCenter(),
+      Number.isFinite(mapState.imageBaseZoom) ? mapState.imageBaseZoom : mapState.map.getZoom(),
+      { animate: false }
+    );
+    mapState.map.panInsideBounds(mapState.bounds, { animate: false });
+    window.setTimeout(() => {
+      mapState.map?.invalidateSize();
+    }, 120);
     return;
   }
 
