@@ -5031,7 +5031,16 @@ function resetMapView() {
   }
 
   const isImageRouteMap = scenarioState.routeMapMode === 'image';
+  const isImageCityMap = isImageRouteMap && Boolean(mapState.imageCityPointId);
   destroyCityTaskMap();
+
+  if (isImageCityMap) {
+    state.selectedPointId = null;
+    setCityMode(false);
+    setTaskPlaceholder();
+    initImageRouteMap();
+    return;
+  }
 
   if (isImageRouteMap && mapState.map && mapState.bounds) {
     mapState.map.stop?.();
