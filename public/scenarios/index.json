@@ -1,6 +1,12 @@
-{
-  "defaultScenarioId": "italy",
+﻿{
+  "defaultScenarioId": "campaign",
   "scenarios": [
+    {
+      "id": "campaign",
+      "title": "Общий сценарий",
+      "playable": true,
+      "src": "./scenarios/campaign/scenario.json"
+    },
     {
       "id": "italy",
       "title": "Италия",

@@ -817,8 +817,14 @@ let defaultTaskState = {
 };
 
 const DEFAULT_SCENARIO_REGISTRY = {
-  defaultScenarioId: 'italy',
+  defaultScenarioId: 'campaign',
   scenarios: [
+    {
+      id: 'campaign',
+      title: 'Общий сценарий',
+      playable: true,
+      src: './scenarios/campaign/scenario.json'
+    },
     {
       id: 'italy',
       title: 'Италия',
@@ -1038,7 +1044,7 @@ rebuildPointIndexes();
 const scenarioState = {
   registry: DEFAULT_SCENARIO_REGISTRY,
   activeId: DEFAULT_SCENARIO_REGISTRY.defaultScenarioId,
-  activeTitle: 'Италия',
+  activeTitle: 'Общий сценарий',
   activeConfig: null,
   routeMapMode: 'leaflet',
   routeMapImageSrc: './assets/maps/italy-schematic.svg'
@@ -1489,7 +1495,7 @@ async function loadScenarioConfig() {
 
   scenarioState.registry = registry;
   const requestedId = getRequestedScenarioId();
-  const defaultId = String(registry.defaultScenarioId || DEFAULT_SCENARIO_REGISTRY.defaultScenarioId || 'italy').trim().toLowerCase();
+  const defaultId = String(registry.defaultScenarioId || DEFAULT_SCENARIO_REGISTRY.defaultScenarioId || 'campaign').trim().toLowerCase();
   const registryMap = new Map((registry.scenarios || []).map((entry) => [String(entry.id || '').trim().toLowerCase(), entry]));
 
   let selectedEntry = registryMap.get(requestedId) || registryMap.get(defaultId) || registry.scenarios[0] || DEFAULT_SCENARIO_REGISTRY.scenarios[0];
