@@ -94,8 +94,8 @@
                                         "text":  "Город гостеприимства и ritual gahwa.",
                                         "markerColor":  "#7f9c4d",
                                         "mapPosition":  {
-                                                            "x":  25.9,
-                                                            "y":  35.7
+                                                            "x":  26.4,
+                                                            "y":  60.4
                                                         },
                                         "task":  {
                                                      "kind":  "empty",
@@ -217,8 +217,8 @@
                                         "text":  "Город света, ворот и первых протокольных следов.",
                                         "markerColor":  "#d9a347",
                                         "mapPosition":  {
-                                                            "x":  33.4,
-                                                            "y":  59.8
+                                                            "x":  34.8,
+                                                            "y":  50.2
                                                         },
                                         "task":  {
                                                      "kind":  "empty",

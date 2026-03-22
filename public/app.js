@@ -4929,14 +4929,20 @@ function renderReturnToCityButton(point) {
   const button = document.createElement('button');
   button.type = 'button';
   button.className = 'city-poi-chip task-back-chip';
-  button.textContent = `К карте ${parentPoint.title}`;
+  button.textContent = 'Назад к точкам города';
   button.addEventListener('click', () => {
     state.selectedPointId = parentPoint.id;
+    mapState.pendingFocusPointId = null;
+    setTaskResult('');
+    setTaskAnswer('');
+
+    if (scenarioState.routeMapMode === 'image' && getPointInlineCityImageMap(parentPoint)?.src) {
+      initImageRouteMap(parentPoint);
+    }
+
     updateBadge();
     refreshMarkers();
     setCityMode(true);
-    setTaskResult('');
-    setTaskAnswer('');
     renderTask(parentPoint);
     triggerHaptic('light');
   });
