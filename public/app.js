@@ -5068,15 +5068,12 @@ function resetMapView() {
   destroyCityTaskMap();
 
   if (isImageCityMap) {
-    const currentCityPoint = pointsById.get(String(mapState.imageCityPointId || '').trim());
-    const currentCityImage = getPointInlineCityImageMap(currentCityPoint);
-
-    if (currentCityPoint && currentCityImage?.src) {
-      initImageRouteMap(currentCityPoint);
-    } else {
-      mapState.imageCityPointId = null;
-      initImageRouteMap();
-    }
+    state.selectedPointId = null;
+    mapState.imageCityPointId = null;
+    mapState.pendingFocusPointId = null;
+    setCityMode(false);
+    setTaskPlaceholder();
+    initImageRouteMap();
     return;
   }
 
