@@ -961,6 +961,7 @@ const mapState = {
   decoderClues: new Map(),
   rotorAngles: new Map(),
   chessStates: new Map(),
+  taskOutcomes: new Map(),
   cityVisits: new Map(),
   cityHints: new Map(),
   cityOverlayLayer: null,
@@ -2524,16 +2525,89 @@ function setCityMode(enabled) {
   updateMapButtonLabels();
 }
 
-function completeTask(point) {
+function getTaskOutcome(pointId) {
+  return mapState.taskOutcomes.get(pointId) || null;
+}
+
+function rememberTaskOutcome(pointId, outcome = {}) {
+  if (!pointId) {
+    return null;
+  }
+
+  const nextOutcome = {
+    ...(mapState.taskOutcomes.get(pointId) || {}),
+    ...outcome
+  };
+
+  mapState.taskOutcomes.set(pointId, nextOutcome);
+  return nextOutcome;
+}
+
+function getTaskCorrectIndexes(task = {}) {
+  if (Array.isArray(task.correct)) {
+    return task.correct
+      .map((value) => Number(value))
+      .filter((value) => Number.isInteger(value));
+  }
+
+  if (Number.isInteger(task.correct)) {
+    return [task.correct];
+  }
+
+  return [];
+}
+
+function getTaskOptionOutcome(task = {}, selectedIndex) {
+  if (!task.optionOutcomes || typeof task.optionOutcomes !== 'object') {
+    return null;
+  }
+
+  return task.optionOutcomes[String(selectedIndex)] || task.optionOutcomes[selectedIndex] || null;
+}
+
+function showSolvedTaskState(point) {
+  const outcome = getTaskOutcome(point.id) || {};
+  setTaskResult(outcome.successText || point.task.success || 'Загадка уже решена.', 'ok');
+  setTaskAnswer(
+    outcome.answerText || point.task.answerText || '',
+    outcome.answerLabel || point.task.answerLabel || 'Ключ'
+  );
+}
+
+function grantTaskItemAwards(point, itemAwards = []) {
+  if (!Array.isArray(itemAwards)) {
+    return;
+  }
+
+  itemAwards.forEach((itemMeta) => {
+    if (!itemMeta || typeof itemMeta !== 'object') {
+      return;
+    }
+
+    void postTeamEvent('item-collected', point.id, {
+      ...itemMeta,
+      pointId: point.id
+    });
+  });
+}
+
+function completeTask(point, outcome = {}) {
   if (mapState.solved.has(point.id)) {
     return;
   }
 
+  rememberTaskOutcome(point.id, outcome);
   mapState.solved.add(point.id);
   updateBadge();
   refreshMarkers();
   triggerHaptic('success');
-  void postTeamEvent('task-solved', point.id, { kind: point.task.kind });
+  if (Array.isArray(outcome.itemAwards) && outcome.itemAwards.length > 0) {
+    grantTaskItemAwards(point, outcome.itemAwards);
+  }
+  void postTeamEvent('task-solved', point.id, {
+    kind: point.task.kind,
+    selectedIndex: Number.isInteger(outcome.selectedIndex) ? outcome.selectedIndex : null
+  });
 }
 
 function checkTaskAnswer(point, selectedIndex) {
@@ -2549,27 +2623,40 @@ function checkTaskAnswer(point, selectedIndex) {
 
   selectedButton.classList.add('is-selected');
 
-  if (selectedIndex === point.task.correct) {
+  const correctIndexes = getTaskCorrectIndexes(point.task);
+  const isCorrect = correctIndexes.includes(selectedIndex);
+
+  if (isCorrect) {
+    const optionOutcome = getTaskOptionOutcome(point.task, selectedIndex) || {};
     selectedButton.classList.add('is-correct');
     optionButtons.forEach((button) => {
       button.disabled = true;
       button.classList.add('is-locked');
     });
 
-    completeTask(point);
-    setTaskResult(point.task.success, 'ok');
-    setTaskAnswer(point.task.answerText, point.task.answerLabel || 'Ключ');
+    completeTask(point, {
+      selectedIndex,
+      answerText: optionOutcome.answerText || point.task.answerText || '',
+      answerLabel: optionOutcome.answerLabel || point.task.answerLabel || 'Ключ',
+      successText: optionOutcome.successText || point.task.success || '',
+      itemAwards: Array.isArray(optionOutcome.itemAwards)
+        ? optionOutcome.itemAwards
+        : (Array.isArray(point.task.itemAwards) ? point.task.itemAwards : [])
+    });
+    showSolvedTaskState(point);
     return;
   }
 
   selectedButton.classList.add('is-wrong');
 
-  const correctButton = optionButtons[point.task.correct];
-  if (correctButton) {
-    correctButton.classList.add('is-correct');
-  }
+  correctIndexes.forEach((correctIndex) => {
+    const correctButton = optionButtons[correctIndex];
+    if (correctButton) {
+      correctButton.classList.add('is-correct');
+    }
+  });
 
-  setTaskResult('Неверно. Проверьте деталь протокола и попробуйте снова.', 'bad');
+  setTaskResult(point.task.wrongResultText || 'Неверно. Проверьте деталь протокола и попробуйте снова.', 'bad');
   setTaskAnswer('');
   triggerHaptic('error');
 }
@@ -4999,8 +5086,7 @@ function renderTask(point) {
     renderTaskMedia(point);
     renderSliderBoard(point);
     if (mapState.solved.has(point.id)) {
-      setTaskResult(point.task.success || 'Загадка уже решена.', 'ok');
-      setTaskAnswer(point.task.answerText, point.task.answerLabel || 'Ключ');
+      showSolvedTaskState(point);
     }
     return;
   }
@@ -5011,8 +5097,7 @@ function renderTask(point) {
     renderTaskMedia(point);
     renderCaesarTask(point);
     if (mapState.solved.has(point.id)) {
-      setTaskResult(point.task.success || 'Загадка уже решена.', 'ok');
-      setTaskAnswer(point.task.answerText, point.task.answerLabel || 'Ключ');
+      showSolvedTaskState(point);
     }
     return;
   }
@@ -5023,8 +5108,7 @@ function renderTask(point) {
     renderTaskMedia(point);
     renderMatchTask(point);
     if (mapState.solved.has(point.id)) {
-      setTaskResult(point.task.success || 'Загадка уже решена.', 'ok');
-      setTaskAnswer(point.task.answerText, point.task.answerLabel || 'Ключ');
+      showSolvedTaskState(point);
     }
     return;
   }
@@ -5035,8 +5119,7 @@ function renderTask(point) {
     renderTaskMedia(point);
     renderHotspotTask(point);
     if (mapState.solved.has(point.id)) {
-      setTaskResult(point.task.success || 'Загадка уже решена.', 'ok');
-      setTaskAnswer(point.task.answerText, point.task.answerLabel || 'Ключ');
+      showSolvedTaskState(point);
     }
     return;
   }
@@ -5047,8 +5130,7 @@ function renderTask(point) {
     renderTaskMedia(point);
     renderScannerTask(point);
     if (mapState.solved.has(point.id)) {
-      setTaskResult(point.task.success || 'Загадка уже решена.', 'ok');
-      setTaskAnswer(point.task.answerText, point.task.answerLabel || 'Ключ');
+      showSolvedTaskState(point);
     }
     return;
   }
@@ -5059,8 +5141,7 @@ function renderTask(point) {
     renderTaskMedia(point);
     renderRotorTask(point);
     if (mapState.solved.has(point.id)) {
-      setTaskResult(point.task.success || 'Загадка уже решена.', 'ok');
-      setTaskAnswer(point.task.answerText, point.task.answerLabel || 'Ключ');
+      showSolvedTaskState(point);
     }
     return;
   }
@@ -5071,8 +5152,7 @@ function renderTask(point) {
     renderTaskMedia(point);
     renderDecoderTask(point);
     if (mapState.solved.has(point.id)) {
-      setTaskResult(point.task.success || 'Загадка уже решена.', 'ok');
-      setTaskAnswer(point.task.answerText, point.task.answerLabel || 'Ключ');
+      showSolvedTaskState(point);
     }
     return;
   }
@@ -5083,8 +5163,7 @@ function renderTask(point) {
     renderTaskMedia(point);
     renderAnagramTask(point);
     if (mapState.solved.has(point.id)) {
-      setTaskResult(point.task.success || 'Загадка уже решена.', 'ok');
-      setTaskAnswer(point.task.answerText, point.task.answerLabel || 'Ключ');
+      showSolvedTaskState(point);
     }
     return;
   }
@@ -5095,8 +5174,7 @@ function renderTask(point) {
     renderTaskMedia(point);
     renderChessTask(point);
     if (mapState.solved.has(point.id)) {
-      setTaskResult(point.task.success || 'Загадка уже решена.', 'ok');
-      setTaskAnswer(point.task.answerText, point.task.answerLabel || 'Ключ');
+      showSolvedTaskState(point);
     }
     return;
   }
@@ -5104,6 +5182,8 @@ function renderTask(point) {
   renderCityImageTask(point);
   renderReturnToCityButton(point);
   renderTaskMedia(point);
+  const correctIndexes = getTaskCorrectIndexes(point.task);
+  const solvedOutcome = getTaskOutcome(point.id);
   point.task.options.forEach((optionText, index) => {
     const button = document.createElement('button');
     button.type = 'button';
@@ -5113,7 +5193,11 @@ function renderTask(point) {
     if (mapState.solved.has(point.id)) {
       button.disabled = true;
       button.classList.add('is-locked');
-      if (index === point.task.correct) {
+      if (Number.isInteger(solvedOutcome?.selectedIndex)) {
+        if (index === solvedOutcome.selectedIndex) {
+          button.classList.add('is-correct');
+        }
+      } else if (correctIndexes.includes(index)) {
         button.classList.add('is-correct');
       }
     }
@@ -5126,8 +5210,7 @@ function renderTask(point) {
   });
 
   if (mapState.solved.has(point.id)) {
-    setTaskResult(point.task.success || 'Загадка уже решена.', 'ok');
-    setTaskAnswer(point.task.answerText, point.task.answerLabel || 'Ключ');
+    showSolvedTaskState(point);
   }
 }
 

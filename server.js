@@ -355,6 +355,9 @@ function normalizeDb(rawDb) {
     if (!Array.isArray(stats.issuedClueNumbers)) {
       stats.issuedClueNumbers = [];
     }
+    if (!Array.isArray(stats.collectedItems)) {
+      stats.collectedItems = [];
+    }
     if (typeof stats.finalAnswerText !== 'string') {
       stats.finalAnswerText = '';
     }
@@ -402,6 +405,16 @@ function normalizeDb(rawDb) {
     });
     stats.issuedClueNumbers = stats.issuedClueNumbers.filter((number) => Number(number) !== 7);
     stats.issuedClueNumbers.sort((a, b) => Number(a) - Number(b));
+    stats.collectedItems = stats.collectedItems
+      .filter((item) => item && typeof item === 'object')
+      .map((item) => ({
+        id: String(item.id || '').trim(),
+        label: String(item.label || item.id || '').trim(),
+        variant: String(item.variant || '').trim(),
+        pointId: String(item.pointId || '').trim(),
+        at: String(item.at || '').trim() || nowIso()
+      }))
+      .filter((item) => item.id);
     if (!Array.isArray(stats.routeLog)) {
       stats.routeLog = [];
     }
@@ -538,6 +551,7 @@ function ensureTeamStats(db, teamName) {
       solvedPointIds: [],
       collectedClueNumbers: [],
       issuedClueNumbers: [],
+      collectedItems: [],
       finalAnswerText: '',
       finalAnswerAt: '',
       finalAnswerMoveCount: 0,
@@ -634,6 +648,34 @@ function collectIssuedClue(stats, clueNumber) {
 
   ensureUniquePush(stats.issuedClueNumbers, clueNumber);
   stats.issuedClueNumbers.sort((a, b) => Number(a) - Number(b));
+}
+
+function collectTeamItem(stats, itemMeta = {}, pointId = '') {
+  const itemId = String(itemMeta.itemId || itemMeta.id || '').trim();
+  if (!itemId) {
+    return null;
+  }
+
+  if (!Array.isArray(stats.collectedItems)) {
+    stats.collectedItems = [];
+  }
+
+  const nextItem = {
+    id: itemId,
+    label: String(itemMeta.itemLabel || itemMeta.label || itemId).trim(),
+    variant: String(itemMeta.variant || itemMeta.variantLabel || '').trim(),
+    pointId: String(pointId || itemMeta.pointId || '').trim(),
+    at: nowIso()
+  };
+
+  const existingIndex = stats.collectedItems.findIndex((item) => item.id === itemId);
+  if (existingIndex >= 0) {
+    stats.collectedItems[existingIndex] = nextItem;
+  } else {
+    stats.collectedItems.push(nextItem);
+  }
+
+  return nextItem;
 }
 
 function enrichTriggerItem(item) {
@@ -740,6 +782,7 @@ function adminStats(stats) {
     solvedCount: Array.isArray(stats.solvedPointIds) ? stats.solvedPointIds.length : 0,
     collectedClueNumbers: Array.isArray(stats.collectedClueNumbers) ? stats.collectedClueNumbers.slice() : [],
     issuedClueNumbers: Array.isArray(stats.issuedClueNumbers) ? stats.issuedClueNumbers.slice() : [],
+    collectedItems: Array.isArray(stats.collectedItems) ? stats.collectedItems.slice() : [],
     finalAnswerText: typeof stats.finalAnswerText === 'string' ? stats.finalAnswerText : '',
     finalAnswerAt: typeof stats.finalAnswerAt === 'string' ? stats.finalAnswerAt : '',
     finalAnswerMoveCount: Number(stats.finalAnswerMoveCount) || 0,
@@ -755,6 +798,7 @@ function participantStats(stats) {
     teamName: stats.teamName,
     finalAnswerText: typeof stats.finalAnswerText === 'string' ? stats.finalAnswerText : '',
     finalAnswerAt: typeof stats.finalAnswerAt === 'string' ? stats.finalAnswerAt : '',
+    collectedItems: Array.isArray(stats.collectedItems) ? stats.collectedItems.slice() : [],
     updatedAt: stats.updatedAt || nowIso()
   };
 }
@@ -962,6 +1006,10 @@ app.post('/api/event', async (req, res) => {
         ensureUniquePush(stats.poiVisitsByPoint[pointId], String(meta.poiId));
       }
 
+      if (eventType === 'item-collected') {
+        collectTeamItem(stats, meta, pointId);
+      }
+
       if (pointId && (eventType === 'travel' || eventType === 'task-solved' || eventType === 'city-poi')) {
         appendRouteLog(stats, eventType, pointId, meta);
       }
@@ -1121,6 +1169,7 @@ app.get('/api/admin/export/teams.csv', async (_, res) => {
         'Города',
         'Решено',
         'Собранные улики',
+        'Предметы',
         'Выданные улики',
         'Текущая точка',
         'Итоговый ответ',
@@ -1134,6 +1183,7 @@ app.get('/api/admin/export/teams.csv', async (_, res) => {
         team.uniquePointCount,
         team.solvedCount,
         (team.collectedClueNumbers || []).join(', '),
+        (team.collectedItems || []).map((item) => item.variant ? `${item.label}: ${item.variant}` : item.label).join(' | '),
         (team.issuedClueNumbers || []).join(', '),
         team.currentPointLabel || '',
         team.finalAnswerText || '',

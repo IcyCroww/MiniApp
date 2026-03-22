@@ -187,6 +187,20 @@
       font-weight: 700;
       color: #35554b;
     }
+    .item-list {
+      display: grid;
+      gap: 6px;
+    }
+    .item-card {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 6px 8px;
+      background: #f7faf5;
+    }
+    .item-card strong {
+      display: block;
+      margin-bottom: 2px;
+    }
     .trigger-item.done {
       border: 1px solid var(--line);
       background: #edf7f0;
@@ -212,6 +226,7 @@
           <th>Команда</th>
           <th>Перемещения</th>
           <th>Собрано</th>
+          <th>Предметы</th>
           <th>Сейчас</th>
           <th>Улики</th>
           <th>Действия</th>
@@ -316,6 +331,20 @@
       `).join('')}</div>`;
     }
 
+    function renderCollectedItems(items) {
+      if (!Array.isArray(items) || items.length === 0) {
+        return '<span class="empty">Пока предметов нет</span>';
+      }
+
+      return `<div class="item-list">${items.map((item) => `
+        <div class="item-card">
+          <strong>${escapeHtml(item.label || item.id)}</strong>
+          ${item.variant ? `<div>${escapeHtml(item.variant)}</div>` : ''}
+          <span class="trigger-time">${escapeHtml(item.at || '')}</span>
+        </div>
+      `).join('')}</div>`;
+    }
+
     function renderFinalAnswers(items) {
       if (!Array.isArray(items) || items.length === 0) {
         finalAnswersList.innerHTML = '<span class="empty">Пока никто не отправил итоговый ответ.</span>';
@@ -345,6 +374,7 @@
             <div class="empty">Города: ${team.uniquePointCount} | Решено: ${team.solvedCount}</div>
           </td>
           <td>${renderCollectedClues(team.collectedClueNumbers)}</td>
+          <td>${renderCollectedItems(team.collectedItems)}</td>
           <td class="${currentClass}">${currentLabel}</td>
           <td>${renderClueStatuses(team.pendingTriggers, team.issuedTriggers)}</td>
           <td>${renderTriggers(team.teamName, team.pendingTriggers)}</td>
