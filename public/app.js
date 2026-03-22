@@ -4974,7 +4974,9 @@ function renderTask(point) {
   setTaskAnswer('');
 
   if (point.task.kind === 'empty') {
-    setTaskResult(point.task.info || 'В этой точке нет активной загадки.', 'info');
+    if (String(point.task.info || '').trim()) {
+      setTaskResult(point.task.info, 'info');
+    }
     renderCityImageTask(point);
     renderReturnToCityButton(point);
     renderTaskMedia(point);
