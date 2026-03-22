@@ -4693,6 +4693,12 @@ function renderTaskMedia(point) {
   const wrap = document.createElement('div');
   wrap.className = 'task-media';
 
+  const cleanupEmptyWrap = () => {
+    if (!wrap.children.length) {
+      wrap.remove();
+    }
+  };
+
   items.forEach((item) => {
     const card = document.createElement('div');
     card.className = 'task-media-card';
@@ -4708,6 +4714,10 @@ function renderTaskMedia(point) {
       image.src = item.src;
       image.alt = item.alt || item.title || 'Изображение';
       image.loading = 'lazy';
+      image.addEventListener('error', () => {
+        card.remove();
+        cleanupEmptyWrap();
+      });
       card.appendChild(image);
     } else if (item.type === 'video') {
       const video = document.createElement('video');
@@ -4716,6 +4726,10 @@ function renderTaskMedia(point) {
       video.controls = true;
       video.preload = 'metadata';
       video.playsInline = true;
+      video.addEventListener('error', () => {
+        card.remove();
+        cleanupEmptyWrap();
+      });
       card.appendChild(video);
     } else if (item.type === 'audio') {
       const audio = document.createElement('audio');
@@ -4723,13 +4737,19 @@ function renderTaskMedia(point) {
       audio.src = item.src;
       audio.controls = true;
       audio.preload = 'metadata';
+      audio.addEventListener('error', () => {
+        card.remove();
+        cleanupEmptyWrap();
+      });
       card.appendChild(audio);
     }
 
     wrap.appendChild(card);
   });
 
-  taskOptionsNode.appendChild(wrap);
+  if (wrap.children.length) {
+    taskOptionsNode.appendChild(wrap);
+  }
 }
 
 function normalizeAnagramWord(value = '') {
@@ -4883,6 +4903,48 @@ function renderCityImageTask(point) {
   taskOptionsNode.appendChild(wrap);
 }
 
+function renderReturnToCityButton(point) {
+  const parentId = String(point.parentCityId || '').trim();
+  if (!parentId) {
+    return;
+  }
+
+  if (scenarioState.routeMapMode !== 'image' || String(mapState.imageCityPointId || '').trim() !== parentId) {
+    return;
+  }
+
+  const parentPoint = pointsById.get(parentId);
+  if (!parentPoint) {
+    return;
+  }
+
+  const wrap = document.createElement('div');
+  wrap.className = 'task-inline-actions';
+
+  const note = document.createElement('p');
+  note.className = 'task-mini-note';
+  note.textContent = `Сейчас открыта точка на карте ${parentPoint.title}. Можно вернуться к обзору города без выхода на мировую карту.`;
+  wrap.appendChild(note);
+
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = 'city-poi-chip task-back-chip';
+  button.textContent = `К карте ${parentPoint.title}`;
+  button.addEventListener('click', () => {
+    state.selectedPointId = parentPoint.id;
+    updateBadge();
+    refreshMarkers();
+    setCityMode(true);
+    setTaskResult('');
+    setTaskAnswer('');
+    renderTask(parentPoint);
+    triggerHaptic('light');
+  });
+  wrap.appendChild(button);
+
+  taskOptionsNode.appendChild(wrap);
+}
+
 function renderTask(point) {
   taskKickerNode.textContent = point.task.kicker;
   taskTitleNode.textContent = point.task.title || `${point.title}: загадка`;
@@ -4895,6 +4957,7 @@ function renderTask(point) {
   if (point.task.kind === 'empty') {
     setTaskResult(point.task.info || 'В этой точке нет активной загадки.', 'info');
     renderCityImageTask(point);
+    renderReturnToCityButton(point);
     renderTaskMedia(point);
     if (point.task.cityMap) {
       renderCityMapTask(point);
@@ -4905,6 +4968,7 @@ function renderTask(point) {
 
   if (point.task.kind === 'slider') {
     renderCityImageTask(point);
+    renderReturnToCityButton(point);
     renderTaskMedia(point);
     renderSliderBoard(point);
     if (mapState.solved.has(point.id)) {
@@ -4916,6 +4980,7 @@ function renderTask(point) {
 
   if (point.task.kind === 'caesar') {
     renderCityImageTask(point);
+    renderReturnToCityButton(point);
     renderTaskMedia(point);
     renderCaesarTask(point);
     if (mapState.solved.has(point.id)) {
@@ -4927,6 +4992,7 @@ function renderTask(point) {
 
   if (point.task.kind === 'match') {
     renderCityImageTask(point);
+    renderReturnToCityButton(point);
     renderTaskMedia(point);
     renderMatchTask(point);
     if (mapState.solved.has(point.id)) {
@@ -4938,6 +5004,7 @@ function renderTask(point) {
 
   if (point.task.kind === 'hotspot') {
     renderCityImageTask(point);
+    renderReturnToCityButton(point);
     renderTaskMedia(point);
     renderHotspotTask(point);
     if (mapState.solved.has(point.id)) {
@@ -4949,6 +5016,7 @@ function renderTask(point) {
 
   if (point.task.kind === 'scanner') {
     renderCityImageTask(point);
+    renderReturnToCityButton(point);
     renderTaskMedia(point);
     renderScannerTask(point);
     if (mapState.solved.has(point.id)) {
@@ -4960,6 +5028,7 @@ function renderTask(point) {
 
   if (point.task.kind === 'rotor') {
     renderCityImageTask(point);
+    renderReturnToCityButton(point);
     renderTaskMedia(point);
     renderRotorTask(point);
     if (mapState.solved.has(point.id)) {
@@ -4971,6 +5040,7 @@ function renderTask(point) {
 
   if (point.task.kind === 'decoder') {
     renderCityImageTask(point);
+    renderReturnToCityButton(point);
     renderTaskMedia(point);
     renderDecoderTask(point);
     if (mapState.solved.has(point.id)) {
@@ -4982,6 +5052,7 @@ function renderTask(point) {
 
   if (point.task.kind === 'anagram') {
     renderCityImageTask(point);
+    renderReturnToCityButton(point);
     renderTaskMedia(point);
     renderAnagramTask(point);
     if (mapState.solved.has(point.id)) {
@@ -4993,6 +5064,7 @@ function renderTask(point) {
 
   if (point.task.kind === 'chess') {
     renderCityImageTask(point);
+    renderReturnToCityButton(point);
     renderTaskMedia(point);
     renderChessTask(point);
     if (mapState.solved.has(point.id)) {
@@ -5003,6 +5075,7 @@ function renderTask(point) {
   }
 
   renderCityImageTask(point);
+  renderReturnToCityButton(point);
   renderTaskMedia(point);
   point.task.options.forEach((optionText, index) => {
     const button = document.createElement('button');
@@ -5054,10 +5127,9 @@ function focusPoint(point) {
   if (isInsideMatchingImageCity) {
     const imageLatLng = getImageMapLatLngFromPosition(point.mapPosition);
     if (imageLatLng && mapState.map) {
-      const nextZoom = Math.max(mapState.imageBaseZoom + 1.15, mapState.map.getZoom());
-      mapState.map.flyTo(imageLatLng, nextZoom, {
+      mapState.map.flyTo(imageLatLng, mapState.map.getZoom(), {
         animate: true,
-        duration: 0.55,
+        duration: 0.35,
         easeLinearity: 0.2
       });
     }
@@ -5379,9 +5451,13 @@ function buildRouteImageMap(imageUrl, width, height, options = {}) {
     });
   }
 
-  map.fitBounds(bounds, { animate: false, padding: [0, 0] });
+  const isCityImageMap = Boolean(String(options.cityPointId || '').trim());
+  map.fitBounds(bounds, {
+    animate: false,
+    padding: isCityImageMap ? [24, 24] : [0, 0]
+  });
   mapState.imageBaseZoom = map.getZoom();
-  map.setMinZoom(mapState.imageBaseZoom - 0.6);
+  map.setMinZoom(mapState.imageBaseZoom - (isCityImageMap ? 1.85 : 0.6));
   map.setMaxZoom(mapState.imageBaseZoom + 4);
   map.setMaxBounds(bounds);
 
