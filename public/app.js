@@ -1274,7 +1274,7 @@ function animateTextNode(node, text = '', options = {}) {
 }
 
 function setTaskQuestion(text = '', options = {}) {
-  animateTextNode(taskQuestionNode, text, { msPerChar: 16, ...options });
+  animateTextNode(taskQuestionNode, text, { hideWhenEmpty: true, msPerChar: 16, ...options });
 }
 
 function syncThemeButton(themeName = THEME_MODES.light) {
@@ -2404,7 +2404,9 @@ function hideFallbackMap() {
 function setTaskPlaceholder() {
   destroyCityTaskMap();
   taskKickerNode.textContent = defaultTaskState.kicker;
+  taskKickerNode.hidden = false;
   taskTitleNode.textContent = defaultTaskState.title;
+  taskTitleNode.hidden = false;
   setTaskLore(defaultTaskState.lore);
   setTaskQuestion(defaultTaskState.question);
   taskOptionsNode.innerHTML = '';
@@ -4965,8 +4967,13 @@ function renderReturnToCityButton(point) {
 }
 
 function renderTask(point) {
-  taskKickerNode.textContent = point.task.kicker;
-  taskTitleNode.textContent = point.task.title || `${point.title}: загадка`;
+  const kickerText = String(point.task.kicker || '').trim();
+  const titleText = String(point.task.title || (point.task.kind === 'empty' ? '' : `${point.title}: загадка`)).trim();
+
+  taskKickerNode.textContent = kickerText;
+  taskKickerNode.hidden = !kickerText;
+  taskTitleNode.textContent = titleText;
+  taskTitleNode.hidden = !titleText;
   setTaskLore(point.task.lore || '');
   setTaskQuestion(point.task.question || '');
   taskOptionsNode.innerHTML = '';
