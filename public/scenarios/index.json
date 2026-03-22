@@ -1,4 +1,4 @@
-﻿{
+{
   "defaultScenarioId": "campaign",
   "scenarios": [
     {
@@ -24,6 +24,12 @@
       "title": "Государство Верона",
       "playable": false,
       "src": "./scenarios/verona/scenario.json"
+    },
+    {
+      "id": "argos",
+      "title": "?? / ?????",
+      "playable": false,
+      "src": "./scenarios/argos/scenario.json"
     }
   ]
 }
