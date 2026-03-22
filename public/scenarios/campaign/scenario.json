@@ -1,4 +1,4 @@
-﻿{
+{
     "id":  "campaign",
     "title":  "Общий сценарий",
     "status":  "playable",
@@ -43,8 +43,8 @@
                                         "text":  "Город гостеприимства и ritual gahwa.",
                                         "markerColor":  "#7f9c4d",
                                         "mapPosition":  {
-                                                            "x":  25.9,
-                                                            "y":  35.7
+                                                            "x":  26,
+                                                            "y":  58.8
                                                         },
                                         "task":  {
                                                      "kind":  "empty",
@@ -166,8 +166,8 @@
                                         "text":  "Город света, ворот и первых протокольных следов.",
                                         "markerColor":  "#d9a347",
                                         "mapPosition":  {
-                                                            "x":  33.4,
-                                                            "y":  59.8
+                                                            "x":  34.2,
+                                                            "y":  47.6
                                                         },
                                         "task":  {
                                                      "kind":  "empty",
@@ -589,8 +589,8 @@
                                         "text":  "Пустынный город следов и памяти.",
                                         "markerColor":  "#8f7454",
                                         "mapPosition":  {
-                                                            "x":  18.6,
-                                                            "y":  44.8
+                                                            "x":  22.2,
+                                                            "y":  63.8
                                                         },
                                         "task":  {
                                                      "kind":  "empty",
@@ -608,7 +608,7 @@
                                         "markerColor":  "#9f8260",
                                         "mapPosition":  {
                                                             "x":  29.4,
-                                                            "y":  22.8
+                                                            "y":  34.2
                                                         },
                                         "task":  {
                                                      "kind":  "empty",
@@ -625,8 +625,8 @@
                                         "text":  "Город воды, тени и короткой передышки.",
                                         "markerColor":  "#6f9ea4",
                                         "mapPosition":  {
-                                                            "x":  39.8,
-                                                            "y":  41.6
+                                                            "x":  36,
+                                                            "y":  56.2
                                                         },
                                         "task":  {
                                                      "kind":  "empty",
@@ -643,8 +643,8 @@
                                         "text":  "Город солнца и ступеней.",
                                         "markerColor":  "#c48b4d",
                                         "mapPosition":  {
-                                                            "x":  34.2,
-                                                            "y":  74.6
+                                                            "x":  35.4,
+                                                            "y":  24.8
                                                         },
                                         "task":  {
                                                      "kind":  "empty",
@@ -661,8 +661,8 @@
                                         "text":  "Город старых ворот и сомнений в пути.",
                                         "markerColor":  "#b88a6a",
                                         "mapPosition":  {
-                                                            "x":  22.6,
-                                                            "y":  65.8
+                                                            "x":  23.8,
+                                                            "y":  46.8
                                                         },
                                         "task":  {
                                                      "kind":  "empty",
@@ -679,8 +679,8 @@
                                         "text":  "Ночной город ветра и молчания.",
                                         "markerColor":  "#7a6a58",
                                         "mapPosition":  {
-                                                            "x":  17.8,
-                                                            "y":  83.4
+                                                            "x":  23,
+                                                            "y":  24
                                                         },
                                         "task":  {
                                                      "kind":  "empty",
@@ -697,8 +697,8 @@
                                         "text":  "Город отдыха перед длинной дорогой.",
                                         "markerColor":  "#9d7f57",
                                         "mapPosition":  {
-                                                            "x":  28.7,
-                                                            "y":  87.1
+                                                            "x":  29.2,
+                                                            "y":  18.4
                                                         },
                                         "task":  {
                                                      "kind":  "empty",
