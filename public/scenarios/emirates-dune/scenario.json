@@ -68,8 +68,7 @@
     "leaderPortrait": "public/scenarios/emirates-dune/assets/sheikh-said-al-nasir.png",
     "cityMaps": {
       "al_kasir": "public/assets/maps/Al-kasir.jpg",
-      "zarak_mir": "public/assets/maps/zarak.jpg",
-      "zarif": "public/scenarios/emirates-dune/assets/zarif-map.png"
+      "zarak_mir": "public/assets/maps/zarak.jpg"
     },
     "props": {
       "lamp_post": "public/scenarios/emirates-dune/assets/lamp-post.png",

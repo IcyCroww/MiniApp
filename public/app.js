@@ -971,7 +971,8 @@ const mapState = {
   imageWidth: 0,
   imageHeight: 0,
   imageBaseZoom: 0,
-  imageCityPointId: null
+  imageCityPointId: null,
+  pendingFocusPointId: null
 };
 
 const caseMapState = {
@@ -1501,6 +1502,31 @@ function getPointImageMapLatLng(pointId) {
   return getImageMapLatLngFromPosition(fallbackPointPositions[pointId]);
 }
 
+function normalizeScenarioAssetPath(rawPath = '') {
+  const trimmed = String(rawPath || '').trim();
+  if (!trimmed) {
+    return '';
+  }
+
+  if (trimmed.startsWith('./') || trimmed.startsWith('../') || /^https?:\/\//i.test(trimmed)) {
+    return trimmed;
+  }
+
+  if (trimmed.startsWith('/public/')) {
+    return `./${trimmed.slice('/public/'.length)}`;
+  }
+
+  if (trimmed.startsWith('public/')) {
+    return `./${trimmed.slice('public/'.length)}`;
+  }
+
+  if (trimmed.startsWith('/')) {
+    return trimmed;
+  }
+
+  return `./${trimmed}`;
+}
+
 function getPointInlineCityImageMap(point) {
   if (!point) {
     return null;
@@ -1508,6 +1534,19 @@ function getPointInlineCityImageMap(point) {
 
   if (point.task?.cityImageMap) {
     return point.task.cityImageMap;
+  }
+
+  const scenarioCityMapSrc = normalizeScenarioAssetPath(
+    scenarioState.activeConfig?.assets?.cityMaps?.[point.id] || ''
+  );
+
+  if (scenarioCityMapSrc) {
+    return {
+      title: `Карта ${point.title}`,
+      src: scenarioCityMapSrc,
+      alt: `Карта города ${point.title}`,
+      note: `Это локальная карта города ${point.title}.`
+    };
   }
 
   return INLINE_CITY_IMAGE_MAPS[point.id] || null;
@@ -4952,11 +4991,15 @@ function focusPoint(point) {
   const canUseLeafletGeoMap = Boolean(mapState.map) && !mapState.fallbackVisible && scenarioState.routeMapMode !== 'image';
   const cityImageMap = getPointInlineCityImageMap(point);
   const canUseRouteImageCityMap = scenarioState.routeMapMode === 'image' && Boolean(cityImageMap?.src);
+  const isInsideImageCityMap = scenarioState.routeMapMode === 'image' && Boolean(mapState.imageCityPointId);
 
   if (hasCityMap && canUseLeafletGeoMap) {
     activateCityOverlay(point);
   } else if (canUseRouteImageCityMap) {
     initImageRouteMap(point);
+  } else if (isInsideImageCityMap) {
+    mapState.pendingFocusPointId = point.id;
+    initImageRouteMap();
   } else if (mapState.map) {
     if (scenarioState.routeMapMode === 'image') {
       const imageLatLng = getPointImageMapLatLng(point.id);
@@ -5025,26 +5068,20 @@ function resetMapView() {
   destroyCityTaskMap();
 
   if (isImageCityMap) {
-    state.selectedPointId = null;
-    setCityMode(false);
-    setTaskPlaceholder();
-    initImageRouteMap();
+    const currentCityPoint = pointsById.get(String(mapState.imageCityPointId || '').trim());
+    const currentCityImage = getPointInlineCityImageMap(currentCityPoint);
+
+    if (currentCityPoint && currentCityImage?.src) {
+      initImageRouteMap(currentCityPoint);
+    } else {
+      mapState.imageCityPointId = null;
+      initImageRouteMap();
+    }
     return;
   }
 
-  if (isImageRouteMap && mapState.map && mapState.bounds) {
-    mapState.map.stop?.();
-    mapState.map.invalidateSize();
-    mapState.map.setMaxBounds(mapState.bounds);
-    mapState.map.setView(
-      mapState.bounds.getCenter(),
-      Number.isFinite(mapState.imageBaseZoom) ? mapState.imageBaseZoom : mapState.map.getZoom(),
-      { animate: false }
-    );
-    mapState.map.panInsideBounds(mapState.bounds, { animate: false });
-    window.setTimeout(() => {
-      mapState.map?.invalidateSize();
-    }, 120);
+  if (isImageRouteMap) {
+    initImageRouteMap();
     return;
   }
 
@@ -5244,6 +5281,17 @@ function buildRouteImageMap(imageUrl, width, height, options = {}) {
   map.setMaxZoom(mapState.imageBaseZoom + 4);
   map.setMaxBounds(bounds);
 
+  const pendingFocusPointId = String(mapState.pendingFocusPointId || '').trim();
+  if (options.showPoints !== false && pendingFocusPointId) {
+    mapState.pendingFocusPointId = null;
+    window.setTimeout(() => {
+      const pendingPoint = pointsById.get(pendingFocusPointId);
+      if (pendingPoint) {
+        focusPoint(pendingPoint);
+      }
+    }, 80);
+  }
+
   setTimeout(() => {
     map.invalidateSize();
   }, 120);
@@ -5277,6 +5325,13 @@ function initImageRouteMap(point = null) {
     });
   };
   image.onerror = () => {
+    if (useCityImage) {
+      mapState.imageCityPointId = null;
+      initImageRouteMap();
+      setTaskResult('Карта города не загрузилась. Возвращаем основную карту.', 'info');
+      return;
+    }
+
     showFallbackMap('Файл основной карты не загрузился. Пока можно работать по резервной схеме.');
     setTaskResult('Не удалось загрузить основную карту маршрута. Включена резервная схема.', 'info');
     renderFallbackMap();
