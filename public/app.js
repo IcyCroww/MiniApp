@@ -2496,12 +2496,11 @@ function setMapInteractionsEnabled(enabled) {
 
 function updateMapButtonLabels() {
   if (resetMapBtn) {
-    const isImageCityMap = scenarioState.routeMapMode === 'image' && Boolean(mapState.imageCityPointId);
-    resetMapBtn.textContent = isImageCityMap ? 'Вернуться к карте' : 'Сбросить вид';
+    resetMapBtn.textContent = 'Вернуть карту';
   }
 
   if (caseMapResetViewBtn) {
-    caseMapResetViewBtn.textContent = 'К карте города';
+    caseMapResetViewBtn.textContent = 'Вернуть карту';
   }
 }
 
