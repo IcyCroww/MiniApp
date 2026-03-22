@@ -1,24 +1,18 @@
-Сюда складываем ассеты для сценария Эмиратов Дюны.
-Именно из этой папки сейчас читаются изображения для загадок с фонарём и ковром.
+???? ?????? ????? ? ???????? ???????? ????.
 
-Рекомендуемые имена:
-
-- emirates-dune-country-map.png
-- dune-tour-agent.png
-- sheikh-said-al-nasir.png
-- al-kasir-map.png
-- zarak-mir-map.png
-- zarak-map.png
+??? ????????????:
 - lamp-post.png
 - zarak-carpet.png
 
-По текущим материалам уже есть хорошие референсы для:
+??????? ?????:
+- Al-kasir.jpg
+- zarak.jpg
 
-- tour-agent -> пожилой проводник в пустыне
-- leader -> шейх в белом одеянии
-- al-kasir-map -> карта Аль-Касира
-- zarak-mir-map -> карта Зарак-Мира
-- lamp-post -> изображение фонаря
-- zarak-carpet -> изображение ковра
-
-Пока под вопросом только дополнительная карта Зарака и общая карта страны.
+????????? ??? ?????? ??????:
+- kadir-map.png
+- al-sahir-map.png
+- nuray-map.png
+- rashidar-map.png
+- al-fadir-map.png
+- kasra-map.png
+- samir-map.png
