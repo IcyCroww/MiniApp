@@ -1532,13 +1532,17 @@ function getPointInlineCityImageMap(point) {
     return null;
   }
 
-  if (point.task?.cityImageMap) {
-    return point.task.cityImageMap;
-  }
-
   const scenarioCityMapSrc = normalizeScenarioAssetPath(
     scenarioState.activeConfig?.assets?.cityMaps?.[point.id] || ''
   );
+
+  if (point.task?.cityImageMap) {
+    const merged = { ...(point.task.cityImageMap || {}) };
+    if (!merged.src && scenarioCityMapSrc) {
+      merged.src = scenarioCityMapSrc;
+    }
+    return merged;
+  }
 
   if (scenarioCityMapSrc) {
     return {
@@ -1550,6 +1554,30 @@ function getPointInlineCityImageMap(point) {
   }
 
   return INLINE_CITY_IMAGE_MAPS[point.id] || null;
+}
+
+function normalizeImageCityPoint(rawPoint = {}, parentPoint) {
+  const normalized = normalizeScenarioPoint(rawPoint);
+  const localId = String(rawPoint.id || '').trim() || `spot_${Math.random().toString(36).slice(2, 7)}`;
+
+  return {
+    ...normalized,
+    id: `${parentPoint.id}.${localId}`,
+    localId,
+    parentCityId: parentPoint.id,
+    parentCityTitle: parentPoint.title,
+    markerColor: String(rawPoint.markerColor || parentPoint.markerColor || '#7f9c4d').trim(),
+    mapPosition: {
+      x: Number(rawPoint?.mapPosition?.x) || 50,
+      y: Number(rawPoint?.mapPosition?.y) || 50
+    }
+  };
+}
+
+function getImageCityPoints(point) {
+  const config = getPointInlineCityImageMap(point);
+  const rawPoints = Array.isArray(config?.points) ? config.points : [];
+  return rawPoints.map((item) => normalizeImageCityPoint(item, point)).filter((item) => item.id && item.task?.kind);
 }
 
 function getTaskMediaItems(point) {
@@ -4799,6 +4827,37 @@ function renderCityImageTask(point) {
   }
 
   if (isOpenedInMainMap) {
+    const cityPoints = getImageCityPoints(point);
+    if (cityPoints.length) {
+      const pickerLead = document.createElement('p');
+      pickerLead.className = 'task-mini-note';
+      pickerLead.textContent = 'Выберите точку на карте города или кнопку ниже.';
+      wrap.appendChild(pickerLead);
+
+      const pointList = document.createElement('div');
+      pointList.className = 'city-poi-list';
+
+      cityPoints.forEach((cityPoint) => {
+        const pointBtn = document.createElement('button');
+        pointBtn.type = 'button';
+        pointBtn.className = 'city-poi-chip';
+        pointBtn.textContent = cityPoint.title;
+
+        if (mapState.solved.has(cityPoint.id)) {
+          pointBtn.classList.add('is-visited');
+        }
+
+        pointBtn.addEventListener('click', () => {
+          focusPoint(cityPoint);
+          triggerHaptic('light');
+        });
+
+        pointList.appendChild(pointBtn);
+      });
+
+      wrap.appendChild(pointList);
+    }
+
     taskOptionsNode.appendChild(wrap);
     return;
   }
@@ -4986,6 +5045,32 @@ function focusPoint(point) {
   setActiveView('map');
   state.selectedPointId = point.id;
   mapState.visited.add(point.id);
+
+  const isImageCitySubpoint = Boolean(point.parentCityId);
+  const isInsideMatchingImageCity = scenarioState.routeMapMode === 'image'
+    && isImageCitySubpoint
+    && String(mapState.imageCityPointId || '').trim() === String(point.parentCityId || '').trim();
+
+  if (isInsideMatchingImageCity) {
+    const imageLatLng = getImageMapLatLngFromPosition(point.mapPosition);
+    if (imageLatLng && mapState.map) {
+      const nextZoom = Math.max(mapState.imageBaseZoom + 1.15, mapState.map.getZoom());
+      mapState.map.flyTo(imageLatLng, nextZoom, {
+        animate: true,
+        duration: 0.55,
+        easeLinearity: 0.2
+      });
+    }
+
+    updateBadge();
+    renderTask(point);
+    setCityMode(true);
+    void postTeamEvent('travel', point.id, {
+      source: 'image-city-point',
+      parentCityId: point.parentCityId || ''
+    });
+    return;
+  }
 
   const hasCityMap = Boolean(point.task.cityMap);
   const canUseLeafletGeoMap = Boolean(mapState.map) && !mapState.fallbackVisible && scenarioState.routeMapMode !== 'image';
@@ -5249,26 +5334,48 @@ function buildRouteImageMap(imageUrl, width, height, options = {}) {
   mapState.bounds = bounds;
   mapState.imageCityPointId = String(options.cityPointId || '').trim() || null;
 
+  const renderedPoints = Array.isArray(options.points) && options.points.length ? options.points : points;
+
   if (options.showPoints !== false) {
-    points.forEach((point) => {
-      const latLng = getPointImageMapLatLng(point.id);
+    renderedPoints.forEach((point) => {
+      const latLng = options.points
+        ? getImageMapLatLngFromPosition(point.mapPosition)
+        : getPointImageMapLatLng(point.id);
       if (!latLng) {
         return;
       }
 
-      const marker = window.L.circleMarker(latLng, markerStyle(point.id));
+      const localPointStyle = options.points
+        ? {
+            radius: state.selectedPointId === point.id ? 11 : 8,
+            color: '#f2f7ff',
+            weight: state.selectedPointId === point.id ? 3 : 2,
+            fillColor: mapState.solved.has(point.id)
+              ? '#19a56f'
+              : (mapState.visited.has(point.id) ? '#6e3de1' : (point.markerColor || '#ff7a18')),
+            fillOpacity: 0.96
+          }
+        : markerStyle(point.id);
+
+      const marker = window.L.circleMarker(latLng, localPointStyle);
       marker.addTo(map);
       marker.bindTooltip(point.title, {
         className: 'leaflet-label',
         direction: 'top',
         offset: [0, -10],
-        permanent: true
+        permanent: !options.points
       });
       marker.on('click', () => {
-        focusPoint(point);
+        if (typeof options.onPointClick === 'function') {
+          options.onPointClick(point);
+        } else {
+          focusPoint(point);
+        }
         triggerHaptic('light');
       });
-      mapState.markers.set(point.id, marker);
+      if (!options.points) {
+        mapState.markers.set(point.id, marker);
+      }
     });
   }
 
@@ -5307,6 +5414,7 @@ function initImageRouteMap(point = null) {
 
   const cityImage = point ? getPointInlineCityImageMap(point) : null;
   const useCityImage = Boolean(cityImage?.src);
+  const cityPoints = useCityImage ? getImageCityPoints(point) : [];
   const imageUrl = useCityImage
     ? String(cityImage.src || '').trim()
     : (scenarioState.routeMapImageSrc || './assets/maps/team-map.png');
@@ -5317,8 +5425,14 @@ function initImageRouteMap(point = null) {
   image.fetchPriority = 'high';
   image.onload = () => {
     buildRouteImageMap(imageUrl, Number(image.naturalWidth) || 1, Number(image.naturalHeight) || 1, {
-      showPoints: !useCityImage,
-      cityPointId: useCityImage ? point.id : ''
+      showPoints: useCityImage ? cityPoints.length > 0 : true,
+      cityPointId: useCityImage ? point.id : '',
+      points: useCityImage ? cityPoints : null,
+      onPointClick: useCityImage
+        ? (cityPoint) => {
+            focusPoint(cityPoint);
+          }
+        : null
     });
   };
   image.onerror = () => {
