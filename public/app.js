@@ -783,20 +783,20 @@ const DEFAULT_POINTS = [
 ];
 
 const DEFAULT_SCENARIO_UI = {
-  appTitle: 'Маршрут делегации',
+  appTitle: 'Карта делегации',
   appSubtitle: 'Сценарий можно менять по государствам. Сейчас подготовлена база под Верону, карты подключим отдельно.',
   scenarioLabel: 'Сценарий: Италия',
   tabs: {
     answer: 'Команда',
-    map: 'Маршрут',
+    map: 'Карта',
     prototype: 'Черновик'
   },
   headings: {
-    map: 'Карта маршрута',
+    map: 'Карта',
     answer: 'Карта команды',
     prototype: 'Черновик карты'
   },
-  mapAriaLabel: 'Карта маршрута',
+  mapAriaLabel: 'Карта',
   fallbackMapNote: 'Резервная схема: если фон карты не загрузился, нажимайте на точки здесь.',
   fallbackMapAlt: 'Резервная схема маршрута',
   teamMapNote: 'Основная карта команды отображается прямо в этом разделе.',
@@ -1047,6 +1047,23 @@ let totalQuestCount = 0;
 const activeTextAnimations = new Map();
 let textAnimationFrameId = 0;
 let prototypeFrameLoaded = false;
+
+function enableSingleMapMode() {
+  tabMapBtn && (tabMapBtn.textContent = 'Карта');
+
+  if (tabAnswerBtn) {
+    tabAnswerBtn.hidden = true;
+  }
+  if (tabPrototypeBtn) {
+    tabPrototypeBtn.hidden = true;
+  }
+  if (viewAnswerNode) {
+    viewAnswerNode.hidden = true;
+  }
+  if (viewPrototypeNode) {
+    viewPrototypeNode.hidden = true;
+  }
+}
 
 function rebuildPointIndexes() {
   pointsById = new Map(points.map((point) => [point.id, point]));
@@ -1622,11 +1639,7 @@ function ensurePrototypeFrameLoaded() {
 }
 
 function setActiveView(viewName = 'map') {
-  if (viewName === 'answer' || viewName === 'map' || viewName === 'prototype') {
-    state.activeView = viewName;
-  } else {
-    state.activeView = 'map';
-  }
+  state.activeView = 'map';
 
   viewMapNode?.classList.toggle('is-active', state.activeView === 'map');
   viewAnswerNode?.classList.toggle('is-active', state.activeView === 'answer');
@@ -1641,20 +1654,6 @@ function setActiveView(viewName = 'map') {
     }, 120);
   }
 
-  if (state.activeView === 'answer') {
-    if (!teamGateNode || teamGateNode.hidden) {
-      ensureCaseMapPanelInitialized();
-    }
-    window.setTimeout(() => {
-      if (caseMapState.map) {
-        caseMapState.map.invalidateSize();
-      }
-    }, 120);
-  }
-
-  if (state.activeView === 'prototype') {
-    ensurePrototypeFrameLoaded();
-  }
 }
 
 function formatUiDate(value = '') {
@@ -1909,7 +1908,7 @@ function openTeamGate(text = '') {
     return;
   }
 
-  setActiveView('answer');
+  setActiveView('map');
   teamGateNode.hidden = false;
   setTeamGateStatus(text || 'Выберите команду и подтвердите вход.');
   window.setTimeout(() => {
@@ -1928,15 +1927,6 @@ function closeTeamGate() {
 
   teamGateNode.hidden = true;
   setTeamGateStatus('');
-
-  if (state.activeView === 'answer') {
-    ensureCaseMapPanelInitialized();
-    window.setTimeout(() => {
-      if (caseMapState.map) {
-        caseMapState.map.invalidateSize();
-      }
-    }, 120);
-  }
 }
 
 function renderTeamOptions(teams = []) {
@@ -5477,6 +5467,7 @@ function bindEvents() {
 
 async function init() {
   await loadScenarioConfig();
+  enableSingleMapMode();
   applyTheme(getStoredTheme(), false);
   setActiveView('map');
   initMap();

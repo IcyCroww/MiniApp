@@ -26,7 +26,7 @@
     <header class="top-panel">
       <div class="top-panel-bar">
         <div class="top-panel-copy">
-          <h1 class="title" id="appTitle">Маршрут делегации</h1>
+          <h1 class="title" id="appTitle">Карта делегации</h1>
           <p class="subtitle" id="appSubtitle">Это одна большая игра. Страны подключаются по мере того, как вы присылаете новые карты, тексты и загадки.</p>
           <p class="scenario-strip" id="scenarioStrip">Сценарий: общий маршрут</p>
           <p class="team-strip" id="teamStrip">Команда: не выбрана</p>
@@ -36,17 +36,25 @@
     </header>
 
     <nav class="view-tabs" aria-label="Разделы Mini App">
-      <button class="view-tab" id="tabAnswerBtn" data-view-target="answer" type="button">Команда</button>
-      <button class="view-tab is-active" id="tabMapBtn" data-view-target="map" type="button">Маршрут</button>
-      <button class="view-tab" id="tabPrototypeBtn" data-view-target="prototype" type="button">Черновик</button>
+      <button class="view-tab is-active" id="tabMapBtn" data-view-target="map" type="button">Карта</button>
+      <button class="view-tab" id="tabAnswerBtn" data-view-target="answer" type="button" hidden>Команда</button>
+      <button class="view-tab" id="tabPrototypeBtn" data-view-target="prototype" type="button" hidden>Черновик</button>
     </nav>
 
     <main class="view-stack">
       <section class="view is-active" id="view-map" data-view="map">
         <article class="card card-map">
           <div class="card-head">
-            <h2 id="mapHeading">Карта маршрута</h2>
+            <h2 id="mapHeading">Карта</h2>
           </div>
+
+          <section class="team-gate" id="teamGate" hidden>
+            <p class="team-gate-title">Выберите команду</p>
+            <p class="team-gate-note">Это нужно для синхронизации прогресса и триггеров по уликам.</p>
+            <select id="teamSelect" class="team-select" aria-label="Выбор команды"></select>
+            <button class="btn primary" id="teamConfirmBtn">Войти команде</button>
+            <p class="team-gate-status" id="teamGateStatus"></p>
+          </section>
 
           <div class="map-scene">
             <div class="leaflet-map" id="worldMap" aria-label="Карта маршрута"></div>
@@ -92,19 +100,11 @@
         </article>
       </section>
 
-      <section class="view" id="view-answer" data-view="answer">
+      <section class="view" id="view-answer" data-view="answer" hidden>
         <article class="card card-answer">
           <div class="card-head">
             <h2 id="answerHeading">Карта команды</h2>
           </div>
-
-          <section class="team-gate" id="teamGate" hidden>
-            <p class="team-gate-title">Выберите команду</p>
-            <p class="team-gate-note">Это нужно для синхронизации прогресса и триггеров по уликам.</p>
-            <select id="teamSelect" class="team-select" aria-label="Выбор команды"></select>
-            <button class="btn primary" id="teamConfirmBtn">Войти команде</button>
-            <p class="team-gate-status" id="teamGateStatus"></p>
-          </section>
 
           <section class="final-answer-panel">
             <p class="task-kicker">Материалы команды</p>
@@ -121,7 +121,7 @@
         </article>
       </section>
 
-      <section class="view" id="view-prototype" data-view="prototype">
+      <section class="view" id="view-prototype" data-view="prototype" hidden>
         <article class="card card-prototype">
           <div class="card-head">
             <h2 id="prototypeHeading">Черновик карты</h2>
