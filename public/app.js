@@ -2492,6 +2492,17 @@ function setMapInteractionsEnabled(enabled) {
   }
 }
 
+function updateMapButtonLabels() {
+  if (resetMapBtn) {
+    const isImageCityMap = scenarioState.routeMapMode === 'image' && Boolean(mapState.imageCityPointId);
+    resetMapBtn.textContent = isImageCityMap ? 'Вернуться к карте' : 'Сбросить вид';
+  }
+
+  if (caseMapResetViewBtn) {
+    caseMapResetViewBtn.textContent = 'К карте города';
+  }
+}
+
 function setCityMode(enabled) {
   state.cityMode = enabled;
 
@@ -2508,6 +2519,8 @@ function setCityMode(enabled) {
       mapState.map.invalidateSize();
     }
   }, 340);
+
+  updateMapButtonLabels();
 }
 
 function completeTask(point) {
@@ -5212,6 +5225,7 @@ function closeCityMode() {
   refreshMarkers();
   setCityMode(false);
   setTaskPlaceholder();
+  updateMapButtonLabels();
 }
 
 function openTeamSwitcher() {
