@@ -24,7 +24,7 @@
     "fallbackMapAlt": "Резервная схема Эмиратов Дюны",
     "fallbackMapNote": "Когда будут подключены карты Дюны, резервная схема тоже сможет работать как запасной маршрут.",
     "teamMapNote": "Здесь позже можно показывать карту команды и найденные улики сценария Дюны.",
-    "prototypeNote": "Черновик пригодится для проверки городских карт Аль-Касира, Зарак-Мира и Зарифа.",
+    "prototypeNote": "Черновик пригодится для проверки городских карт Аль-Касира и Зарака.",
     "taskPlaceholder": {
       "kicker": "Досье Дюны",
       "title": "Выберите локацию",
@@ -69,7 +69,7 @@
     "cityMaps": {
       "al_kasir": "public/assets/maps/Al-kasir.jpg",
       "zarak_mir": "public/assets/maps/zarak.jpg",
-      "zarif": "public/assets/maps/zarak.jpg"
+      "zarak": "public/assets/maps/zarak.jpg"
     },
     "props": {
       "lamp_post": "public/scenarios/emirates-dune/assets/lamp-post.png",
@@ -82,7 +82,7 @@
     "note": "Нажимайте на города Дюны: каждая точка открывает досье и загадку.",
     "points": [
       {
-        "id": "zarif",
+        "id": "zarak",
         "title": "Зарак",
         "text": "Город гостеприимства и ritual gahwa.",
         "markerColor": "#7f9c4d",
@@ -331,7 +331,7 @@
       "id": "gahwa_cup",
       "title": "Чашка gahwa",
       "type": "hospitality_item",
-      "receiveAt": "zarif.coffee_tent",
+      "receiveAt": "zarak.coffee_tent",
       "description": "Символ принятого гостя. Чашка gahwa подчёркивает, что в стране гостеприимство — тоже часть протокола.",
       "useInGame": [
         "Может открывать дополнительные дружелюбные реплики.",
@@ -342,7 +342,7 @@
   "routeBackbone": [
     "al_kasir",
     "zarak_mir",
-    "zarif"
+    "zarak"
   ],
   "mechanicsPlan": [
     {
@@ -370,7 +370,7 @@
       "goal": "Узнать, кто должен сидеть рядом с шейхом."
     },
     {
-      "cityId": "zarif",
+      "cityId": "zarak",
       "locationId": "coffee_tent",
       "mechanic": "word_from_letters",
       "goal": "Собрать слово gahwa из перемешанных букв."
@@ -461,7 +461,7 @@
       ]
     },
     {
-      "id": "zarif",
+      "id": "zarak",
       "order": 3,
       "title": "Зарак",
       "role": "medium",

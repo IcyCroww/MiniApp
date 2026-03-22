@@ -7,7 +7,7 @@
 - sheikh-said-al-nasir.png
 - al-kasir-map.png
 - zarak-mir-map.png
-- zarif-map.png
+- zarak-map.png
 - lamp-post.png
 - zarak-carpet.png
 
@@ -20,4 +20,4 @@
 - lamp-post -> изображение фонаря
 - zarak-carpet -> изображение ковра
 
-Пока под вопросом только отдельная карта Зарифа и общая карта страны.
+Пока под вопросом только дополнительная карта Зарака и общая карта страны.
