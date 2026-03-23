@@ -1638,8 +1638,20 @@ function applyScenarioRouteConfig(scenarioData = null) {
   setFallbackMapImage(scenarioState.routeMapImageSrc);
 }
 
+const SCENARIO_FETCH_CACHE_BUSTER = String(Date.now());
+
+function withCacheBuster(rawUrl = '') {
+  try {
+    const targetUrl = new URL(String(rawUrl || '').trim(), window.location.href);
+    targetUrl.searchParams.set('cb', SCENARIO_FETCH_CACHE_BUSTER);
+    return targetUrl.toString();
+  } catch (_) {
+    return rawUrl;
+  }
+}
+
 async function fetchJsonSafely(url) {
-  const response = await fetch(url, { cache: 'no-store' });
+  const response = await fetch(withCacheBuster(url), { cache: 'no-store' });
   if (!response.ok) {
     throw new Error(`http_${response.status}`);
   }
