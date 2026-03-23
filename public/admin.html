@@ -228,7 +228,7 @@
           <th>Собрано</th>
           <th>Предметы</th>
           <th>Сейчас</th>
-          <th>Улики</th>
+            <th>Статусы</th>
           <th>Действия</th>
         </tr>
       </thead>
@@ -269,7 +269,7 @@
             class="ack-btn"
             data-team-name="${escapeHtml(teamName)}"
             data-trigger-id="${escapeHtml(item.id)}"
-          >Улика выдана</button>
+          >${item.clueNumber ? 'Улика выдана' : 'Отметить принесённым'}</button>
         </div>
       `).join('')}
       </div>`;
@@ -281,15 +281,11 @@
       const pending = Array.isArray(pendingTriggers) ? pendingTriggers : [];
 
       issued.forEach((item) => {
-        if (!item.clueNumber) {
-          return;
-        }
-
         entries.push({
-          sort: Number(item.clueNumber),
+          sort: item.clueNumber ? Number(item.clueNumber) : 1000 + entries.length,
           html: `
             <div class="status-item done">
-              <div>Улика №${escapeHtml(item.clueNumber)} выдана</div>
+              <div>${item.clueNumber ? `Улика №${escapeHtml(item.clueNumber)} выдана` : escapeHtml(item.doneLabel || 'Отмечено')}</div>
               <span class="trigger-time">${escapeHtml(item.deliveredAt || item.at)}</span>
             </div>
           `
@@ -297,15 +293,11 @@
       });
 
       pending.forEach((item) => {
-        if (!item.clueNumber) {
-          return;
-        }
-
         entries.push({
-          sort: Number(item.clueNumber),
+          sort: item.clueNumber ? Number(item.clueNumber) : 2000 + entries.length,
           html: `
             <div class="status-item pending">
-              <div>Улика №${escapeHtml(item.clueNumber)} не выдана</div>
+              <div>${item.clueNumber ? `Улика №${escapeHtml(item.clueNumber)} не выдана` : escapeHtml(item.actionLabel || item.text || 'Нужно принести предмет')}</div>
               <span class="trigger-time">${escapeHtml(item.at)}</span>
             </div>
           `
@@ -315,7 +307,7 @@
       entries.sort((left, right) => left.sort - right.sort);
 
       if (entries.length === 0) {
-        return '<span class="empty">Пока улик нет</span>';
+        return '<span class="empty">Пока статусов нет</span>';
       }
 
       return `<div class="status-list">${entries.map((item) => item.html).join('')}</div>`;

@@ -683,7 +683,8 @@ function enrichTriggerItem(item) {
   return {
     ...item,
     clueNumber: item.clueNumber || delivery?.clueNumber || null,
-    actionLabel: item.actionLabel || delivery?.actionLabel || item.text
+    actionLabel: item.actionLabel || delivery?.actionLabel || item.text,
+    doneLabel: item.doneLabel || null
   };
 }
 
@@ -698,7 +699,8 @@ function fireTrigger(stats, triggerId, text, out, options = {}) {
     at: nowIso(),
     requiresDelivery: Boolean(options.requiresDelivery),
     clueNumber: options.clueNumber || null,
-    actionLabel: options.actionLabel || null
+    actionLabel: options.actionLabel || null,
+    doneLabel: options.doneLabel || null
   };
 
   stats.triggersFired.push(triggerId);
@@ -726,9 +728,35 @@ function getIssuedTriggers(stats) {
     .map((item) => ({
       ...item,
       deliveredAt: item.deliveredAt || item.at,
-      doneLabel: item.clueNumber ? `Улика №${item.clueNumber} выдана` : 'Улика выдана'
+      doneLabel: item.doneLabel || (item.clueNumber ? `Улика №${item.clueNumber} выдана` : 'Отмечено')
     }))
     .sort((left, right) => String(right.deliveredAt).localeCompare(String(left.deliveredAt)));
+}
+
+function buildItemDeliveryTrigger(item = {}) {
+  const itemId = String(item.id || '').trim();
+  const variant = String(item.variant || '').trim();
+
+  if (itemId === 'grape_juice') {
+    return {
+      id: 'item_grape_juice',
+      text: 'После мэрии Сантарио нужно принести виноградный сок.',
+      actionLabel: 'Принести виноградный сок',
+      doneLabel: 'Виноградный сок принесён'
+    };
+  }
+
+  if (itemId === 'flower_bouquet') {
+    const suffix = variant ? `: ${variant}` : '';
+    return {
+      id: 'item_flower_bouquet',
+      text: `После цветочной лавки нужно принести букет${suffix}.`,
+      actionLabel: `Принести букет${suffix}`,
+      doneLabel: `Букет${suffix} принесён`
+    };
+  }
+
+  return null;
 }
 
 function evaluateTriggers(stats) {
@@ -751,6 +779,19 @@ function evaluateTriggers(stats) {
   if (collectPoiCount(stats, 'pisa') >= 3) {
     fireTrigger(stats, 'pisa_citymap_done', 'Пиза закрыта: отмечены все точки города.', fresh);
   }
+
+  (stats.collectedItems || []).forEach((item) => {
+    const trigger = buildItemDeliveryTrigger(item);
+    if (!trigger) {
+      return;
+    }
+
+    fireTrigger(stats, trigger.id, trigger.text, fresh, {
+      requiresDelivery: true,
+      actionLabel: trigger.actionLabel,
+      doneLabel: trigger.doneLabel
+    });
+  });
 
   (stats.solvedPointIds || []).forEach((pointId) => {
     const clueNumber = POINT_CLUE_NUMBERS[pointId];
