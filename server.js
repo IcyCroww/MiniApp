@@ -426,10 +426,15 @@ function normalizeDb(rawDb) {
   return parsed;
 }
 
+function parseJsonUtf8(raw) {
+  const text = typeof raw === 'string' ? raw.replace(/^\uFEFF/, '') : String(raw || '');
+  return JSON.parse(text);
+}
+
 function readFileDb() {
   ensureDbExists();
   const raw = fs.readFileSync(DB_FILE, 'utf8');
-  return normalizeDb(JSON.parse(raw));
+  return normalizeDb(parseJsonUtf8(raw));
 }
 
 function writeFileDb(db) {
@@ -462,7 +467,7 @@ async function initStorage() {
 
       if (fs.existsSync(DB_FILE)) {
         try {
-          seed = normalizeDb(JSON.parse(fs.readFileSync(DB_FILE, 'utf8')));
+          seed = normalizeDb(parseJsonUtf8(fs.readFileSync(DB_FILE, 'utf8')));
         } catch (_) {
           seed = createDefaultDb();
         }
