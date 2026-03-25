@@ -1027,7 +1027,7 @@ app.post('/api/event', async (req, res) => {
       const stats = ensureTeamStats(db, teamName);
       stats.updatedAt = nowIso();
 
-      if (eventType === 'travel' || eventType === 'city-poi') {
+      if (eventType === 'travel') {
         stats.moveCount += 1;
       }
 

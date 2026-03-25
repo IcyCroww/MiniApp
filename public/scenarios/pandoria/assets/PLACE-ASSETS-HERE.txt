@@ -1,0 +1,15 @@
+Drop Pandoria map images here.
+
+Recommended names:
+- pandoria-world-map.png
+- new-london-map.png
+- northbridge-map.png
+- stormport-map.png
+- greyston-map.png
+- ashford-map.png
+- ravenwood-map.png
+- whitehill-map.png
+- ironport-map.png
+- duncaster-map.png
+- lakeshire-map.png
+

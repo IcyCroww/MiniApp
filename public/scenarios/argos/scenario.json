@@ -147,7 +147,7 @@
                 "markerColor": "#d96f5a",
                 "mapPosition": {
                   "x": 56,
-                  "y": 70
+                  "y": 60
                 },
                 "task": {
                   "kind": "choice",
@@ -171,8 +171,8 @@
                 "title": "Свято-Троицкий монастырь",
                 "markerColor": "#8e7bf5",
                 "mapPosition": {
-                  "x": 24,
-                  "y": 74
+                  "x": 30,
+                  "y": 56
                 },
                 "task": {
                   "kind": "empty",

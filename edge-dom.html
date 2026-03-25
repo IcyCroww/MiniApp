@@ -1,0 +1,148 @@
+[32344:33100:0324/143258.540:ERROR:chrome\browser\task_manager\providers\fallback_task_provider.cc:126] Every renderer should have at least one task provided by a primary task provider. If a "Renderer" fallback task is shown, it is a bug. If you have repro steps, please file a new bug and tag it as a dependency of crbug.com/40528867.
+[32344:33100:0324/143259.557:ERROR:chrome\browser\task_manager\providers\fallback_task_provider.cc:126] Every renderer should have at least one task provided by a primary task provider. If a "Renderer" fallback task is shown, it is a bug. If you have repro steps, please file a new bug and tag it as a dependency of crbug.com/40528867.
+<!DOCTYPE html>
+<html lang="ru" data-theme="light" style="--tg-viewport-height: 100vh; --tg-viewport-stable-height: 100vh;"><head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#f3f6fa">
+  <title>MiniApp Quest</title>
+  <script>
+    (() => {
+      try {
+        const storedTheme = window.localStorage.getItem('miniapp.theme');
+        document.documentElement.dataset.theme = storedTheme === 'dark' || storedTheme === 'light' ? storedTheme : 'light';
+      } catch (_) {
+        document.documentElement.dataset.theme = 'light';
+      }
+    })();
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;family=Nunito:wght@600;700;800&amp;display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <div class="app-shell">
+    <header class="top-panel">
+      <div class="top-panel-bar">
+        <div class="top-panel-copy">
+          <h1 class="title" id="appTitle">Карта делегации</h1>
+          <p class="subtitle" id="appSubtitle">Это одна большая игра. Страны подключаются по мере того, как вы присылаете новые карты, тексты и загадки.</p>
+          <p class="scenario-strip" id="scenarioStrip">Сценарий: общий маршрут</p>
+          <p class="team-strip" id="teamStrip">Команда: не выбрана</p>
+        </div>
+        <button class="theme-toggle" id="themeToggleBtn" type="button" aria-pressed="false">Тема: Светлая</button>
+      </div>
+    </header>
+
+    <nav class="view-tabs" aria-label="Разделы Mini App">
+      <button class="view-tab is-active" id="tabMapBtn" data-view-target="map" type="button">Карта</button>
+      <button class="view-tab" id="tabAnswerBtn" data-view-target="answer" type="button" hidden="">Команда</button>
+      <button class="view-tab" id="tabPrototypeBtn" data-view-target="prototype" type="button" hidden="">Черновик</button>
+    </nav>
+
+    <main class="view-stack">
+      <section class="view is-active" id="view-map" data-view="map">
+        <article class="card card-map">
+          <div class="card-head">
+            <h2 id="mapHeading">Карта</h2>
+          </div>
+
+          <section class="team-gate" id="teamGate" hidden="">
+            <p class="team-gate-title">Выберите команду</p>
+            <p class="team-gate-note">Это нужно для синхронизации прогресса и триггеров по уликам.</p>
+            <select id="teamSelect" class="team-select" aria-label="Выбор команды"></select>
+            <button class="btn primary" id="teamConfirmBtn">Войти команде</button>
+            <p class="team-gate-status" id="teamGateStatus"></p>
+          </section>
+
+          <div class="map-scene">
+            <div class="leaflet-map" id="worldMap" aria-label="Карта маршрута"></div>
+            <div class="fallback-map" id="fallbackMap" hidden="">
+              <p class="fallback-map-note" id="fallbackMapNote">Резервная схема: если фон карты не загрузился, нажимайте на точки здесь.</p>
+              <div class="fallback-map-canvas">
+                <img class="fallback-map-image" id="fallbackMapImage" src="./assets/maps/italy-schematic.svg" alt="Резервная схема маршрута">
+                <div class="fallback-map-points" id="fallbackMapPoints" aria-label="Резервные точки карты"></div>
+              </div>
+            </div>
+            <div class="map-attrib">
+              <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">© OpenStreetMap contributors</a>
+              <span>•</span>
+              <span>Tiles: OSM / CARTO</span>
+            </div>
+          </div>
+
+          <div class="row-actions map-actions">
+            <button class="btn ghost" id="resetMapBtn">Вернуть карту</button>
+            <button class="btn ghost" id="changeTeamBtn">Сменить команду</button>
+          </div>
+
+          <div class="side-panel-stack">
+            <section class="task-panel" id="taskPanel" aria-live="polite">
+              <div class="task-head">
+                <p class="task-kicker" id="taskKicker">Загадка города</p>
+                <button class="task-close" id="closeTaskBtn" aria-label="Закрыть загадку">×</button>
+              </div>
+              <h3 class="task-title" id="taskTitle">Выберите локацию</h3>
+              <p class="task-lore" id="taskLore"></p>
+              <p class="task-question" id="taskQuestion">Нажмите на точку карты, чтобы открыть локацию.</p>
+              <div class="task-text-controls">
+                <button class="task-text-skip" id="taskTextSkipBtn" type="button" hidden="">Пропустить текст</button>
+              </div>
+              <div class="task-options" id="taskOptions"></div>
+              <p class="task-result" id="taskResult"></p>
+              <div class="task-answer" id="taskAnswer" hidden="">
+                <p class="task-answer-label" id="taskAnswerLabel">Ключ</p>
+                <p class="task-answer-text" id="taskAnswerText"></p>
+              </div>
+            </section>
+          </div>
+        </article>
+      </section>
+
+      <section class="view" id="view-answer" data-view="answer" hidden="">
+        <article class="card card-answer">
+          <div class="card-head">
+            <h2 id="answerHeading">Карта команды</h2>
+          </div>
+
+          <section class="final-answer-panel">
+            <p class="task-kicker">Материалы команды</p>
+            <p class="final-answer-note" id="teamMapNote">Основная карта команды отображается прямо в этом разделе.</p>
+            <figure class="case-map-frame">
+              <div class="case-map-viewport" id="caseMapViewport" aria-label="Карта"></div>
+            </figure>
+            <div class="row-actions case-map-actions">
+              <button class="btn ghost" id="caseMapResetViewBtn" type="button">Вернуть карту</button>
+              <button class="btn ghost" id="caseMapChangeTeamBtn" type="button">Сменить команду</button>
+            </div>
+            <p class="final-answer-status" id="caseMapStatus">Загружаем карту...</p>
+          </section>
+        </article>
+      </section>
+
+      <section class="view" id="view-prototype" data-view="prototype" hidden="">
+        <article class="card card-prototype">
+          <div class="card-head">
+            <h2 id="prototypeHeading">Черновик карты</h2>
+          </div>
+
+          <section class="prototype-panel">
+            <p class="task-kicker">Новая карта</p>
+            <p class="final-answer-note" id="prototypeNote">Эта вкладка грузится только при открытии, чтобы не тянуть лишний iframe на старте.</p>
+            <div class="prototype-frame">
+              <iframe class="prototype-map-embed" data-src="./sequential-map-manual.html?embed=1" title="Карта тестовая" loading="lazy"></iframe>
+            </div>
+          </section>
+        </article>
+      </section>
+    </main>
+  </div>
+
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script type="module" src="./app.js"></script>
+
+
+</body></html>

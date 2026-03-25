@@ -26,10 +26,22 @@
       "src": "./scenarios/verona/scenario.json"
     },
     {
+      "id": "eleon",
+      "title": "Франц / Элеон",
+      "playable": true,
+      "src": "./scenarios/eleon/scenario.json"
+    },
+    {
       "id": "argos",
-      "title": "?? / ?????",
+      "title": "РФ / Аргос",
       "playable": false,
       "src": "./scenarios/argos/scenario.json"
+    },
+    {
+      "id": "pandoria",
+      "title": "Анг / Пандория",
+      "playable": true,
+      "src": "./scenarios/pandoria/scenario.json"
     }
   ]
 }

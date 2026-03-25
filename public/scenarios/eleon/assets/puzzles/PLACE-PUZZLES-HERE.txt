@@ -1,0 +1,11 @@
+Сюда складываются готовые игровые изображения для загадок Элеона.
+
+Текущие placeholder-файлы:
+- `valemor-ministry-door.png`
+- `valemor-ministry-door-guide.png`
+- `valemor-museum-painting.png`
+- `valemor-museum-painting-guide.png`
+- `sen-alden-art-nouveau.png`
+- `sen-alden-art-nouveau-guide.png`
+
+`-guide` версии не подключаются в runtime-сценарий и нужны только для быстрой ручной доработки.

@@ -1,15 +1,20 @@
-???? ?????? ????? ? ???????? ??????.
+Сюда складываются финальные карты и рабочие ассеты сценария Элеона.
 
-????????? ?????:
-- eleon-world-map.png
-- valemor-map.png
-- sen-alden-map.png
-- bellerosh-map.png
-- montelier-map.png
-- verdal-map.png
+Базовые карты:
+- `eleon-world-map.png`
+- `valemor-map.png`
+- `sen-alden-map.png`
+- `bellerosh-map.png`
+- `montelier-map.png`
+- `verdal-map.png`
+- `sent-loren-map.png`
+- `lavier-map.png`
+- `ardenval-map.png`
+- `castreville-map.png`
 
-?????????????? ??????????? ??? ???????:
-- valkur-painting.png
-- iris-bouquet.png
-- honey-sweets.png
-- water-glass-left.png
+Папки:
+- `source/` — сырые фото, которые вы присылаете для загадок
+- `puzzles/` — готовые игровые версии и `-guide` картинки с подсветкой зон
+
+Временные placeholder-файлы можно пересобрать скриптом:
+- `generate-placeholders.ps1`
