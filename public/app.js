@@ -933,7 +933,7 @@ const fallbackMapPointsNode = document.getElementById('fallbackMapPoints');
 const teamStripNode = document.getElementById('teamStrip');
 const themeToggleBtn = document.getElementById('themeToggleBtn');
 const teamGateNode = document.getElementById('teamGate');
-const teamSelectNode = document.getElementById('teamSelect');
+const teamCodeNode = document.getElementById('teamCode');
 const teamConfirmBtn = document.getElementById('teamConfirmBtn');
 const teamGateStatusNode = document.getElementById('teamGateStatus');
 
@@ -2834,7 +2834,7 @@ function renderFinalAnswerPanel() {
   if (!state.teamReady) {
     finalAnswerInputNode.disabled = true;
     submitFinalAnswerBtn.disabled = true;
-    finalAnswerStatusNode.textContent = 'Сначала выберите команду на вкладке карты.';
+    finalAnswerStatusNode.textContent = 'Сначала войдите в систему на вкладке карты.';
     finalAnswerLastNode.hidden = true;
     finalAnswerInputNode.value = state.finalAnswerDraft || '';
     return;
@@ -3001,26 +3001,7 @@ function closeTeamGate() {
 }
 
 function renderTeamOptions(teams = []) {
-  if (!teamSelectNode) {
-    return;
-  }
-
-  teamSelectNode.innerHTML = '';
-  const placeholder = document.createElement('option');
-  placeholder.value = '';
-  placeholder.textContent = 'Выберите команду...';
-  teamSelectNode.appendChild(placeholder);
-
-  teams.forEach((teamName) => {
-    const option = document.createElement('option');
-    option.value = teamName;
-    option.textContent = teamName;
-    teamSelectNode.appendChild(option);
-  });
-
-  if (state.teamName) {
-    teamSelectNode.value = state.teamName;
-  }
+  // Больше не нужна - используем логин/пароль вместо выбора из списка
 }
 
 function showTriggerNotice(triggers = []) {
@@ -3081,11 +3062,10 @@ function showTriggerNotice(triggers = []) {
   }
 }
 
-async function registerTeam(teamName, existingSessionId = '') {
+async function registerTeam(code, existingSessionId = '') {
   const telegramUserId = tg?.initDataUnsafe?.user?.id || null;
-  const normalizedTeamName = normalizeClientTeamName(teamName);
   const payload = {
-    teamName: normalizedTeamName,
+    code: code || undefined,
     sessionId: existingSessionId || undefined,
     deviceId: state.deviceId,
     telegramUserId
@@ -3171,8 +3151,8 @@ async function postTeamEvent(type, pointId = '', meta = {}) {
 
 async function submitFinalAnswer() {
   if (!state.teamReady || !state.sessionId) {
-    setTeamGateStatus('Сначала подключите команду.');
-    openTeamGate('Сначала выберите команду.');
+    setTeamGateStatus('Сначала войдите в систему.');
+    openTeamGate('Введите код команды.');
     return;
   }
 
@@ -3243,12 +3223,12 @@ async function initTeamState() {
   const storedSessionId = safeStorageGet(STORAGE_KEYS.sessionId);
 
   if (!storedTeam) {
-    openTeamGate('Сначала выберите команду.');
+    openTeamGate('Введите код команды для входа.');
     return;
   }
 
   try {
-    await registerTeam(storedTeam, storedSessionId);
+    await registerTeam('', storedSessionId);
     startTeamPolling();
     void syncTeamStatus();
   } catch (_) {
@@ -3264,7 +3244,7 @@ async function initTeamState() {
     setTeamStripText();
     updateBadge();
     renderFinalAnswerPanel();
-    openTeamGate('Сессия не восстановилась. Выберите команду снова.');
+    openTeamGate('Сессия не восстановилась. Войдите снова.');
   }
 }
 
@@ -3471,6 +3451,7 @@ const SUPPORTED_TASK_KINDS = new Set([
   'choice',
   'sort',
   'slider',
+  'jigsaw',
   'caesar',
   'match',
   'hotspot',
@@ -4528,6 +4509,194 @@ function renderSliderBoard(point) {
 
   wrap.appendChild(boardNode);
   taskOptionsNode.appendChild(wrap);
+}
+
+function renderJigsawPuzzle(point) {
+  const jigsaw = point.task?.jigsaw || {};
+  const imageUrl = jigsaw.image?.src ? normalizeScenarioAssetPath(String(jigsaw.image.src).trim()) : '';
+  const gridSize = Number(jigsaw.gridSize) || 3;
+  const note = String(jigsaw.note || '').trim() || 'Перетащите кусочки из набора на доску.';
+  
+  if (!imageUrl) {
+    setTaskResult('Не указано изображение для пазла (jigsaw.image.src).', 'info');
+    return;
+  }
+
+  const totalPieces = gridSize * gridSize;
+  const isSolved = mapState.solved.has(point.id);
+  
+  // Инициализируем состояние пазла
+  if (!mapState.jigsawStates) {
+    mapState.jigsawStates = new Map();
+  }
+  
+  if (!mapState.jigsawStates.has(point.id)) {
+    // board - массив с ID кусочков на доске (null = пустая ячейка)
+    // pool - массив с ID кусочков в наборе
+    if (isSolved) {
+      const board = Array.from({ length: totalPieces }, (_, i) => i);
+      mapState.jigsawStates.set(point.id, { board, pool: [] });
+    } else {
+      const board = Array(totalPieces).fill(null);
+      const pool = Array.from({ length: totalPieces }, (_, i) => i);
+      // Перемешиваем набор
+      for (let i = pool.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [pool[i], pool[j]] = [pool[j], pool[i]];
+      }
+      mapState.jigsawStates.set(point.id, { board, pool });
+    }
+  }
+
+  const state = mapState.jigsawStates.get(point.id);
+
+  const wrap = document.createElement('div');
+  wrap.className = 'jigsaw-wrap';
+
+  const noteNode = document.createElement('p');
+  noteNode.className = 'task-mini-note';
+  noteNode.textContent = isSolved ? 'Пазл собран!' : note;
+  wrap.appendChild(noteNode);
+
+  // Доска для размещения кусочков
+  const boardNode = document.createElement('div');
+  boardNode.className = 'jigsaw-board';
+  boardNode.style.gridTemplateColumns = `repeat(${gridSize}, 1fr)`;
+  boardNode.style.gridTemplateRows = `repeat(${gridSize}, 1fr)`;
+
+  state.board.forEach((pieceId, slotIndex) => {
+    const slot = document.createElement('div');
+    slot.className = 'jigsaw-slot';
+    slot.dataset.slotIndex = slotIndex;
+
+    if (pieceId !== null) {
+      const correctRow = Math.floor(pieceId / gridSize);
+      const correctCol = pieceId % gridSize;
+      const xPercent = gridSize > 1 ? (correctCol / (gridSize - 1)) * 100 : 0;
+      const yPercent = gridSize > 1 ? (correctRow / (gridSize - 1)) * 100 : 0;
+
+      const piece = document.createElement('div');
+      piece.className = 'jigsaw-piece';
+      piece.draggable = !isSolved;
+      piece.dataset.pieceId = pieceId;
+      piece.style.backgroundImage = `url("${imageUrl}")`;
+      piece.style.backgroundSize = `${gridSize * 100}% ${gridSize * 100}%`;
+      piece.style.backgroundPosition = `${xPercent}% ${yPercent}%`;
+
+      if (pieceId === slotIndex) {
+        piece.classList.add('is-correct');
+      }
+
+      if (!isSolved) {
+        piece.addEventListener('dragstart', (e) => {
+          e.dataTransfer.effectAllowed = 'move';
+          e.dataTransfer.setData('text/plain', JSON.stringify({ from: 'board', slotIndex, pieceId }));
+          piece.classList.add('is-dragging');
+        });
+
+        piece.addEventListener('dragend', () => {
+          piece.classList.remove('is-dragging');
+        });
+      }
+
+      slot.appendChild(piece);
+    }
+
+    if (!isSolved) {
+      slot.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        slot.classList.add('is-drag-over');
+      });
+
+      slot.addEventListener('dragleave', () => {
+        slot.classList.remove('is-drag-over');
+      });
+
+      slot.addEventListener('drop', (e) => {
+        e.preventDefault();
+        slot.classList.remove('is-drag-over');
+
+        const data = JSON.parse(e.dataTransfer.getData('text/plain'));
+        
+        if (data.from === 'pool') {
+          // Из набора на доску
+          if (state.board[slotIndex] === null) {
+            state.board[slotIndex] = data.pieceId;
+            state.pool = state.pool.filter(id => id !== data.pieceId);
+          }
+        } else if (data.from === 'board') {
+          // С доски на доску (меняем местами)
+          const temp = state.board[slotIndex];
+          state.board[slotIndex] = data.pieceId;
+          state.board[data.slotIndex] = temp;
+        }
+
+        // Проверяем решение
+        const solved = state.board.every((id, idx) => id === idx);
+        if (solved) {
+          completeTask(point, {
+            successText: point.task.success || 'Пазл собран!',
+            answerText: point.task.answerText || '',
+            answerLabel: point.task.answerLabel || 'Ключ'
+          });
+        }
+
+        renderTask(point);
+      });
+    }
+
+    boardNode.appendChild(slot);
+  });
+
+  wrap.appendChild(boardNode);
+
+  // Набор кусочков
+  if (state.pool.length > 0 && !isSolved) {
+    const poolNode = document.createElement('div');
+    poolNode.className = 'jigsaw-pool';
+
+    state.pool.forEach((pieceId) => {
+      const correctRow = Math.floor(pieceId / gridSize);
+      const correctCol = pieceId % gridSize;
+      const xPercent = gridSize > 1 ? (correctCol / (gridSize - 1)) * 100 : 0;
+      const yPercent = gridSize > 1 ? (correctRow / (gridSize - 1)) * 100 : 0;
+
+      const piece = document.createElement('div');
+      piece.className = 'jigsaw-piece jigsaw-pool-piece';
+      piece.draggable = true;
+      piece.dataset.pieceId = pieceId;
+      piece.style.backgroundImage = `url("${imageUrl}")`;
+      piece.style.backgroundSize = `${gridSize * 100}% ${gridSize * 100}%`;
+      piece.style.backgroundPosition = `${xPercent}% ${yPercent}%`;
+
+      piece.addEventListener('dragstart', (e) => {
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', JSON.stringify({ from: 'pool', pieceId }));
+        piece.classList.add('is-dragging');
+      });
+
+      piece.addEventListener('dragend', () => {
+        piece.classList.remove('is-dragging');
+      });
+
+      poolNode.appendChild(piece);
+    });
+
+    wrap.appendChild(poolNode);
+  }
+
+  taskOptionsNode.appendChild(wrap);
+  
+  // Показываем результат если решено
+  if (isSolved) {
+    const outcome = getTaskOutcome(point.id) || {};
+    setTaskResult(outcome.successText || point.task.success || 'Пазл собран!', 'ok');
+    setTaskAnswer(
+      outcome.answerText || point.task.answerText || '',
+      outcome.answerLabel || point.task.answerLabel || 'Ключ'
+    );
+  }
 }
 
 function renderSortTask(point) {
@@ -7140,6 +7309,14 @@ function renderTask(point) {
     return;
   }
 
+  if (taskKind === 'jigsaw') {
+    renderCityImageTask(point);
+    renderReturnToCityButton(point);
+    renderTaskMedia(point);
+    renderJigsawPuzzle(point);
+    return;
+  }
+
   if (taskKind === 'sort') {
     renderCityImageTask(point);
     renderReturnToCityButton(point);
@@ -7283,7 +7460,7 @@ function focusPoint(point) {
   }
 
   if (!state.teamReady) {
-    openTeamGate('Сначала выберите команду, затем начинайте маршрут.');
+    openTeamGate('Сначала войдите в систему, затем начинайте маршрут.');
     return;
   }
 
@@ -7386,9 +7563,7 @@ function closeCityMode() {
 }
 
 function openTeamSwitcher() {
-  if (state.teamName) {
-    teamSelectNode.value = state.teamName;
-  }
+  teamCodeNode.value = '';
   openTeamGate('Смена команды сбросит только текущую сессию на этом телефоне.');
 }
 
@@ -7895,20 +8070,27 @@ function bindEvents() {
   });
 
   teamConfirmBtn.addEventListener('click', async () => {
-    const selectedTeam = String(teamSelectNode.value || '').trim();
-    if (!selectedTeam) {
-      setTeamGateStatus('Выберите команду из списка.');
+    const code = String(teamCodeNode.value || '').trim();
+    
+    if (!code) {
+      setTeamGateStatus('Введите код команды.');
+      triggerHaptic('error');
+      return;
+    }
+    
+    if (!/^\d{5}$/.test(code)) {
+      setTeamGateStatus('Код должен содержать 5 цифр.');
       triggerHaptic('error');
       return;
     }
 
     teamConfirmBtn.disabled = true;
-    setTeamGateStatus('Подключаем команду...');
+    setTeamGateStatus('Проверяем код...');
     try {
-      await registerTeam(selectedTeam);
+      await registerTeam(code);
       startTeamPolling();
       void syncTeamStatus();
-      setTeamGateStatus('Команда подключена.');
+      setTeamGateStatus('Вход выполнен.');
       triggerHaptic('success');
     } catch (error) {
       state.teamReady = false;
@@ -7924,14 +8106,14 @@ function bindEvents() {
       updateBadge();
       renderFinalAnswerPanel();
       const reason = String(error?.message || '');
-      if (reason === 'unknown_team') {
-        setTeamGateStatus('Команда не найдена в базе. Проверьте список.');
-      } else if (reason === 'team_required' || reason === 'missing_fields') {
-        setTeamGateStatus('Некорректные данные регистрации. Повторите вход.');
+      if (reason === 'invalid_code') {
+        setTeamGateStatus('Неверный код. Проверьте и попробуйте снова.');
+      } else if (reason === 'code_required') {
+        setTeamGateStatus('Введите код команды.');
       } else if (reason.includes('Failed to fetch')) {
         setTeamGateStatus('Сервер недоступен: проверьте backend URL (?api=...) и интернет.');
       } else {
-        setTeamGateStatus(`Не удалось подключить команду: ${reason || 'unknown_error'}.`);
+        setTeamGateStatus(`Ошибка входа: ${reason || 'unknown_error'}.`);
       }
       triggerHaptic('error');
     } finally {

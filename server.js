@@ -30,13 +30,26 @@ const TEAM_NAMES = [
   'Атлантида',
   'Ювента',
   'Орион',
-  'Вика',
-  'ОУИ'
+  'ОУИ 1',
+  'ОУИ 2',
+  'МПЦ'
 ];
 
-const TEAM_NAME_ALIASES = {
-  'новое поколение': 'ОУИ'
+const TEAM_CODES = {
+  'Новый Вавилон': '10101',
+  'Эльдорадо': '10202',
+  'Счастливое государство': '10303',
+  'Юксайленд': '10404',
+  'Атлантида': '10505',
+  'Ювента': '10606',
+  'Орион': '10707',
+  'ОУИ 1': '10808',
+  'ОУИ 2': '10909',
+  'МПЦ': '11010'
 };
+
+const TEAM_NAME_ALIASES = {};
+
 
 const POINT_LABELS = {
   vatican: 'Ватикан',
@@ -298,9 +311,7 @@ function nowIso() {
 
 function normalizeTeamName(raw) {
   const prepared = String(raw || '').trim();
-  const normalized = prepared.toLowerCase();
-  const canonical = TEAM_NAME_ALIASES[normalized] || prepared;
-  return TEAM_NAMES.find((team) => team.toLowerCase() === canonical.toLowerCase()) || null;
+  return TEAM_NAMES.find((team) => team.toLowerCase() === prepared.toLowerCase()) || null;
 }
 
 function createDefaultDb() {
@@ -982,23 +993,39 @@ app.get('/api/map-source', (_, res) => {
 app.post('/api/register', async (req, res) => {
   try {
     const result = await mutateDb(async (db) => {
-      const teamName = normalizeTeamName(req.body?.teamName);
-
-      if (!teamName) {
-        return { error: 'unknown_team', status: 400 };
-      }
-
-      const sessionId = String(req.body?.sessionId || crypto.randomUUID());
+      const code = String(req.body?.code || '').trim();
+      const sessionId = String(req.body?.sessionId || '').trim();
       const telegramUserId = req.body?.telegramUserId ? String(req.body.telegramUserId) : null;
       const deviceId = req.body?.deviceId ? String(req.body.deviceId) : null;
 
-      db.sessions[sessionId] = {
-        sessionId,
+      let teamName = null;
+
+      // Если есть sessionId, пытаемся восстановить сессию
+      if (sessionId && db.sessions[sessionId]) {
+        teamName = db.sessions[sessionId].teamName;
+      } else {
+        // Иначе проверяем код
+        if (!code) {
+          return { error: 'code_required', status: 400 };
+        }
+
+        // Находим команду по коду
+        teamName = Object.keys(TEAM_CODES).find(name => TEAM_CODES[name] === code);
+        
+        if (!teamName) {
+          return { error: 'invalid_code', status: 401 };
+        }
+      }
+
+      const finalSessionId = sessionId || crypto.randomUUID();
+
+      db.sessions[finalSessionId] = {
+        sessionId: finalSessionId,
         teamName,
         telegramUserId,
         deviceId,
         updatedAt: nowIso(),
-        createdAt: db.sessions[sessionId]?.createdAt || nowIso()
+        createdAt: db.sessions[finalSessionId]?.createdAt || nowIso()
       };
 
       const stats = ensureTeamStats(db, teamName);
@@ -1006,7 +1033,7 @@ app.post('/api/register', async (req, res) => {
 
       return {
         ok: true,
-        sessionId,
+        sessionId: finalSessionId,
         teamName,
         stats: participantStats(stats),
         triggers: (stats.triggerLog || []).slice(-5)
@@ -1020,6 +1047,7 @@ app.post('/api/register', async (req, res) => {
 
     res.json(result);
   } catch (error) {
+    console.error('[api/register] Error:', error);
     res.status(500).json({ ok: false, error: 'register_failed', detail: String(error?.message || error) });
   }
 });
@@ -1111,6 +1139,7 @@ app.post('/api/event', async (req, res) => {
 
     res.json(result);
   } catch (error) {
+    console.error('[api/event] Error:', error);
     res.status(500).json({ ok: false, error: 'event_failed', detail: String(error?.message || error) });
   }
 });
@@ -1196,6 +1225,7 @@ app.get('/api/team/:teamName/status', async (req, res) => {
       triggers: (stats.triggerLog || []).slice(-8)
     });
   } catch (error) {
+    console.error('[api/team/status] Error:', error);
     res.status(500).json({ ok: false, error: 'status_failed', detail: String(error?.message || error) });
   }
 });
@@ -1337,6 +1367,38 @@ app.post('/api/admin/team/:teamName/ack-trigger', async (req, res) => {
     res.json(result);
   } catch (error) {
     res.status(500).json({ ok: false, error: 'ack_failed', detail: String(error?.message || error) });
+  }
+});
+app.post('/api/admin/team/:teamName/clear-route', async (req, res) => {
+  try {
+    const result = await mutateDb(async (db) => {
+      const teamName = normalizeTeamName(req.params.teamName);
+
+      if (!teamName) {
+        return { error: 'team_not_found', status: 404 };
+      }
+
+      const stats = ensureTeamStats(db, teamName);
+      stats.routeLog = [];
+      stats.currentPointId = '';
+      stats.updatedAt = nowIso();
+
+      return {
+        ok: true,
+        teamName,
+        message: 'Перемещения очищены',
+        stats: adminStats(stats)
+      };
+    });
+
+    if (result?.error) {
+      res.status(result.status || 400).json({ ok: false, error: result.error });
+      return;
+    }
+
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({ ok: false, error: 'clear_route_failed', detail: String(error?.message || error) });
   }
 });
 

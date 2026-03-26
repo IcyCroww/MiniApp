@@ -482,6 +482,30 @@ body {
   color: #496558;
 }
 
+.team-input {
+  width: 100%;
+  border: 1px solid #b8cdbd;
+  border-radius: 10px;
+  background: #ffffff;
+  color: #213a31;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 10px 12px;
+  margin: 0 0 8px;
+  box-sizing: border-box;
+}
+
+.team-input::placeholder {
+  color: #8a9d94;
+  font-weight: 400;
+}
+
+.team-input:focus {
+  outline: none;
+  border-color: #6b9e7f;
+  box-shadow: 0 0 0 3px rgba(107, 158, 127, 0.1);
+}
+
 .team-select {
   width: 100%;
   border: 1px solid #b8cdbd;
@@ -808,6 +832,62 @@ body {
   background:
     radial-gradient(circle at 50% 50%, rgba(92, 64, 28, 0.12), rgba(92, 64, 28, 0.03) 52%, transparent 54%),
     linear-gradient(145deg, #eee1c8, #f8f1e2);
+}
+
+.jigsaw-wrap {
+  display: grid;
+  max-width: 320px;
+  margin-inline: auto;
+  width: 100%;
+}
+
+.jigsaw-board {
+  display: grid;
+  gap: 6px;
+  background: #e8f0ea;
+  padding: 8px;
+  border-radius: 14px;
+  border: 2px solid #c8d6ca;
+}
+
+.jigsaw-piece {
+  aspect-ratio: 1 / 1;
+  border-radius: 10px;
+  border: 3px solid #d6c9ad;
+  background-color: #f4ecdd;
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.2s ease;
+  background-repeat: no-repeat;
+  position: relative;
+}
+
+.jigsaw-piece:hover:not(:disabled) {
+  transform: scale(1.08);
+  box-shadow: 0 6px 16px rgba(29, 60, 47, 0.2);
+  z-index: 2;
+  border-color: #c0a870;
+}
+
+.jigsaw-piece.is-selected {
+  border-color: #4a90e2;
+  box-shadow: 0 0 0 4px rgba(74, 144, 226, 0.3);
+  transform: scale(1.05);
+  z-index: 3;
+}
+
+.jigsaw-piece.is-correct {
+  border-color: #7ac8a5;
+  box-shadow: 0 0 0 3px rgba(122, 200, 165, 0.25);
+}
+
+.jigsaw-piece:disabled {
+  cursor: default;
+  opacity: 1;
+}
+
+.jigsaw-piece:active:not(:disabled) {
+  transform: scale(0.98);
 }
 
 .city-task-wrap {
@@ -4941,4 +5021,87 @@ html[data-theme="dark"] .sort-item.is-drop-after::after {
   .view-tabs .view-tab {
     margin-top: 3px;
   }
+}
+
+/* Jigsaw Puzzle Styles */
+.jigsaw-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  width: 100%;
+}
+
+.jigsaw-board {
+  display: grid;
+  gap: 4px;
+  width: 100%;
+  max-width: 400px;
+  margin: 0 auto;
+  aspect-ratio: 1;
+  background: #f0f0f0;
+  padding: 8px;
+  border-radius: 8px;
+}
+
+.jigsaw-slot {
+  width: 100%;
+  height: 100%;
+  border: 2px dashed #ccc;
+  background: #fff;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.jigsaw-slot.is-drag-over {
+  border-color: #007bff;
+  background: #e7f3ff;
+  border-style: solid;
+}
+
+.jigsaw-piece {
+  width: 100%;
+  height: 100%;
+  background-size: cover;
+  background-repeat: no-repeat;
+  cursor: grab;
+  border-radius: 4px;
+  transition: transform 0.2s ease;
+}
+
+.jigsaw-piece:active {
+  cursor: grabbing;
+}
+
+.jigsaw-piece.is-dragging {
+  opacity: 0.5;
+}
+
+.jigsaw-piece.is-correct {
+  box-shadow: 0 0 0 2px #28a745;
+}
+
+.jigsaw-pool {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+  padding: 1rem;
+  background: #f8f9fa;
+  border-radius: 8px;
+  min-height: 80px;
+}
+
+.jigsaw-pool-piece {
+  width: 80px;
+  height: 80px;
+  flex-shrink: 0;
+  border: 2px solid #ddd;
+}
+
+.jigsaw-pool-piece:hover {
+  transform: scale(1.05);
+  border-color: #666;
 }

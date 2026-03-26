@@ -369,7 +369,10 @@
           <td>${renderCollectedItems(team.collectedItems)}</td>
           <td class="${currentClass}">${currentLabel}</td>
           <td>${renderClueStatuses(team.pendingTriggers, team.issuedTriggers)}</td>
-          <td>${renderTriggers(team.teamName, team.pendingTriggers)}</td>
+          <td>
+            ${renderTriggers(team.teamName, team.pendingTriggers)}
+            <button type="button" class="clear-route-btn" data-team-name="${escapeHtml(team.teamName)}" style="margin-top: 8px; font-size: 12px; padding: 4px 8px; background: #ff6b6b; color: white; border: none; border-radius: 4px; cursor: pointer;">Очистить перемещения</button>
+          </td>
         `;
 
         rowsNode.appendChild(tr);
@@ -396,6 +399,20 @@
       }
     }
 
+    async function clearRoute(teamName) {
+      const response = await fetch(`/api/admin/team/${encodeURIComponent(teamName)}/clear-route`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+
+      const payload = await response.json();
+      if (!response.ok || payload.ok === false) {
+        throw new Error(payload.error || 'clear_route_failed');
+      }
+    }
+
     async function refresh() {
       try {
         const response = await fetch('/api/admin/summary');
@@ -410,26 +427,49 @@
     }
 
     rowsNode.addEventListener('click', async (event) => {
-      const button = event.target.closest('.ack-btn');
-      if (!button) {
+      const ackButton = event.target.closest('.ack-btn');
+      if (ackButton) {
+        const teamName = ackButton.dataset.teamName;
+        const triggerId = ackButton.dataset.triggerId;
+        if (!teamName || !triggerId) {
+          return;
+        }
+
+        ackButton.disabled = true;
+        ackButton.textContent = 'Отмечаем...';
+        try {
+          await ackTrigger(teamName, triggerId);
+          await refresh();
+        } catch (error) {
+          ackButton.disabled = false;
+          ackButton.textContent = 'Ошибка';
+          metaNode.textContent = `Не удалось отметить улику: ${error.message}`;
+        }
         return;
       }
 
-      const teamName = button.dataset.teamName;
-      const triggerId = button.dataset.triggerId;
-      if (!teamName || !triggerId) {
-        return;
-      }
+      const clearButton = event.target.closest('.clear-route-btn');
+      if (clearButton) {
+        const teamName = clearButton.dataset.teamName;
+        if (!teamName) {
+          return;
+        }
 
-      button.disabled = true;
-      button.textContent = 'Отмечаем...';
-      try {
-        await ackTrigger(teamName, triggerId);
-        await refresh();
-      } catch (error) {
-        button.disabled = false;
-        button.textContent = 'Ошибка';
-        metaNode.textContent = `Не удалось отметить улику: ${error.message}`;
+        if (!confirm(`Очистить все перемещения для команды "${teamName}"?`)) {
+          return;
+        }
+
+        clearButton.disabled = true;
+        clearButton.textContent = 'Очищаем...';
+        try {
+          await clearRoute(teamName);
+          await refresh();
+        } catch (error) {
+          clearButton.disabled = false;
+          clearButton.textContent = 'Ошибка';
+          metaNode.textContent = `Не удалось очистить перемещения: ${error.message}`;
+        }
+        return;
       }
     });
 

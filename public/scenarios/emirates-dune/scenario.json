@@ -149,32 +149,21 @@
                   "y": 68
                 },
                 "task": {
-                  "kind": "slider",
+                  "kind": "jigsaw",
                   "kicker": "Досье Зарака",
                   "title": "Зарак: чёрный базар",
                   "lore": "Вы выходите на роскошный базар, усеянный палатками. В воздухе витает запах восточных специй, а на прилавках — горы сладостей. Вы подходите к одной из лавок, и продавец сразу заводит разговор: настойчиво предлагает необычный ковёр. От пряного воздуха начинает кружиться голова, но в узоре ковра будто спрятан намёк, который и решит, пустят ли вас дальше.",
-                  "question": "Соберите паззл из ковра.",
+                  "question": "Соберите пазл из ковра.",
                   "success": "Продавец сворачивает ковёр и вместе с ним вручает узкую карточку допуска.",
                   "answerLabel": "Награда",
                   "answerText": "Приглашение в Башню ветров Аль-Мирадж.",
-                  "slider": {
-                    "size": 3,
-                    "freeMove": false,
-                    "solved": [
-                      1,
-                      2,
-                      3,
-                      4,
-                      0,
-                      5,
-                      6,
-                      7,
-                      8
-                    ],
-                    "labels": {},
+                  "jigsaw": {
                     "image": {
-                      "src": "./scenarios/emirates-dune/assets/zarak-carpet.png"
-                    }
+                      "src": "./scenarios/emirates-dune/assets/zarak-carpet.png",
+                      "alt": "Узор восточного ковра"
+                    },
+                    "gridSize": 3,
+                    "note": "Соберите узор ковра, чтобы получить приглашение в башню."
                   }
                 }
               },
@@ -278,31 +267,31 @@
                       {
                         "id": "lamp_1",
                         "label": "Lantern 1",
-                        "src": "./scenarios/emirates-dune/assets/lamp-post.png",
+                        "src": "./scenarios/emirates-dune/assets/lamps/lamp-1.png",
                         "height": 120
                       },
                       {
                         "id": "lamp_2",
                         "label": "Lantern 2",
-                        "src": "./scenarios/emirates-dune/assets/lamp-post.png",
+                        "src": "./scenarios/emirates-dune/assets/lamps/lamp-2.png",
                         "height": 150
                       },
                       {
                         "id": "lamp_3",
                         "label": "Lantern 3",
-                        "src": "./scenarios/emirates-dune/assets/lamp-post.png",
+                        "src": "./scenarios/emirates-dune/assets/lamps/lamp-3.png",
                         "height": 180
                       },
                       {
                         "id": "lamp_4",
                         "label": "Lantern 4",
-                        "src": "./scenarios/emirates-dune/assets/lamp-post.png",
+                        "src": "./scenarios/emirates-dune/assets/lamps/lamp-4.png",
                         "height": 210
                       },
                       {
                         "id": "lamp_5",
                         "label": "Lantern 5",
-                        "src": "./scenarios/emirates-dune/assets/lamp-post.png",
+                        "src": "./scenarios/emirates-dune/assets/lamps/lamp-5.png",
                         "height": 240
                       }
                     ]

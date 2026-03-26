@@ -49,10 +49,10 @@
           </div>
 
           <section class="team-gate" id="teamGate" hidden>
-            <p class="team-gate-title">Выберите команду</p>
-            <p class="team-gate-note">Это нужно для синхронизации прогресса и триггеров по уликам.</p>
-            <select id="teamSelect" class="team-select" aria-label="Выбор команды"></select>
-            <button class="btn primary" id="teamConfirmBtn">Войти команде</button>
+            <p class="team-gate-title">Вход для команды</p>
+            <p class="team-gate-note">Введите 5-значный код команды для доступа.</p>
+            <input type="text" id="teamCode" class="team-input" placeholder="Код команды (5 цифр)" aria-label="Код команды" autocomplete="off" maxlength="5" inputmode="numeric" pattern="[0-9]*" />
+            <button class="btn primary" id="teamConfirmBtn">Войти</button>
             <p class="team-gate-status" id="teamGateStatus"></p>
           </section>
 
