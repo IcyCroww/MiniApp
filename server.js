@@ -1,4 +1,4 @@
-﻿const fs = require('fs');
+const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const express = require('express');
@@ -321,7 +321,7 @@ function ensureDbExists() {
 
   if (!fs.existsSync(DB_FILE)) {
     const initial = createDefaultDb();
-    fs.writeFileSync(DB_FILE, JSON.stringify(initial, null, 2), 'utf8');
+    fs.writeFileSync(DB_FILE, `${JSON.stringify(initial)}\n`, 'utf8');
   }
 }
 
@@ -433,13 +433,20 @@ function parseJsonUtf8(raw) {
 
 function readFileDb() {
   ensureDbExists();
-  const raw = fs.readFileSync(DB_FILE, 'utf8');
-  return normalizeDb(parseJsonUtf8(raw));
+  try {
+    const raw = fs.readFileSync(DB_FILE, 'utf8');
+    return normalizeDb(parseJsonUtf8(raw));
+  } catch (error) {
+    console.error('[miniapp-db] read/parse failed, recreating empty database file', error);
+    const initial = createDefaultDb();
+    fs.writeFileSync(DB_FILE, `${JSON.stringify(initial)}\n`, 'utf8');
+    return initial;
+  }
 }
 
 function writeFileDb(db) {
   db.updatedAt = nowIso();
-  fs.writeFileSync(DB_FILE, JSON.stringify(db, null, 2), 'utf8');
+  fs.writeFileSync(DB_FILE, `${JSON.stringify(db)}\n`, 'utf8');
 }
 
 async function initStorage() {
@@ -619,8 +626,8 @@ function appendRouteLog(stats, eventType, pointId, meta = {}) {
     at: nowIso()
   });
 
-  if (stats.routeLog.length > 25) {
-    stats.routeLog.splice(0, stats.routeLog.length - 25);
+  if (stats.routeLog.length > 120) {
+    stats.routeLog.splice(0, stats.routeLog.length - 120);
   }
 
   if (pointId) {
@@ -840,10 +847,26 @@ function adminStats(stats) {
 }
 
 function participantStats(stats) {
+  const uniquePointIds = Array.isArray(stats.uniquePointIds)
+    ? stats.uniquePointIds
+        .map((pointId) => String(pointId || '').trim())
+        .filter(Boolean)
+    : [];
+  const solvedPointIds = Array.isArray(stats.solvedPointIds)
+    ? stats.solvedPointIds
+        .map((pointId) => String(pointId || '').trim())
+        .filter(Boolean)
+    : [];
+
   return {
     teamName: stats.teamName,
+    moveCount: Number(stats.moveCount) || 0,
+    uniquePointIds,
+    solvedPointIds,
+    currentPointId: String(stats.currentPointId || '').trim(),
     finalAnswerText: typeof stats.finalAnswerText === 'string' ? stats.finalAnswerText : '',
     finalAnswerAt: typeof stats.finalAnswerAt === 'string' ? stats.finalAnswerAt : '',
+    finalAnswerMoveCount: Number(stats.finalAnswerMoveCount) || 0,
     collectedItems: Array.isArray(stats.collectedItems) ? stats.collectedItems.slice() : [],
     updatedAt: stats.updatedAt || nowIso()
   };

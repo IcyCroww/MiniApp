@@ -1,4 +1,4 @@
-﻿const tg = window.Telegram?.WebApp;
+const tg = window.Telegram?.WebApp;
 
 function compareTelegramVersions(current = '0', target = '0') {
   const currentParts = String(current || '0').split('.').map((part) => Number(part) || 0);
@@ -900,6 +900,7 @@ const state = {
   finalAnswerAt: '',
   finalAnswerMoveCount: 0,
   finalAnswerDraft: '',
+  teamStatsUpdatedAt: '',
   teamList: [],
   shownTriggerIds: new Set(),
   teamPollTimer: null
@@ -969,6 +970,7 @@ const mapState = {
   visited: new Set(),
   solved: new Set(),
   sliderBoards: new Map(),
+  sortOrders: new Map(),
   caesarInputs: new Map(),
   matchLinks: new Map(),
   matchActiveFacts: new Map(),
@@ -985,6 +987,8 @@ const mapState = {
   cityOverlayLayer: null,
   cityOverlayPointId: null,
   cityPoiMarkers: new Map(),
+  hotspotHits: new Map(),
+  hotspotAfterPhase: new Set(),
   bounds: null,
   fallbackVisible: false,
   imageWidth: 0,
@@ -1699,13 +1703,7 @@ function useStrictScenarioPoints() {
 
 function useAutoTourAgentPoints() {
   const featureFlag = scenarioState.activeConfig?.features?.autoTourAgentPoints;
-  if (featureFlag === true) {
-    return true;
-  }
-  if (useStrictScenarioPoints()) {
-    return false;
-  }
-  return featureFlag !== false;
+  return featureFlag === true;
 }
 
 function normalizeScenarioAssetPath(rawPath = '') {
@@ -2142,6 +2140,16 @@ function formatTourAgentRouteHint(parentPoint, rawPoints = [], activeLocalId = '
     return '';
   }
 
+  if (nextCityTitles.length === 1) {
+    const singleCity = String(nextCityTitles[0] || '').trim();
+    if (singleCity === 'Стормпорт') {
+      return 'Я бы вам советовал заглянуть в Стормпорт.';
+    }
+    if (singleCity === 'Нортбридж') {
+      return 'На вашем месте я бы поехал в Нортбридж.';
+    }
+  }
+
   const formatCityList = (titles = []) => {
     if (titles.length <= 1) {
       return titles[0] || '';
@@ -2159,10 +2167,10 @@ function formatTourAgentRouteHint(parentPoint, rawPoints = [], activeLocalId = '
   }
 
   const singleTemplates = [
-    (cityList) => `Я бы на вашем месте заглянул в ${cityList}.`,
+    (cityList) => `Я бы вам советовал заглянуть в ${cityList}.`,
+    (cityList) => `На вашем месте я бы поехал в ${cityList}.`,
     (cityList) => `Если идти по уму, следующая остановка — ${cityList}.`,
-    (cityList) => `Для полной картины советую заехать в ${cityList}.`,
-    (cityList) => `После этого лучше держать курс на ${cityList}.`
+    (cityList) => `Для полной картины советую заехать в ${cityList}.`
   ];
 
   const multiTemplates = [
@@ -2292,11 +2300,48 @@ function buildAutoTourAgentPoint(parentPoint, rawPoints = []) {
   };
 }
 
+const PANDORIA_ROUTE_POINT_IDS = new Set([
+  'new_london',
+  'northbridge',
+  'stormport',
+  'greyston',
+  'ashford',
+  'ravenwood',
+  'whitehill',
+  'ironport',
+  'duncaster',
+  'lakeshire'
+]);
+
+function shouldHideTourAgentPoints(point, cityMapConfig = null) {
+  const scenarioId = String(scenarioState.activeId || '').trim().toLowerCase();
+  const pointId = String(point?.id || '').trim().toLowerCase().replace(/-/g, '_');
+  const mapSrc = String(cityMapConfig?.src || point?.task?.cityImageMap?.src || '')
+    .trim()
+    .toLowerCase()
+    .replace(/\\/g, '/');
+  const isPandoriaCityMap = mapSrc.includes('scenarios/pandoria/');
+
+  if (scenarioId === 'pandoria' || isPandoriaCityMap) {
+    return true;
+  }
+  return scenarioId === 'campaign' && PANDORIA_ROUTE_POINT_IDS.has(pointId);
+}
+
 function getImageCityPoints(point) {
   const config = getPointInlineCityImageMap(point);
-  const basePoints = Array.isArray(config?.points) ? config.points : [];
+  const rawBasePoints = Array.isArray(config?.points) ? config.points : [];
+  const hideTourAgents = shouldHideTourAgentPoints(point, config);
+  const shouldUseTourAgentPoints = useAutoTourAgentPoints() && !hideTourAgents;
+  const basePoints = shouldUseTourAgentPoints
+    ? rawBasePoints
+    : (
+      hideTourAgents
+        ? rawBasePoints.filter((item) => !isTourAgentLikePoint(item))
+        : rawBasePoints
+    );
   const hasTourAgentPoint = basePoints.some((item) => isTourAgentLikePoint(item));
-  const shouldAutoInjectTourAgent = useAutoTourAgentPoints();
+  const shouldAutoInjectTourAgent = shouldUseTourAgentPoints;
   const rawPoints = !shouldAutoInjectTourAgent || hasTourAgentPoint
     ? basePoints
     : [buildAutoTourAgentPoint(point, basePoints), ...basePoints];
@@ -2341,6 +2386,101 @@ function normalizeScenarioPoint(rawPoint = {}) {
   };
 }
 
+function setPointRouteLock(point, requiredPointIds = [], hintText = '') {
+  if (!point || !point.task || typeof point.task !== 'object') {
+    return;
+  }
+
+  const required = Array.isArray(requiredPointIds)
+    ? requiredPointIds
+        .map((value) => String(value || '').trim())
+        .filter(Boolean)
+    : [];
+
+  if (!required.length) {
+    delete point.task.lock;
+    return;
+  }
+
+  point.task.lock = {
+    visible: false,
+    requireVisitedAny: required,
+    hint: String(hintText || 'Сначала откройте предыдущий город по маршруту.').trim()
+  };
+}
+
+function applySequentialRouteLocks(pointMap, chain = []) {
+  const normalizedChain = Array.isArray(chain)
+    ? chain.map((value) => String(value || '').trim()).filter(Boolean)
+    : [];
+
+  normalizedChain.forEach((pointId, index) => {
+    const point = pointMap.get(pointId);
+    if (!point) {
+      return;
+    }
+
+    if (index === 0) {
+      setPointRouteLock(point, []);
+      return;
+    }
+
+    const previousPointId = normalizedChain[index - 1];
+    const previousTitle = String(pointMap.get(previousPointId)?.title || previousPointId || '').trim();
+    setPointRouteLock(point, [previousPointId], `Сначала посетите ${previousTitle}.`);
+  });
+}
+
+function applyRuntimeRouteLocks(nextPoints = []) {
+  const scenarioId = String(scenarioState.activeId || '').trim().toLowerCase();
+  if (!Array.isArray(nextPoints) || !nextPoints.length) {
+    return;
+  }
+
+  const pointMap = new Map(nextPoints.map((point) => [String(point?.id || '').trim(), point]));
+
+  const applyPandoriaLocks = () => {
+    const lockPlan = [
+      ['new_london', [], ''],
+      ['northbridge', ['new_london'], 'Сначала посетите Нью-Лондон.'],
+      ['stormport', ['northbridge'], 'Сначала посетите Нортбридж.'],
+      ['ashford', ['new_london'], 'Сначала посетите Нью-Лондон.'],
+      ['ravenwood', ['new_london'], 'Сначала посетите Нью-Лондон.'],
+      ['whitehill', ['northbridge'], 'Сначала посетите Нортбридж.'],
+      ['greyston', ['stormport'], 'Сначала посетите Стормпорт.'],
+      ['ironport', ['stormport'], 'Сначала посетите Стормпорт.'],
+      ['duncaster', ['stormport'], 'Сначала посетите Стормпорт.'],
+      ['lakeshire', ['stormport'], 'Сначала посетите Стормпорт.']
+    ];
+
+    lockPlan.forEach(([pointId, requires, hint]) => {
+      setPointRouteLock(pointMap.get(pointId), requires, hint);
+    });
+  };
+
+  if (scenarioId === 'campaign') {
+    applySequentialRouteLocks(pointMap, [
+      'belogorie',
+      'veligrad',
+      'tihorechye',
+      'novoargos',
+      'chernogorsk',
+      'moregrad',
+      'surozhsk',
+      'ledogorsk',
+      'yarovlad',
+      'gradimir'
+    ]);
+
+    applyPandoriaLocks();
+  }
+
+  if (scenarioId === 'pandoria') {
+    applyPandoriaLocks();
+  }
+
+}
+
 function applyScenarioRouteConfig(scenarioData = null) {
   const routeMap = scenarioData?.routeMap;
 
@@ -2354,6 +2494,7 @@ function applyScenarioRouteConfig(scenarioData = null) {
   }
 
   const nextPoints = routeMap.points.map((point) => normalizeScenarioPoint(point)).filter((point) => point.id);
+  applyRuntimeRouteLocks(nextPoints);
   const nextFallbackPositions = {};
   routeMap.points.forEach((point) => {
     const id = String(point?.id || '').trim();
@@ -2716,7 +2857,23 @@ function renderFinalAnswerPanel() {
   }
 }
 
+function normalizeServerPointIds(rawList) {
+  if (!Array.isArray(rawList)) {
+    return [];
+  }
+
+  return rawList
+    .map((value) => String(value || '').trim())
+    .filter(Boolean);
+}
+
 function applyTeamStats(stats = {}) {
+  const incomingUpdatedAt = String(stats?.updatedAt || '').trim();
+  const knownUpdatedAt = String(state.teamStatsUpdatedAt || '').trim();
+  if (incomingUpdatedAt && knownUpdatedAt && incomingUpdatedAt < knownUpdatedAt) {
+    return;
+  }
+
   const previousMoveCount = Number(state.teamMoveCount || 0);
   const previousFinalAnswer = state.finalAnswerText;
 
@@ -2729,18 +2886,47 @@ function applyTeamStats(stats = {}) {
     resetClientRouteProgress();
   }
 
+  if (Array.isArray(stats?.uniquePointIds)) {
+    mapState.visited.clear();
+    normalizeServerPointIds(stats.uniquePointIds).forEach((pointId) => {
+      mapState.visited.add(pointId);
+    });
+  }
+
+  if (Array.isArray(stats?.solvedPointIds)) {
+    mapState.solved.clear();
+    normalizeServerPointIds(stats.solvedPointIds).forEach((pointId) => {
+      mapState.solved.add(pointId);
+      mapState.visited.add(pointId);
+    });
+  }
+
+  if (!state.selectedPointId) {
+    const currentPointId = String(stats?.currentPointId || '').trim();
+    if (currentPointId && pointsById.has(currentPointId)) {
+      state.selectedPointId = currentPointId;
+    }
+  }
+
+  if (incomingUpdatedAt) {
+    state.teamStatsUpdatedAt = incomingUpdatedAt;
+  }
+
   if (!state.finalAnswerDraft || state.finalAnswerDraft === previousFinalAnswer || document.activeElement !== finalAnswerInputNode) {
     state.finalAnswerDraft = state.finalAnswerText;
   }
 
   updateBadge();
+  refreshMarkers();
   renderFinalAnswerPanel();
 }
 
 function resetClientRouteProgress() {
+  state.teamStatsUpdatedAt = '';
   mapState.visited.clear();
   mapState.solved.clear();
   mapState.sliderBoards.clear();
+  mapState.sortOrders.clear();
   mapState.caesarInputs.clear();
   mapState.matchLinks.clear();
   mapState.matchActiveFacts.clear();
@@ -2754,6 +2940,8 @@ function resetClientRouteProgress() {
   mapState.taskOutcomes.clear();
   mapState.cityVisits.clear();
   mapState.cityHints.clear();
+  mapState.hotspotHits.clear();
+  mapState.hotspotAfterPhase.clear();
   mapState.pendingFocusPointId = null;
   mapState.imageCityPointId = null;
 
@@ -2857,7 +3045,27 @@ function showTriggerNotice(triggers = []) {
     return;
   }
 
-  const latest = fresh[fresh.length - 1];
+  const latest = [...fresh]
+    .reverse()
+    .find((trigger) => {
+      const rawText = String(trigger?.text || '').trim().toLowerCase();
+      if (!rawText) {
+        return true;
+      }
+
+      const isMoveProgressNoise = rawText.includes('перемещени') && (
+        rawText.includes('промежуточн')
+        || rawText.includes('улик')
+        || rawText.includes('можно готовить')
+      );
+
+      return !isMoveProgressNoise;
+    });
+
+  if (!latest) {
+    return;
+  }
+
   const text = latest?.text || 'Новый триггер команды.';
 
   if (state.cityMode) {
@@ -3052,6 +3260,7 @@ async function initTeamState() {
     state.finalAnswerAt = '';
     state.finalAnswerMoveCount = 0;
     state.finalAnswerDraft = '';
+    state.teamStatsUpdatedAt = '';
     setTeamStripText();
     updateBadge();
     renderFinalAnswerPanel();
@@ -3059,11 +3268,28 @@ async function initTeamState() {
   }
 }
 
+function softenTaskHintText(text = '') {
+  const rawText = String(text || '');
+  if (!rawText) {
+    return '';
+  }
+
+  const softened = rawText
+    .replace(/(^|[\s(«"'[])(?:Улика|Clue)\s*:\s*/gi, '$1')
+    .replace(/\b(?:Главная|Средняя|Дополнительная|Бонусная|Вторая ключевая)\s+улика\s*:\s*/gi, '')
+    .replace(/[ \t]{2,}/g, ' ')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+
+  return softened;
+}
+
 function setTaskResult(text, tone = '') {
-  animateTextNode(taskResultNode, text, { msPerChar: 14, instant: !tone });
+  const preparedText = softenTaskHintText(text);
+  animateTextNode(taskResultNode, preparedText, { msPerChar: 14, instant: !tone });
   taskResultNode.classList.remove('ok', 'bad', 'info');
 
-  if (!text || !tone) {
+  if (!preparedText || !tone) {
     return;
   }
 
@@ -3095,8 +3321,10 @@ function setTaskAnswer(text = '', label = 'Ключ') {
     return;
   }
 
-  taskAnswerLabelNode.textContent = label;
-  animateTextNode(taskAnswerTextNode, text, { msPerChar: 15 });
+  const rawLabel = String(label || '').trim();
+  const displayLabel = /^(?:улика|clue)$/i.test(rawLabel) ? 'Наблюдение' : (rawLabel || 'Ключ');
+  taskAnswerLabelNode.textContent = displayLabel;
+  animateTextNode(taskAnswerTextNode, softenTaskHintText(text), { msPerChar: 15 });
   taskAnswerNode.hidden = false;
 }
 
@@ -3241,6 +3469,7 @@ function setTaskPlaceholder() {
 const SUPPORTED_TASK_KINDS = new Set([
   'empty',
   'choice',
+  'sort',
   'slider',
   'caesar',
   'match',
@@ -3276,10 +3505,20 @@ function resolveTaskKind(task = {}) {
     if (rawMechanic === 'choice') {
       return 'choice';
     }
+    if (rawMechanic === 'sort') {
+      return 'sort';
+    }
     if (rawMechanic === 'caesar_shift') {
       return 'caesar';
     }
+    if (rawMechanic === 'carpet_puzzle' || rawMechanic === 'tile_slide') {
+      return 'slider';
+    }
     return Array.isArray(task.options) ? 'choice' : 'empty';
+  }
+
+  if (task.sort && typeof task.sort === 'object' && Array.isArray(task.sort.items)) {
+    return 'sort';
   }
 
   if (Array.isArray(task.options) && task.options.length > 0) {
@@ -3333,6 +3572,28 @@ function ensureTaskCompatibility(point) {
       expectedShift: Number(task.expectedShift) || 3,
       targetWord: String(task.answer || task.targetWord || '').trim()
     };
+  }
+
+  if (resolvedKind === 'sort' && (!task.sort || typeof task.sort !== 'object')) {
+    task.sort = task.lanternSort && typeof task.lanternSort === 'object'
+      ? { ...task.lanternSort }
+      : { items: [] };
+  }
+
+  if (resolvedKind === 'slider' && (!task.slider || typeof task.slider !== 'object')) {
+    const mechanic = String(task.mechanic || '').trim().toLowerCase();
+    if (mechanic === 'carpet_puzzle' || mechanic === 'tile_slide') {
+      task.slider = {
+        size: 3,
+        freeMove: false,
+        solved: [1, 2, 3, 4, 0, 5, 6, 7, 8],
+        labels: {},
+        image: {
+          src: './scenarios/emirates-dune/assets/zarak-carpet.png',
+          alt: 'Узор ковра'
+        }
+      };
+    }
   }
 
   return resolvedKind;
@@ -3422,28 +3683,31 @@ function markPointVisited(point) {
     };
   }
 
-  const labels = unlockedTargets.map((targetPoint) => targetPoint.title).filter(Boolean);
   const baseText = String(point.task?.unlockSuccessText || '').trim();
-  const unlockListText = labels.length ? `Открыты города: ${labels.join(', ')}.` : '';
 
   return {
     firstVisit: true,
-    unlockNoticeText: [baseText, unlockListText].filter(Boolean).join(' ')
+    unlockNoticeText: baseText
   };
 }
 
 function renderLockedPointState(point) {
   const lockHint = getPointLockHint(point);
   const parentPoint = point.parentCityId ? pointsById.get(point.parentCityId) : null;
+  const questionText = lockHint || 'Эта точка станет доступна позже по маршруту.';
 
   taskKickerNode.textContent = parentPoint ? `Маршрут закрыт: ${parentPoint.title}` : 'Маршрут закрыт';
   taskKickerNode.hidden = false;
   taskTitleNode.textContent = point.title || 'Закрытая точка';
   taskTitleNode.hidden = false;
   setTaskLore(point.task?.lore || point.text || '');
-  setTaskQuestion(lockHint || 'Эта точка станет доступна позже по маршруту.');
+  setTaskQuestion(questionText);
   taskOptionsNode.innerHTML = '';
-  setTaskResult(lockHint || 'Эта точка пока недоступна.', 'info');
+  if (lockHint) {
+    setTaskResult('');
+  } else {
+    setTaskResult('Эта точка пока недоступна.', 'info');
+  }
   setTaskAnswer('');
 }
 
@@ -3659,8 +3923,11 @@ function completeTask(point, outcome = {}) {
   updateBadge();
   refreshMarkers();
   triggerHaptic('success');
-  if (Array.isArray(outcome.itemAwards) && outcome.itemAwards.length > 0) {
-    grantTaskItemAwards(point, outcome.itemAwards);
+  const itemAwards = Array.isArray(outcome.itemAwards)
+    ? outcome.itemAwards
+    : (Array.isArray(point?.task?.itemAwards) ? point.task.itemAwards : []);
+  if (itemAwards.length > 0) {
+    grantTaskItemAwards(point, itemAwards);
   }
   void postTeamEvent('task-solved', point.id, {
     kind: point.task.kind,
@@ -3821,11 +4088,158 @@ function moveSliderTile(point, tileId) {
   return true;
 }
 
-function attachSliderDrag(tileButton, point, tileId, boardNode) {
+function getSortConfig(point) {
+  const config = point?.task?.sort;
+  return config && typeof config === 'object' ? config : {};
+}
+
+function getSortItems(point) {
+  const config = getSortConfig(point);
+  const rawItems = Array.isArray(config.items) ? config.items : [];
+  const seenIds = new Set();
+
+  return rawItems
+    .map((rawItem, index) => {
+      const fallbackId = `item_${index + 1}`;
+      const id = String(rawItem?.id || fallbackId).trim() || fallbackId;
+
+      if (seenIds.has(id)) {
+        return null;
+      }
+      seenIds.add(id);
+
+      return {
+        id,
+        label: String(rawItem?.label || rawItem?.title || `Элемент ${index + 1}`).trim() || `Элемент ${index + 1}`,
+        alt: String(rawItem?.alt || rawItem?.label || rawItem?.title || id).trim() || id,
+        src: normalizeScenarioAssetPath(String(rawItem?.src || '').trim()),
+        rank: Number(rawItem?.height ?? rawItem?.rank ?? rawItem?.order),
+        hint: String(rawItem?.hint || '').trim()
+      };
+    })
+    .filter(Boolean);
+}
+
+function normalizeSortOrder(order = [], itemIds = []) {
+  const allowed = new Set(itemIds);
+  const normalized = Array.isArray(order)
+    ? order
+        .map((value) => String(value || '').trim())
+        .filter((value) => value && allowed.has(value))
+    : [];
+
+  itemIds.forEach((itemId) => {
+    if (!normalized.includes(itemId)) {
+      normalized.push(itemId);
+    }
+  });
+
+  return normalized;
+}
+
+function getSortTargetOrder(point, items = []) {
+  const config = getSortConfig(point);
+  const itemIds = items.map((item) => item.id);
+  const itemIdSet = new Set(itemIds);
+  const explicitOrder = normalizeSortOrder(config.targetOrder, itemIds).filter((itemId) => itemIdSet.has(itemId));
+
+  if (explicitOrder.length === itemIds.length) {
+    return explicitOrder;
+  }
+
+  const rankedItems = items
+    .map((item, index) => ({
+      id: item.id,
+      index,
+      rank: Number(item.rank)
+    }))
+    .filter((item) => Number.isFinite(item.rank));
+
+  if (rankedItems.length === itemIds.length && itemIds.length > 0) {
+    return rankedItems
+      .sort((left, right) => (left.rank - right.rank) || (left.index - right.index))
+      .map((item) => item.id);
+  }
+
+  return itemIds;
+}
+
+function createShuffledSortOrder(baseOrder = [], solvedOrder = []) {
+  const nextOrder = baseOrder.slice();
+
+  for (let index = nextOrder.length - 1; index > 0; index -= 1) {
+    const swapIndex = Math.floor(Math.random() * (index + 1));
+    [nextOrder[index], nextOrder[swapIndex]] = [nextOrder[swapIndex], nextOrder[index]];
+  }
+
+  if (nextOrder.length > 1 && areArraysEqual(nextOrder, solvedOrder)) {
+    [nextOrder[0], nextOrder[1]] = [nextOrder[1], nextOrder[0]];
+  }
+
+  return nextOrder;
+}
+
+function getSortOrder(point, items = [], targetOrder = []) {
+  const itemIds = items.map((item) => item.id);
+  const existingOrder = mapState.sortOrders.get(point.id);
+  const config = getSortConfig(point);
+
+  if (existingOrder) {
+    const normalizedExisting = normalizeSortOrder(existingOrder, itemIds);
+    mapState.sortOrders.set(point.id, normalizedExisting);
+    return normalizedExisting;
+  }
+
+  const baseOrder = normalizeSortOrder(config.initialOrder, itemIds);
+  const shouldShuffle = config.shuffle !== false;
+  const nextOrder = shouldShuffle
+    ? createShuffledSortOrder(baseOrder, targetOrder)
+    : baseOrder.slice();
+
+  mapState.sortOrders.set(point.id, nextOrder);
+  return nextOrder;
+}
+
+function moveSortItem(order = [], itemId = '', targetId = '', placement = 'before') {
+  const sourceIndex = order.indexOf(itemId);
+  const targetIndex = order.indexOf(targetId);
+  if (sourceIndex < 0 || targetIndex < 0 || sourceIndex === targetIndex) {
+    return order.slice();
+  }
+
+  const nextOrder = order.slice();
+  nextOrder.splice(sourceIndex, 1);
+
+  let insertIndex = targetIndex;
+  if (sourceIndex < targetIndex) {
+    insertIndex -= 1;
+  }
+  if (placement === 'after') {
+    insertIndex += 1;
+  }
+
+  insertIndex = Math.max(0, Math.min(insertIndex, nextOrder.length));
+  nextOrder.splice(insertIndex, 0, itemId);
+  return nextOrder;
+}
+
+function clearSortDropIndicators(listNode) {
+  if (!listNode) {
+    return;
+  }
+
+  listNode.querySelectorAll('.sort-item').forEach((node) => {
+    node.classList.remove('is-drop-before', 'is-drop-after');
+  });
+}
+
+function attachSortDrag(itemNode, point, listNode, itemId) {
   let dragging = false;
   let pointerId = null;
   let startX = 0;
   let startY = 0;
+  let dropTargetId = '';
+  let dropPlacement = 'before';
 
   const finishDrag = () => {
     if (!dragging) {
@@ -3833,6 +4247,113 @@ function attachSliderDrag(tileButton, point, tileId, boardNode) {
     }
 
     dragging = false;
+    itemNode.style.transform = '';
+    itemNode.style.pointerEvents = '';
+    itemNode.classList.remove('is-dragging');
+
+    if (dropTargetId) {
+      const currentOrder = normalizeSortOrder(mapState.sortOrders.get(point.id), getSortItems(point).map((item) => item.id));
+      const nextOrder = moveSortItem(currentOrder, itemId, dropTargetId, dropPlacement);
+      if (!areArraysEqual(currentOrder, nextOrder)) {
+        mapState.sortOrders.set(point.id, nextOrder);
+        renderTask(point);
+        triggerHaptic('light');
+      }
+    }
+
+    clearSortDropIndicators(listNode);
+    dropTargetId = '';
+    dropPlacement = 'before';
+
+    if (pointerId !== null) {
+      try {
+        if (itemNode.hasPointerCapture(pointerId)) {
+          itemNode.releasePointerCapture(pointerId);
+        }
+      } catch (_) {
+        // No-op.
+      }
+    }
+
+    pointerId = null;
+  };
+
+  itemNode.addEventListener('pointerdown', (event) => {
+    if (itemNode.disabled || mapState.solved.has(point.id)) {
+      return;
+    }
+
+    dragging = true;
+    pointerId = event.pointerId;
+    startX = event.clientX;
+    startY = event.clientY;
+    itemNode.classList.add('is-dragging');
+    itemNode.style.pointerEvents = 'none';
+
+    try {
+      itemNode.setPointerCapture(pointerId);
+    } catch (_) {
+      // No-op.
+    }
+
+    event.preventDefault();
+  });
+
+  itemNode.addEventListener('pointermove', (event) => {
+    if (!dragging || event.pointerId !== pointerId) {
+      return;
+    }
+
+    event.preventDefault();
+    const dx = event.clientX - startX;
+    const dy = event.clientY - startY;
+    itemNode.style.transform = `translate(${dx}px, ${dy}px)`;
+
+    const hitNode = document.elementFromPoint(event.clientX, event.clientY);
+    const targetItem = hitNode?.closest?.('.sort-item') || null;
+    clearSortDropIndicators(listNode);
+
+    if (!targetItem || targetItem === itemNode) {
+      dropTargetId = '';
+      dropPlacement = 'before';
+      return;
+    }
+
+    const targetRect = targetItem.getBoundingClientRect();
+    const placeAfter = event.clientY >= (targetRect.top + targetRect.height / 2);
+    dropTargetId = String(targetItem.dataset.itemId || '').trim();
+    dropPlacement = placeAfter ? 'after' : 'before';
+    targetItem.classList.add(placeAfter ? 'is-drop-after' : 'is-drop-before');
+  });
+
+  itemNode.addEventListener('pointerup', (event) => {
+    if (event.pointerId !== pointerId) {
+      return;
+    }
+
+    finishDrag();
+  });
+
+  itemNode.addEventListener('pointercancel', finishDrag);
+}
+
+function attachSliderDrag(tileButton, point, tileId, boardNode) {
+  let dragging = false;
+  let pointerId = null;
+  let startX = 0;
+  let startY = 0;
+  let dragMoved = false;
+
+  const finishDrag = () => {
+    if (!dragging) {
+      return;
+    }
+
+    dragging = false;
+    if (dragMoved) {
+      tileButton.dataset.sliderSkipClick = '1';
+    }
+    dragMoved = false;
 
     const emptyNode = boardNode.querySelector('.slider-empty');
     let moved = false;
@@ -3903,6 +4424,9 @@ function attachSliderDrag(tileButton, point, tileId, boardNode) {
 
     const moveX = event.clientX - startX;
     const moveY = event.clientY - startY;
+    if (Math.abs(moveX) + Math.abs(moveY) > 6) {
+      dragMoved = true;
+    }
     tileButton.style.transform = `translate(${moveX}px, ${moveY}px)`;
     event.preventDefault();
   });
@@ -3922,6 +4446,7 @@ function renderSliderBoard(point) {
   const board = getSliderBoard(point);
   const { size, labels, freeMove, image } = point.task.slider;
   const solvedOrder = point.task.slider.solved || [];
+  const imageUrl = image?.src ? normalizeScenarioAssetPath(String(image.src).trim()) : '';
 
   const wrap = document.createElement('div');
   wrap.className = 'slider-wrap';
@@ -3935,7 +4460,7 @@ function renderSliderBoard(point) {
 
   const boardNode = document.createElement('div');
   boardNode.className = 'slider-board';
-  if (image?.src) {
+  if (imageUrl) {
     boardNode.classList.add('has-image');
   }
   boardNode.style.gridTemplateColumns = `repeat(${size}, minmax(0, 1fr))`;
@@ -3960,7 +4485,7 @@ function renderSliderBoard(point) {
     tileButton.setAttribute('aria-label', `Фрагмент ${tileId}`);
     tileButton.disabled = mapState.solved.has(point.id);
 
-    if (image?.src) {
+    if (imageUrl) {
       const solvedIndex = solvedOrder.indexOf(tileId);
       const solvedRow = Math.floor(solvedIndex / size);
       const solvedCol = solvedIndex % size;
@@ -3969,7 +4494,7 @@ function renderSliderBoard(point) {
 
       tileButton.classList.add('has-image');
       tileButton.textContent = '';
-      tileButton.style.backgroundImage = `url("${image.src}")`;
+      tileButton.style.backgroundImage = `url("${imageUrl}")`;
       tileButton.style.backgroundSize = `${size * 100}% ${size * 100}%`;
       tileButton.style.backgroundPosition = `${xPercent}% ${yPercent}%`;
       tileButton.style.backgroundRepeat = 'no-repeat';
@@ -3978,6 +4503,16 @@ function renderSliderBoard(point) {
     if (!mapState.solved.has(point.id) && (freeMove || isNeighbor)) {
       tileButton.classList.add('is-movable');
       attachSliderDrag(tileButton, point, tileId, boardNode);
+      if (!freeMove && isNeighbor) {
+        tileButton.addEventListener('click', (event) => {
+          if (tileButton.dataset.sliderSkipClick === '1') {
+            delete tileButton.dataset.sliderSkipClick;
+            return;
+          }
+          event.preventDefault();
+          moveSliderTile(point, tileId);
+        });
+      }
     }
 
     if (!freeMove && !isNeighbor && !mapState.solved.has(point.id)) {
@@ -3993,6 +4528,181 @@ function renderSliderBoard(point) {
 
   wrap.appendChild(boardNode);
   taskOptionsNode.appendChild(wrap);
+}
+
+function renderSortTask(point) {
+  const config = getSortConfig(point);
+  const items = getSortItems(point);
+  const showLabels = config.showLabels !== false;
+
+  if (items.length < 2) {
+    setTaskResult('Для этой механики нужно минимум два элемента в task.sort.items.', 'info');
+    return;
+  }
+
+  const itemIds = items.map((item) => item.id);
+  const targetOrder = getSortTargetOrder(point, items);
+  const currentOrder = normalizeSortOrder(getSortOrder(point, items, targetOrder), itemIds);
+  mapState.sortOrders.set(point.id, currentOrder);
+
+  const itemById = new Map(items.map((item) => [item.id, item]));
+  const isSolved = mapState.solved.has(point.id);
+
+  const wrap = document.createElement('div');
+  wrap.className = 'sort-wrap';
+
+  const note = document.createElement('p');
+  note.className = 'task-mini-note';
+  note.textContent = String(config.note || '').trim() || 'Перетащите карточки и выстройте фонари по возрастанию высоты (слева направо).';
+  wrap.appendChild(note);
+
+  const listNode = document.createElement('div');
+  listNode.className = 'sort-list';
+  if (!showLabels) {
+    listNode.classList.add('is-visual-only');
+  }
+
+  const declaredHeights = items
+    .map((it) => Number(it.height))
+    .filter((n) => Number.isFinite(n) && n > 0);
+  const minDeclH = declaredHeights.length ? Math.min(...declaredHeights) : 0;
+  const maxDeclH = declaredHeights.length ? Math.max(...declaredHeights) : 1;
+
+  currentOrder.forEach((itemId) => {
+    const item = itemById.get(itemId);
+    if (!item) {
+      return;
+    }
+
+    const itemNode = document.createElement('button');
+    itemNode.type = 'button';
+    itemNode.className = 'sort-item';
+    itemNode.dataset.itemId = item.id;
+    itemNode.disabled = isSolved;
+    itemNode.setAttribute('aria-label', item.label);
+
+    if (item.src) {
+      const thumbWrap = document.createElement('div');
+      thumbWrap.className = 'sort-item-thumb-wrap';
+
+      const image = document.createElement('img');
+      image.className = 'sort-item-thumb';
+      image.src = normalizeScenarioAssetPath(item.src);
+      image.alt = item.alt || item.label;
+      image.loading = 'lazy';
+      image.draggable = false;
+      image.style.pointerEvents = 'none';
+
+      const rawH = Number(item.height);
+      if (declaredHeights.length && Number.isFinite(rawH) && rawH > 0) {
+        const t = (rawH - minDeclH) / (maxDeclH - minDeclH || 1);
+        const px = Math.round(48 + t * 168);
+        image.style.height = `${px}px`;
+        image.style.width = 'auto';
+        image.style.maxWidth = '100%';
+        image.style.objectFit = 'contain';
+        image.style.objectPosition = 'bottom center';
+
+      }
+
+      image.addEventListener('error', () => {
+        thumbWrap.remove();
+      });
+      thumbWrap.appendChild(image);
+
+      if (!showLabels && declaredHeights.length && Number.isFinite(rawH) && rawH > 0) {
+        const t = (rawH - minDeclH) / (maxDeclH - minDeclH || 1);
+        const meter = document.createElement('div');
+        meter.className = 'sort-item-height-meter';
+        meter.setAttribute('role', 'presentation');
+        meter.style.setProperty('--fill-pct', `${Math.round(t * 100)}%`);
+        thumbWrap.appendChild(meter);
+      }
+      itemNode.appendChild(thumbWrap);
+    }
+
+    const shouldRenderText = showLabels || !item.src;
+    if (shouldRenderText) {
+      const textBlock = document.createElement('span');
+      textBlock.className = 'sort-item-text';
+
+      const label = document.createElement('span');
+      label.className = 'sort-item-label';
+      label.textContent = item.label;
+      textBlock.appendChild(label);
+
+      if (item.hint) {
+        const hint = document.createElement('span');
+        hint.className = 'sort-item-hint';
+        hint.textContent = item.hint;
+        textBlock.appendChild(hint);
+      }
+
+      itemNode.appendChild(textBlock);
+    }
+
+    const handle = document.createElement('span');
+    handle.className = 'sort-item-handle';
+    handle.setAttribute('aria-hidden', 'true');
+    handle.textContent = '⋮⋮';
+    itemNode.appendChild(handle);
+
+    if (!isSolved) {
+      attachSortDrag(itemNode, point, listNode, item.id);
+    } else {
+      itemNode.classList.add('is-solved');
+    }
+
+    listNode.appendChild(itemNode);
+  });
+
+  wrap.appendChild(listNode);
+
+  const actions = document.createElement('div');
+  actions.className = 'sort-actions';
+
+  const checkBtn = document.createElement('button');
+  checkBtn.type = 'button';
+  checkBtn.className = 'anagram-confirm';
+  checkBtn.textContent = isSolved ? 'Порядок подтвержден' : 'Проверить порядок';
+  checkBtn.disabled = isSolved;
+  checkBtn.addEventListener('click', () => {
+    const nextOrder = normalizeSortOrder(mapState.sortOrders.get(point.id), itemIds);
+    mapState.sortOrders.set(point.id, nextOrder);
+
+    if (areArraysEqual(nextOrder, targetOrder)) {
+      completeTask(point);
+      setTaskResult(point.task.success || 'Порядок верный.', 'ok');
+      setTaskAnswer(point.task.answerText, point.task.answerLabel || 'Ключ');
+      renderTask(point);
+      return;
+    }
+
+    setTaskResult(point.task.wrongResultText || 'Пока неверно. Расставьте фонари от низкого к высокому.', 'bad');
+    triggerHaptic('error');
+  });
+  actions.appendChild(checkBtn);
+
+  const reshuffleBtn = document.createElement('button');
+  reshuffleBtn.type = 'button';
+  reshuffleBtn.className = 'match-btn ghost';
+  reshuffleBtn.textContent = 'Перемешать';
+  reshuffleBtn.disabled = isSolved;
+  reshuffleBtn.addEventListener('click', () => {
+    const mixedOrder = createShuffledSortOrder(itemIds, targetOrder);
+    mapState.sortOrders.set(point.id, mixedOrder);
+    setTaskResult('', 'info');
+    renderTask(point);
+    triggerHaptic('light');
+  });
+  actions.appendChild(reshuffleBtn);
+
+  wrap.appendChild(actions);
+  taskOptionsNode.appendChild(wrap);
+
+  if (isSolved) {
+    showSolvedTaskState(point);
+  }
 }
 
 function getCaesarInput(point) {
@@ -4091,7 +4801,9 @@ function renderCaesarTask(point) {
 
   const note = document.createElement('p');
   note.className = 'task-mini-note';
-  note.textContent = 'Подсказка: используйте шифр Цезаря.';
+  note.textContent = String(
+    config.note || 'Расшифруйте шифртекст и введите слово.'
+  ).trim();
   wrap.appendChild(note);
 
   const info = document.createElement('p');
@@ -4099,10 +4811,12 @@ function renderCaesarTask(point) {
   info.textContent = `Шифртекст: ${config.cipherText}`;
   wrap.appendChild(info);
 
-  const shiftMeta = document.createElement('p');
-  shiftMeta.className = 'caesar-meta';
-  shiftMeta.textContent = `Сдвиг: ${Number(config.expectedShift) || 3}`;
-  wrap.appendChild(shiftMeta);
+  if (config.hideShift !== true) {
+    const shiftMeta = document.createElement('p');
+    shiftMeta.className = 'caesar-meta';
+    shiftMeta.textContent = `Сдвиг: ${Number(config.expectedShift) || 3}`;
+    wrap.appendChild(shiftMeta);
+  }
 
   const inputLabel = document.createElement('label');
   inputLabel.className = 'caesar-input-label';
@@ -4316,21 +5030,81 @@ function normalizeCodeToken(raw = '') {
     .trim();
 }
 
+function getHotspotHitIndices(point) {
+  if (!mapState.hotspotHits.has(point.id)) {
+    mapState.hotspotHits.set(point.id, new Set());
+  }
+  return mapState.hotspotHits.get(point.id);
+}
+
+function isHotspotDiffReady(point) {
+  const config = point.task.hotspot || {};
+  if (!config.beforeImage?.src) {
+    return true;
+  }
+  return mapState.hotspotAfterPhase.has(point.id);
+}
+
 function renderHotspotTask(point) {
   const config = point.task.hotspot || {};
   const targets = Array.isArray(config.targets) && config.targets.length
     ? config.targets
     : [config.target || {}];
   const isSolved = mapState.solved.has(point.id);
+  const beforeSrc = normalizeScenarioAssetPath(String(config.beforeImage?.src || '').trim());
+  const afterSrc = normalizeScenarioAssetPath(String(config.image?.src || '').trim());
 
   const wrap = document.createElement('div');
   wrap.className = 'hotspot-wrap';
 
+  if (beforeSrc && !isSolved && !isHotspotDiffReady(point)) {
+    const intro = document.createElement('p');
+    intro.className = 'task-mini-note';
+    intro.textContent = String(
+      config.beforeNote
+      || 'Сначала изучите исходный кадр. Затем откройте вариант, где есть отличия, и отметьте их на второй картинке.'
+    ).trim();
+    wrap.appendChild(intro);
+
+    const beforeBox = document.createElement('div');
+    beforeBox.className = 'hotspot-scene hotspot-scene--static';
+    const bImg = document.createElement('img');
+    bImg.className = 'hotspot-image';
+    bImg.src = beforeSrc;
+    bImg.alt = String(config.beforeImage?.alt || 'Исходное изображение').trim();
+    beforeBox.appendChild(bImg);
+    wrap.appendChild(beforeBox);
+
+    const nextBtn = document.createElement('button');
+    nextBtn.type = 'button';
+    nextBtn.className = 'hotspot-diff-next';
+    nextBtn.textContent = String(config.afterPhaseButton || 'Показать кадр с отличиями').trim();
+    nextBtn.addEventListener('click', () => {
+      mapState.hotspotAfterPhase.add(point.id);
+      setTaskResult('');
+      renderTask(point);
+      triggerHaptic('light');
+    });
+    wrap.appendChild(nextBtn);
+    taskOptionsNode.appendChild(wrap);
+    return;
+  }
+
+  const requireAll = config.requireAllTargets !== false && targets.length > 1;
+  const hits = getHotspotHitIndices(point);
+
   const note = document.createElement('p');
   note.className = 'task-mini-note';
-  note.textContent = targets.length > 1
-    ? 'На изображении есть несколько правильных зон. Нажмите на одну из них.'
-    : 'На изображении спрятана одна правильная зона. Нажмите точно в неё.';
+  if (requireAll) {
+    note.textContent = `Отметьте все отличия на картинке. Найдено: ${hits.size}/${targets.length}.`;
+    if (String(config.targetsEditorHint || '').trim()) {
+      note.textContent += ` ${String(config.targetsEditorHint).trim()}`;
+    }
+  } else if (targets.length > 1) {
+    note.textContent = 'На изображении есть несколько правильных зон. Достаточно нажать на одну из них.';
+  } else {
+    note.textContent = 'На изображении спрятана одна правильная зона. Нажмите точно в неё.';
+  }
   wrap.appendChild(note);
 
   const scene = document.createElement('button');
@@ -4340,12 +5114,16 @@ function renderHotspotTask(point) {
 
   const image = document.createElement('img');
   image.className = 'hotspot-image';
-  image.src = config.image?.src || '';
+  image.src = afterSrc;
   image.alt = config.image?.alt || point.title;
   scene.appendChild(image);
 
-  if (isSolved) {
-    targets.forEach((target) => {
+  const placeMarkers = () => {
+    targets.forEach((target, idx) => {
+      const found = isSolved || (requireAll && hits.has(idx));
+      if (!found) {
+        return;
+      }
       const marker = document.createElement('span');
       marker.className = 'hotspot-hit';
       marker.style.left = `${Number(target.x) || 50}%`;
@@ -4354,7 +5132,9 @@ function renderHotspotTask(point) {
       marker.style.height = `${(Number(target.radius) || 8) * 2}%`;
       scene.appendChild(marker);
     });
-  }
+  };
+
+  placeMarkers();
 
   scene.addEventListener('click', (event) => {
     if (isSolved) {
@@ -4364,24 +5144,39 @@ function renderHotspotTask(point) {
     const rect = scene.getBoundingClientRect();
     const x = ((event.clientX - rect.left) / rect.width) * 100;
     const y = ((event.clientY - rect.top) / rect.height) * 100;
-    const matchedTarget = targets.find((target) => {
+    const matchedIdx = targets.findIndex((target) => {
       const dx = x - (Number(target.x) || 50);
       const dy = y - (Number(target.y) || 50);
       const distance = Math.sqrt(dx * dx + dy * dy);
       return distance <= (Number(target.radius) || 8);
     });
 
-    if (matchedTarget) {
-      completeTask(point);
-      setTaskResult(point.task.success || 'Точная зона найдена.', 'ok');
-      setTaskAnswer(point.task.answerText, point.task.answerLabel || 'Ключ');
-      renderTask(point);
-      triggerHaptic('success');
+    if (matchedIdx < 0) {
+      setTaskResult(config.missText || 'Пока мимо. Попробуйте еще раз.', 'bad');
+      triggerHaptic('error');
       return;
     }
 
-    setTaskResult(config.missText || 'Пока мимо. Попробуйте еще раз.', 'bad');
-    triggerHaptic('error');
+    if (requireAll) {
+      if (hits.has(matchedIdx)) {
+        setTaskResult('Эта зона уже отмечена.', 'info');
+        triggerHaptic('light');
+        return;
+      }
+      hits.add(matchedIdx);
+      if (hits.size < targets.length) {
+        setTaskResult(`Отличий найдено: ${hits.size} из ${targets.length}.`, 'info');
+        renderTask(point);
+        triggerHaptic('success');
+        return;
+      }
+    }
+
+    completeTask(point);
+    setTaskResult(point.task.success || 'Точная зона найдена.', 'ok');
+    setTaskAnswer(point.task.answerText, point.task.answerLabel || 'Ключ');
+    renderTask(point);
+    triggerHaptic('success');
   });
 
   wrap.appendChild(scene);
@@ -6115,6 +6910,17 @@ function renderCityImageTask(point) {
   title.textContent = config.title || `Карта ${point.title}`;
   wrap.appendChild(title);
 
+  const scenarioKey = String(scenarioState.activeId || '').trim().toLowerCase();
+  if (scenarioKey === 'eleon' || scenarioKey === 'verona') {
+    const taIntro = String(scenarioState.activeConfig?.tourAgent?.introText || '').trim();
+    if (taIntro) {
+      const taLine = document.createElement('p');
+      taLine.className = 'city-image-tour-agent-intro';
+      taLine.textContent = taIntro;
+      wrap.appendChild(taLine);
+    }
+  }
+
   const isOpenedInMainMap = scenarioState.routeMapMode === 'image'
     && mapState.imageCityPointId === point.id
     && Boolean(config.src);
@@ -6184,17 +6990,49 @@ function renderCityImageTask(point) {
   taskOptionsNode.appendChild(wrap);
 }
 
-function renderReturnToCityButton(point) {
-  const parentId = String(point.parentCityId || '').trim();
-  if (!parentId) {
-    return;
+function resolveParentCityPoint(point) {
+  if (!point) {
+    return null;
   }
 
-  if (scenarioState.routeMapMode !== 'image' || String(mapState.imageCityPointId || '').trim() !== parentId) {
-    return;
+  const currentPointId = String(point.id || '').trim();
+  const candidateParentIds = [];
+
+  const directParentId = String(point.parentCityId || '').trim();
+  if (directParentId && directParentId !== currentPointId) {
+    candidateParentIds.push(directParentId);
   }
 
-  const parentPoint = pointsById.get(parentId);
+  if (currentPointId.includes('.')) {
+    const dottedParentId = String(currentPointId.split('.')[0] || '').trim();
+    if (dottedParentId && dottedParentId !== currentPointId) {
+      candidateParentIds.push(dottedParentId);
+    }
+  }
+
+  const canUseImageContextParent = !getPointInlineCityImageMap(point)
+    && (currentPointId.includes('.') || isTourAgentPointRuntime(point));
+  if (canUseImageContextParent) {
+    const imageContextParentId = String(mapState.imageCityPointId || '').trim();
+    if (imageContextParentId && imageContextParentId !== currentPointId) {
+      candidateParentIds.push(imageContextParentId);
+    }
+  }
+
+  const uniqueCandidateIds = Array.from(new Set(candidateParentIds));
+  for (let index = 0; index < uniqueCandidateIds.length; index += 1) {
+    const candidateId = uniqueCandidateIds[index];
+    const candidatePoint = pointsById.get(candidateId);
+    if (candidatePoint && !candidatePoint.parentCityId) {
+      return candidatePoint;
+    }
+  }
+
+  return null;
+}
+
+function renderReturnToCityButton(point, resolvedParentPoint = null) {
+  const parentPoint = resolvedParentPoint || resolveParentCityPoint(point);
   if (!parentPoint) {
     return;
   }
@@ -6229,13 +7067,13 @@ function renderReturnToCityButton(point) {
 
 function renderTask(point) {
   const taskKind = ensureTaskCompatibility(point);
-  const isTourAgentTask = Boolean(point.parentCityId && isTourAgentPointRuntime(point));
+  const parentCityPoint = resolveParentCityPoint(point);
+  const isTourAgentTask = Boolean(parentCityPoint && isTourAgentPointRuntime(point));
   if (isTourAgentTask) {
-    const parentPoint = pointsById.get(point.parentCityId);
-    if (parentPoint) {
-      const parentConfig = getPointInlineCityImageMap(parentPoint);
+    if (parentCityPoint) {
+      const parentConfig = getPointInlineCityImageMap(parentCityPoint);
       const parentRawPoints = Array.isArray(parentConfig?.points) ? parentConfig.points : [];
-      applyTourAgentGuidance(point.task, parentPoint, parentRawPoints, String(point.localId || '').trim().toLowerCase());
+      applyTourAgentGuidance(point.task, parentCityPoint, parentRawPoints, String(point.localId || '').trim().toLowerCase());
     }
   }
   const kickerText = String(point.task.kicker || point.parentCityTitle || '').trim();
@@ -6245,8 +7083,10 @@ function renderTask(point) {
   taskKickerNode.hidden = !kickerText;
   taskTitleNode.textContent = titleText;
   taskTitleNode.hidden = !titleText;
-  const loreText = isTourAgentTask ? '' : (point.task.lore || point.task.text || '');
-  const questionText = isTourAgentTask ? '' : (point.task.question || point.task.prompt || '');
+  const loreText = String(point.task.lore || point.task.text || '').trim();
+  const questionText = isTourAgentTask
+    ? ''
+    : String(point.task.question || point.task.prompt || '').trim();
   setTaskLore(loreText, { pointId: point.id, skipIfSame: true });
   setTaskQuestion(questionText, { pointId: point.id, skipIfSame: true });
   taskOptionsNode.innerHTML = '';
@@ -6255,13 +7095,29 @@ function renderTask(point) {
 
   if (taskKind === 'empty') {
     if (isTourAgentTask) {
+      renderReturnToCityButton(point, parentCityPoint);
       renderTaskMedia(point);
       return;
+    }
+
+    if (
+      !mapState.solved.has(point.id)
+      && Array.isArray(point.task.itemAwards)
+      && point.task.itemAwards.length > 0
+    ) {
+      completeTask(point, {
+        answerText: point.task.answerText || '',
+        answerLabel: point.task.answerLabel || 'Предмет',
+        successText: point.task.success || ''
+      });
     }
 
     const infoText = String(point.task.info || point.task.reward || '').trim();
     if (infoText) {
       setTaskResult(infoText, 'info');
+    }
+    if (mapState.solved.has(point.id) && String(point.task.answerText || '').trim()) {
+      setTaskAnswer(point.task.answerText, point.task.answerLabel || 'Предмет');
     }
     renderCityImageTask(point);
     renderReturnToCityButton(point);
@@ -6281,6 +7137,14 @@ function renderTask(point) {
     if (mapState.solved.has(point.id)) {
       showSolvedTaskState(point);
     }
+    return;
+  }
+
+  if (taskKind === 'sort') {
+    renderCityImageTask(point);
+    renderReturnToCityButton(point);
+    renderTaskMedia(point);
+    renderSortTask(point);
     return;
   }
 
@@ -7055,6 +7919,7 @@ function bindEvents() {
       state.finalAnswerAt = '';
       state.finalAnswerMoveCount = 0;
       state.finalAnswerDraft = '';
+      state.teamStatsUpdatedAt = '';
       setTeamStripText();
       updateBadge();
       renderFinalAnswerPanel();

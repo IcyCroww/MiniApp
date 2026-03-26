@@ -3,6 +3,9 @@
   "title": "Анг / Пандория",
   "status": "playable_with_placeholders",
   "playable": true,
+  "features": {
+    "autoTourAgentPoints": false
+  },
   "updatedAt": "2026-03-25",
   "theme": "туман, торговые города, чай и странные городские привычки",
   "ui": {
@@ -59,7 +62,7 @@
   "routeMap": {
     "mode": "image",
     "imageSrc": "./assets/maps/team-map.png",
-    "note": "Точки Пандории открываются постепенно через тур-агентов ключевых городов.",
+    "note": "Точки Пандории открываются постепенно по ключевым городам.",
     "points": [
       {
         "id": "new_london",
@@ -76,43 +79,13 @@
           "title": "Нью-Лондон: карта города",
           "lore": "Нью-Лондон задаёт мягкий, но строгий дипломатический тон. Здесь важно собрать базу по формату встреч и переходу к следующему городу.",
           "question": "Выберите точку на карте Нью-Лондона.",
-          "info": "Начните с тур-агентства.",
+          "info": "Начните с ключевой локации города.",
           "cityImageMap": {
             "title": "Карта Нью-Лондона",
             "src": "./scenarios/pandoria/assets/new-london-map.png",
             "alt": "Карта города Нью-Лондон",
             "note": "Нажмите на нужную точку прямо на карте города.",
             "points": [
-              {
-                "id": "tour_agent",
-                "title": "Тур-агентство «Выездные каникулы»",
-                "markerColor": "#f0b24d",
-                "mapPosition": {
-                  "x": 20,
-                  "y": 22
-                },
-                "task": {
-                  "kind": "empty",
-                  "kicker": "Досье Нью-Лондона",
-                  "title": "Нью-Лондон: тур-агентство «Выездные каникулы»",
-                  "lore": "Добро пожаловать в Нью-Лондон, друг мой.\nНе обращайте внимания на этот вечный дождь — здесь он лишь для антуража, чтобы чашка утреннего «Эрл Грей» казалась ещё уютнее. Мы народ сдержанный, но если хотите нас увидеть настоящими — загляните в любую кондитерскую. Мы здесь не столько пережидаем непогоду, сколько наслаждаемся лучшими десертами во всей Пандории.\nПрисядьте, погрей… Чувствуете? От булочек с корицей исходит тепло.\nА когда захотите сменить туман на что-то более… своенравное, держите путь на Нортбридж. Там, говорят, даже дождь идёт по своим правилам.",
-                  "question": "",
-                  "info": "",
-                  "unlockTargetIds": [
-                    "northbridge",
-                    "ashford",
-                    "ravenwood"
-                  ],
-                  "media": [
-                    {
-                      "type": "image",
-                      "title": "Тур-агент Пандории",
-                      "src": "./scenarios/campaign/assets/tour-agents/pandoria/tour-agent-pandoria-placeholder.png",
-                      "alt": "Фото тур-агента Пандории"
-                    }
-                  ]
-                }
-              },
               {
                 "id": "claridges_mayfair",
                 "title": "Отель Claridges Mayfair",
@@ -123,11 +96,11 @@
                 },
                 "task": {
                   "kind": "empty",
-                  "kicker": "Досье Нью-Лондона",
-                  "title": "Нью-Лондон: Claridges Mayfair",
-                  "lore": "Здесь будет основная официальная сцена города (отель, МИД и конференц-зал) после подстановки финального текста.",
+                  "kicker": "Pandoria dossier",
+                  "title": "New London: Claridges Mayfair",
+                  "lore": "You enter Claridges Mayfair: marble floors, quiet luxury, and strict etiquette in every detail. Peter Gordon meets you in the room and says the summit details are handled by the Ministry of Foreign Affairs, specifically the conference hall.",
                   "question": "",
-                  "info": "Черновая точка: ждём финальный текст для полной загадки."
+                  "info": "Lead: Ministry of Foreign Affairs -> Conference Hall."
                 }
               },
               {
@@ -139,12 +112,27 @@
                   "y": 35
                 },
                 "task": {
-                  "kind": "empty",
-                  "kicker": "Досье Нью-Лондона",
-                  "title": "Нью-Лондон: министерство иностранных дел",
-                  "lore": "В министерстве подтверждают: для ключевой встречи важны не только участники, но и точные условия в зале. Вас направляют в конференц-зал, где зафиксированы рабочие параметры рассадки.",
-                  "question": "",
-                  "info": "Улика: финальные правила нужно снять в конференц-зале."
+                  "kind": "anagram",
+                  "kicker": "Pandoria dossier",
+                  "title": "New London: Ministry puzzle",
+                  "lore": "At the conference-hall door you find six fragments from Robinson Crusoe. Put them in correct order (1..6).",
+                  "question": "Enter the order as digits only.",
+                  "info": "Финальные правила обычно фиксируют в конференц-зале.",
+                  "success": "Access granted. Conference hall unlocked.",
+                  "answerLabel": "Clue",
+                  "answerText": "Hall key: round table, turquoise cloth, fixed seating logic. Extra notes: PM drinks tea without sugar; taboo references include orange color and fist gesture.",
+                  "anagram": {
+                    "letters": [
+                      "3",
+                      "5",
+                      "2",
+                      "1",
+                      "6",
+                      "4"
+                    ],
+                    "targetWord": "352164",
+                    "placeholder": "Example: 123456"
+                  }
                 }
               },
               {
@@ -156,11 +144,11 @@
                   "y": 62
                 },
                 "task": {
-                  "kind": "choice",
-                  "kicker": "Досье Нью-Лондона",
-                  "title": "Нью-Лондон: конференц-зал",
-                  "lore": "В схеме зала отмечены три вещи: форма стола, позиция главы и цвет скатерти. Нужно выбрать комплект, который соответствует протоколу Пандории.",
-                  "question": "Какой комплект правил указан как правильный?",
+                  "kind": "empty",
+                  "kicker": "Pandoria dossier",
+                  "title": "New London: Conference hall",
+                  "lore": "Inside the hall you confirm protocol context and hear the next route hint: for the true tea standards, go to Northbridge.",
+                  "question": "",
                   "options": [
                     "Овальный стол, глава сидит так, чтобы видеть вход, скатерть нейтрального цвета",
                     "Прямоугольный стол, глава спиной к входу, скатерть ярко-красная",
@@ -169,7 +157,12 @@
                   "correct": 0,
                   "success": "Верно. Конференц-зал подтверждает рабочий протокол Нью-Лондона.",
                   "answerLabel": "Улика",
-                  "answerText": "Форма стола — овальная; глава должен видеть вход; скатерть — спокойного нейтрального цвета."
+                  "answerText": "Форма стола — овальная; глава должен видеть вход; скатерть — спокойного нейтрального цвета.",
+                  "info": "Route hint: Northbridge.",
+                  "unlockTargetIds": [
+                    "northbridge"
+                  ],
+                  "unlockSuccessText": "Otkryt Northbridge."
                 }
               }
             ]
@@ -191,42 +184,13 @@
           "title": "Нортбридж: карта города",
           "lore": "Нортбридж помогает зафиксировать связь сервировки и дипломатического этикета.",
           "question": "Выберите точку на карте Нортбриджа.",
-          "info": "Сначала откройте тур-агентство.",
+          "info": "Сначала пройдите ключевую локацию города.",
           "cityImageMap": {
             "title": "Карта Нортбриджа",
             "src": "./scenarios/pandoria/assets/northbridge-map.png",
             "alt": "Карта города Нортбридж",
             "note": "Нажмите на нужную точку прямо на карте города.",
             "points": [
-              {
-                "id": "tour_agent",
-                "title": "Тур-агентство «Кругосветное путешествие»",
-                "markerColor": "#f0b24d",
-                "mapPosition": {
-                  "x": 22,
-                  "y": 23
-                },
-                "task": {
-                  "kind": "empty",
-                  "kicker": "Досье Нортбриджа",
-                  "title": "Нортбридж: тур-агентство «Кругосветное путешествие»",
-                  "lore": "Добро пожаловать в Нортбридж.\nНе торопитесь, здесь это не принято. Мы — город, где время течёт по старым правилам, а день непременно начинается с чайной церемонии. Смотрите, как уверенно здесь заваривают — ни один листок не бросят просто так.\nНаши традиции не пылятся на полках, они живут в каждой чашке. Если хотите узнать, что такое настоящая чайная церемония и обучиться ее основам, вам в Harrod’s, это один из старейших и по праву признанный лучшим чайный дом.\nА если вдруг потянет на суету и блеск, знаете, куда смотреть? Нью-Лондон, конечно. Там, говорят, вечно спешат, а десерты едят на бегу. Но вам ли туда? Впрочем, решайте сами.",
-                  "question": "",
-                  "info": "",
-                  "unlockTargetIds": [
-                    "stormport",
-                    "whitehill"
-                  ],
-                  "media": [
-                    {
-                      "type": "image",
-                      "title": "Тур-агент Пандории",
-                      "src": "./scenarios/campaign/assets/tour-agents/pandoria/tour-agent-pandoria-placeholder.png",
-                      "alt": "Фото тур-агента Пандории"
-                    }
-                  ]
-                }
-              },
               {
                 "id": "harrods_tea_house",
                 "title": "Чайный дом Harrod’s",
@@ -237,22 +201,23 @@
                 },
                 "task": {
                   "kind": "choice",
-                  "kicker": "Досье Нортбриджа",
-                  "title": "Нортбридж: чайный дом Harrod’s",
-                  "lore": "В чайном доме Harrod’s мастер показывает церемонию и подчёркивает: значение имеет не скорость, а последовательность и аккуратная подача. Здесь же оставляют наводку на Стормпорт.",
-                  "question": "Что в Нортбридже считается правильной подачей для переговоров?",
+                  "kicker": "Pandoria dossier",
+                  "title": "Northbridge: Harrods tea house",
+                  "lore": "Mrs Bridge gives an atbash-style note and asks for proper tea ceremony setup: cloth, full item set, and number of guests.",
+                  "question": "Which setup is correct?",
                   "options": [
-                    "Чёткая чайная церемония и аккуратная сервировка без спешки",
-                    "Быстрая подача в одноразовой посуде, главное — темп",
-                    "Полный отказ от ритуала в пользу свободной формы"
+                    "Light white tablecloth; 3-tier stand, teapot, milk jug, sugar bowl with tongs; tea pair, tea spoon, butter knife and dessert plate for each guest; set for 6 persons.",
+                    "Dark tablecloth; only teapot and cups; no tier stand; set for 4 persons.",
+                    "Orange tablecloth; random serving; set for 2 persons."
                   ],
                   "correct": 0,
-                  "success": "Верно. Нортбридж фиксирует чай и сервировку как часть протокола.",
-                  "answerLabel": "Улика",
-                  "answerText": "Получен чайный набор: для Пандории важны ритуал подачи и точная сервировка. Следующая рабочая наводка ведёт в Стормпорт.",
+                  "success": "Correct. Mrs Bridge gives you rare tea.",
+                  "answerLabel": "Clue",
+                  "answerText": "Next step: Stormport old market. Ask for Captain Elliot to receive the service set.",
                   "unlockTargetIds": [
                     "stormport"
-                  ]
+                  ],
+                  "unlockSuccessText": "Otkryt Stormport."
                 }
               }
             ]
@@ -260,9 +225,9 @@
           "lock": {
             "visible": true,
             "requireVisitedAny": [
-              "new_london.tour_agent"
+              "new_london.conference_hall"
             ],
-            "hint": "Сначала посетите тур-агентство в Нью-Лондоне."
+            "hint": "Snachala zavershite New London."
           }
         }
       },
@@ -281,7 +246,7 @@
           "title": "Стормпорт: карта города",
           "lore": "Стормпорт связывает протокол с живым движением торговли и контролем потоков.",
           "question": "Выберите точку на карте Стормпорта.",
-          "info": "Сначала откройте тур-агентство.",
+          "info": "Сначала пройдите ключевую локацию города.",
           "cityImageMap": {
             "title": "Карта Стормпорта",
             "src": "./scenarios/pandoria/assets/stormport-map.png",
@@ -289,39 +254,8 @@
             "note": "Нажмите на нужную точку прямо на карте города.",
             "points": [
               {
-                "id": "tour_agent",
-                "title": "Тур-агентство «Верный путь»",
-                "markerColor": "#f0b24d",
-                "mapPosition": {
-                  "x": 20,
-                  "y": 23
-                },
-                "task": {
-                  "kind": "empty",
-                  "kicker": "Досье Стормпорта",
-                  "title": "Стормпорт: тур-агентство «Верный путь»",
-                  "lore": "Добро пожаловать в Стормпорт.\nЗдесь всё дышит торговлей, друг мой. Крупнейшие рынки Пандории — это наша гордость. Если что-то продаётся или покупается, то, скорее всего, прямо здесь, в этих старых портовых лавках.\nНе спешите тащить тяжёлые сумки — сначала прислушайтесь, о чём шепчутся грузчики и капитаны. Они знают цену не только товару, но и хорошему совету.\nА если захотите тишины и крепких стен… держите путь на Грейстон. Говорят, там даже воздух каменный. Но для начала — добро пожаловать на наши причалы.",
-                  "question": "",
-                  "info": "",
-                  "unlockTargetIds": [
-                    "greyston",
-                    "ironport",
-                    "duncaster",
-                    "lakeshire"
-                  ],
-                  "media": [
-                    {
-                      "type": "image",
-                      "title": "Тур-агент Пандории",
-                      "src": "./scenarios/campaign/assets/tour-agents/pandoria/tour-agent-pandoria-placeholder.png",
-                      "alt": "Фото тур-агента Пандории"
-                    }
-                  ]
-                }
-              },
-              {
                 "id": "devils_market",
-                "title": "Рынок «Сам дьявол боялся этого названия»",
+                "title": "Рынок",
                 "markerColor": "#9d7f57",
                 "mapPosition": {
                   "x": 57,
@@ -329,19 +263,29 @@
                 },
                 "task": {
                   "kind": "choice",
-                  "kicker": "Досье Стормпорта",
+                  "kicker": "Pandoria dossier",
                   "title": "Стормпорт: рынок",
-                  "lore": "На рынке шумно и плотно, но за одной лавкой вам показывают «сервизик» с пометками. По ним видно, что даже в порту Пандория держит порядок не только через слова, но и через структуру подачи.",
-                  "question": "Что оказывается ключевой находкой на рынке?",
+                  "lore": "Старый рынок Стормпорта гудит с утра до вечера. Под навесами из потёртой парусины торгуют всем, что привозят корабли: пряности, ткани, фарфор, старые карты и диковинки. Вы пробираетесь между прилавками, пока не находите нужную лавку — «Эллиот и сын». Снаружи её выдают ящики с фаянсом и поблёскивающая медная табличка. Внутри тесно, пахнет деревом и воском, а полки ломятся от чашек, блюдец и супниц.\n\nИз-за стойки поднимается коренастый седой капитан с кроссвордом в руках.\n— От миссис Бридж? — хмыкает он. — Старая ведьма, а сервиз любит хороший. Ладно, по старой дружбе отдам. Но сначала проверю, с кем имею дело.\n\nОн указывает на три закрытые витрины.\n— В этих трёх витринах стоят чайные пары, десертные тарелки и супницы. В каждой витрине — только один вид.\n\nНадписи на табличках:\nЛевая: «Здесь стоят чайные пары».\nСредняя: «Здесь стоят десертные тарелки».\nПравая: «Здесь не стоят чайные пары».\n\n— И только одна из этих трёх надписей говорит правду. Остальные две врут. Так где супницы?",
+                  "question": "Где стоят супницы?",
                   "options": [
-                    "Сервиз с пометками по подаче и маршруту гостей",
-                    "Мешок старых монет",
-                    "Пустой журнал грузов"
+                    "В левой витрине",
+                    "В средней витрине",
+                    "В правой витрине"
                   ],
                   "correct": 0,
-                  "success": "Верно. Находка подтверждает бытовой уровень протокола Стормпорта.",
+                  "success": "Верно. Капитан Эллиот кивает и отдаёт вам сервиз.",
                   "answerLabel": "Улика",
-                  "answerText": "Получен сервизик: в Пандории даже торговые площадки фиксируют правила подачи и движения гостей."
+                  "answerText": "Вы получаете фарфоровый сервиз цвета слоновой кости с тонкой синей каймой. След подтверждён: в Пандории порядок держится даже в торговых деталях.",
+                  "unlockTargetIds": [
+                    "greyston",
+                    "ashford",
+                    "ravenwood",
+                    "whitehill",
+                    "ironport",
+                    "duncaster",
+                    "lakeshire"
+                  ],
+                  "unlockSuccessText": "Otkryty dopolnitelnye goroda Pandorii."
                 }
               }
             ]
@@ -349,9 +293,9 @@
           "lock": {
             "visible": true,
             "requireVisitedAny": [
-              "northbridge.tour_agent"
+              "northbridge.harrods_tea_house"
             ],
-            "hint": "Сначала посетите тур-агентство в Нортбридже."
+            "hint": "Snachala zavershite Northbridge."
           }
         }
       },
@@ -370,45 +314,19 @@
           "title": "Грейстон: заметка",
           "lore": "Грейстон пока подключён как город-подсказка. Здесь позже появится полноценная сцена.",
           "question": "",
-          "info": "Пока это атмосферная точка.",
+          "info": "",
           "cityImageMap": {
             "title": "Карта Грейстона",
             "src": "./scenarios/pandoria/assets/greyston-map.png",
             "alt": "Карта города Грейстон",
-            "points": [
-              {
-                "id": "tour_agent",
-                "title": "Тур-агент",
-                "markerColor": "#f0b24d",
-                "mapPosition": {
-                  "x": 20,
-                  "y": 22
-                },
-                "task": {
-                  "kind": "empty",
-                  "kicker": "Грейстон",
-                  "title": "Грейстон: тур-агент",
-                  "lore": "Грейстон закрепляет спокойный темп Пандории и помогает сверить, какие улики уже подтверждены.",
-                  "question": "",
-                  "info": "",
-                  "media": [
-                    {
-                      "type": "image",
-                      "title": "Тур-агент Пандории",
-                      "src": "./scenarios/campaign/assets/tour-agents/pandoria/tour-agent-pandoria-placeholder.png",
-                      "alt": "Фото тур-агента Пандории"
-                    }
-                  ]
-                }
-              }
-            ]
+            "points": []
           },
           "lock": {
             "visible": true,
             "requireVisitedAny": [
-              "stormport.tour_agent"
+              "stormport"
             ],
-            "hint": "Сначала посетите тур-агентство в Стормпорте."
+            "hint": "Snachala zavershite Stormport."
           }
         }
       },
@@ -427,7 +345,7 @@
           "title": "Эшфорд: заметка",
           "lore": "Вы делаете вдох. Воздух шершавый, словно кто-то натер лёгкие наждачкой. Местный житель чихает в платок, и из него высыпается горка пепла.\n— Не вдыхайте глубоко, — советует он, отряхивая рукав. — В прошлый раз турист чихнул, у нас снег выпал в июле.\nОн вручает вам респиратор с надписью «Для чужаков».\n— Это бесплатно. Но если потеряете — задышим вместе.",
           "question": "",
-          "info": "Атмосферная точка.",
+          "info": "",
           "cityImageMap": {
             "title": "Карта Эшфорда",
             "src": "./scenarios/pandoria/assets/ashford-map.png",
@@ -437,9 +355,9 @@
           "lock": {
             "visible": true,
             "requireVisitedAny": [
-              "new_london.tour_agent"
+              "stormport"
             ],
-            "hint": "Сначала посетите тур-агентство в Нью-Лондоне."
+            "hint": "Snachala zavershite Stormport."
           }
         }
       },
@@ -458,7 +376,7 @@
           "title": "Рейвенвуд: заметка",
           "lore": "Вы хотите спросить дорогу, но вас опережает ворона. Она садится вам на голову и громко каркает.\n— Она говорит, что вы стоите на её парковочном месте, — переводит прохожий, не отрываясь от газеты.\nВы делаете шаг в сторону. Ворона кивает.\n— Пропускаем. Но имейте в виду, здесь птицы главнее пешеходов. И светофоров.",
           "question": "",
-          "info": "Атмосферная точка.",
+          "info": "",
           "cityImageMap": {
             "title": "Карта Рейвенвуда",
             "src": "./scenarios/pandoria/assets/ravenwood-map.png",
@@ -468,9 +386,9 @@
           "lock": {
             "visible": true,
             "requireVisitedAny": [
-              "new_london.tour_agent"
+              "stormport"
             ],
-            "hint": "Сначала посетите тур-агентство в Нью-Лондоне."
+            "hint": "Snachala zavershite Stormport."
           }
         }
       },
@@ -489,7 +407,7 @@
           "title": "Уайтхилл: заметка",
           "lore": "Вы поднимаетесь на холм. Всё вокруг настолько белое, что вы забываете, как выглядели вчера.\n— Не смотрите на горизонт! — кричит кто-то из тумана.\nК вам подбегает человек и надевает на глаза картонную коробку с прорезями.\n— Так лучше. А то вчера один посмотрел и стал слишком чистым. Мы не отмыли. Идите так, безопаснее.",
           "question": "",
-          "info": "Атмосферная точка.",
+          "info": "",
           "cityImageMap": {
             "title": "Карта Уайтхилла",
             "src": "./scenarios/pandoria/assets/whitehill-map.png",
@@ -499,9 +417,9 @@
           "lock": {
             "visible": true,
             "requireVisitedAny": [
-              "northbridge.tour_agent"
+              "stormport"
             ],
-            "hint": "Сначала посетите тур-агентство в Нортбридже."
+            "hint": "Snachala zavershite Stormport."
           }
         }
       },
@@ -520,7 +438,7 @@
           "title": "Айронпорт: заметка",
           "lore": "Вы заходите в кафе. Меню выгравировано на стальном листе. Официант приносит чай в кружке, которую нельзя поднять одной рукой.\n— Это для укрепления хвата, — объясняет он, звеня ключами вместо монет.\nВы пытаетесь оплатить. Он кивает.\n— Звук понравился. Считайте, оплачено. Идите, пока не заржавели. Обувь не снимайте — пол горячий.",
           "question": "",
-          "info": "Атмосферная точка.",
+          "info": "",
           "cityImageMap": {
             "title": "Карта Айронпорта",
             "src": "./scenarios/pandoria/assets/ironport-map.png",
@@ -530,9 +448,9 @@
           "lock": {
             "visible": true,
             "requireVisitedAny": [
-              "stormport.tour_agent"
+              "stormport"
             ],
-            "hint": "Сначала посетите тур-агентство в Стормпорте."
+            "hint": "Snachala zavershite Stormport."
           }
         }
       },
@@ -551,7 +469,7 @@
           "title": "Дункастер: заметка",
           "lore": "Вы стоите на перекрестке. Мимо проходит человек с подушкой под мышкой и в тапочках.\n— Вы тоже на тихий час? — спрашивает он сонно.\n— Нет, я просто...\n— Ш-ш-ш.\nОн прикладывает палец к губам. — Город храпит. Не будите его.\nОн уходит, шлепая подошвами, стараясь не шуметь. Вы чувствуете, что тоже хотите спать.",
           "question": "",
-          "info": "Атмосферная точка.",
+          "info": "",
           "cityImageMap": {
             "title": "Карта Дункастера",
             "src": "./scenarios/pandoria/assets/duncaster-map.png",
@@ -561,9 +479,9 @@
           "lock": {
             "visible": true,
             "requireVisitedAny": [
-              "stormport.tour_agent"
+              "stormport"
             ],
-            "hint": "Сначала посетите тур-агентство в Стормпорте."
+            "hint": "Snachala zavershite Stormport."
           }
         }
       },
@@ -582,7 +500,7 @@
           "title": "Лейкшир: заметка",
           "lore": "Вы делаете шаг по улице. Раздается всплеск. Вода по щиколотку.\nМестный плывет мимо на надувном матрасе, гребя веслом.\n— Дороги сегодня закрыты, — сообщает он. — Прорвало канализацию. Или озеро. Мы не разбирали.\n— А как пройти к центру?\n— Плывите против течения. И берегите обувь, она тонет. Кстати, у вас есть спасательный жилет? Нет? Тогда не тоните.",
           "question": "",
-          "info": "Атмосферная точка.",
+          "info": "",
           "cityImageMap": {
             "title": "Карта Лейкшира",
             "src": "./scenarios/pandoria/assets/lakeshire-map.png",
@@ -592,9 +510,9 @@
           "lock": {
             "visible": true,
             "requireVisitedAny": [
-              "stormport.tour_agent"
+              "stormport"
             ],
-            "hint": "Сначала посетите тур-агентство в Стормпорте."
+            "hint": "Snachala zavershite Stormport."
           }
         }
       }

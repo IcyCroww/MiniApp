@@ -1,0 +1,11 @@
+Drop lantern images for drag-sort puzzle here.
+Recommended names:
+- lamp-1.png
+- lamp-2.png
+- lamp-3.png
+- lamp-4.png
+- lamp-5.png
+
+Then update task.sort.items[].src in:
+- public/scenarios/emirates-dune/scenario.json
+- public/scenarios/campaign/scenario.json
