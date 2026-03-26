@@ -213,6 +213,7 @@
     <p id="meta" class="meta">Loading...</p>
     <div class="toolbar">
       <button type="button" class="toolbar-btn primary" id="toggleAnswersBtn">Показать итоговые ответы</button>
+      <button type="button" class="toolbar-btn" id="resetAllBtn" style="background: #ffe5e5; border-color: #ffb3b3; color: #c00;">Очистить всю базу данных</button>
       <a class="toolbar-btn" href="/api/admin/export/teams.csv">Скачать команды CSV</a>
       <a class="toolbar-btn" href="/api/admin/export/events.csv">Скачать события CSV</a>
     </div>
@@ -413,6 +414,31 @@
       }
     }
 
+    async function resetAll() {
+      if (!confirm('ВНИМАНИЕ! Это удалит ВСЕ данные всех команд (прогресс, сессии, события). Продолжить?')) {
+        return;
+      }
+
+      try {
+        const response = await fetch('/api/admin/reset-all', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        });
+
+        const payload = await response.json();
+        if (!response.ok || payload.ok === false) {
+          throw new Error(payload.error || 'reset_failed');
+        }
+
+        alert('База данных полностью очищена!');
+        await refresh();
+      } catch (error) {
+        alert('Ошибка при очистке базы: ' + error.message);
+      }
+    }
+
     async function refresh() {
       try {
         const response = await fetch('/api/admin/summary');
@@ -478,6 +504,8 @@
       finalAnswersSection.hidden = !finalAnswersOpen;
       toggleAnswersBtn.textContent = finalAnswersOpen ? 'Скрыть итоговые ответы' : 'Показать итоговые ответы';
     });
+
+    document.getElementById('resetAllBtn').addEventListener('click', resetAll);
 
     refresh();
     setInterval(refresh, 5000);

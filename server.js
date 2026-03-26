@@ -1402,6 +1402,50 @@ app.post('/api/admin/team/:teamName/clear-route', async (req, res) => {
   }
 });
 
+app.post('/api/admin/reset-all', async (req, res) => {
+  try {
+    const result = await mutateDb(async (db) => {
+      // Очищаем все сессии
+      db.sessions = {};
+      
+      // Очищаем статистику всех команд
+      TEAM_NAMES.forEach(teamName => {
+        db.statsByTeam[teamName] = {
+          teamName,
+          moveCount: 0,
+          uniquePointIds: [],
+          solvedPointIds: [],
+          collectedClueNumbers: [],
+          issuedClueNumbers: [],
+          collectedItems: [],
+          finalAnswerText: '',
+          finalAnswerAt: '',
+          finalAnswerMoveCount: 0,
+          poiVisitsByPoint: {},
+          triggersFired: [],
+          triggerLog: [],
+          deliveredTriggerIds: [],
+          routeLog: [],
+          currentPointId: '',
+          updatedAt: nowIso()
+        };
+      });
+      
+      // Очищаем события
+      db.events = [];
+      
+      return {
+        ok: true,
+        message: 'Все данные очищены'
+      };
+    });
+
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({ ok: false, error: 'reset_failed', detail: String(error?.message || error) });
+  }
+});
+
 app.get('/admin', (_, res) => {
   setNoCacheHeaders(res);
   res.sendFile(path.join(PUBLIC_DIR, 'admin.html'));
