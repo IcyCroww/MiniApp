@@ -74,10 +74,27 @@ npm run start
 
 ```powershell
 cd "c:\Users\pavel\Desktop\Новая папка\MiniApp"
-$env:MINI_APP_BOT_TOKEN="ВАШ_ТОКЕН_БОТА"
-$env:MINI_APP_URL="https://ВАШ_PUBLIC_HTTPS_URL"
+python -m pip install -r requirements.txt
+Copy-Item .env.example .env
+```
+
+Заполните в `.env`:
+
+```powershell
+MINI_APP_BOT_TOKEN="ВАШ_ТОКЕН_БОТА"
+MINI_APP_URL="https://ВАШ_PUBLIC_HTTPS_URL"
+```
+
+После этого:
+
+```powershell
 python miniapp_bot.py
 ```
+
+Важно:
+
+- `MINI_APP_URL` должен быть `https://...` адресом, который реально открывается в Telegram
+- если токен раньше лежал в коде, его лучше перевыпустить через BotFather
 
 ## Деплой на Render (рекомендуется)
 
