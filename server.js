@@ -135,6 +135,7 @@ app.use((req, res, next) => {
 });
 
 const PUBLIC_DIR = path.join(__dirname, 'public');
+const SCENARIOS_DIR = path.join(PUBLIC_DIR, 'scenarios');
 const MAP_SOURCE_CANDIDATES = [
   { fileName: 'team-map.avif', mimeType: 'image/avif' },
   { fileName: 'team-map.webp', mimeType: 'image/webp' },
@@ -142,6 +143,66 @@ const MAP_SOURCE_CANDIDATES = [
   { fileName: 'team-map.jpeg', mimeType: 'image/jpeg' },
   { fileName: 'team-map.png', mimeType: 'image/png' }
 ];
+
+function collectScenarioPointLabels(points, labels, parentPath = '', parentTitle = '') {
+  if (!Array.isArray(points)) {
+    return;
+  }
+
+  points.forEach((point) => {
+    if (!point || typeof point !== 'object') {
+      return;
+    }
+
+    const rawId = String(point.id || '').trim();
+    const rawTitle = String(point.title || point.task?.title || '').trim();
+    const fullId = parentPath && rawId ? `${parentPath}.${rawId}` : rawId;
+    const fullTitle = parentTitle && rawTitle ? `${parentTitle} -> ${rawTitle}` : rawTitle;
+
+    if (fullId && fullTitle && !labels[fullId]) {
+      labels[fullId] = fullTitle;
+    }
+
+    if (rawId && rawTitle && !labels[rawId]) {
+      labels[rawId] = rawTitle;
+    }
+
+    const nestedPoints = Array.isArray(point.points)
+      ? point.points
+      : Array.isArray(point.task?.cityImageMap?.points)
+        ? point.task.cityImageMap.points
+        : [];
+
+    collectScenarioPointLabels(nestedPoints, labels, fullId || parentPath, rawTitle || parentTitle);
+  });
+}
+
+function buildScenarioPointLabels() {
+  const labels = {};
+
+  if (!fs.existsSync(SCENARIOS_DIR)) {
+    return labels;
+  }
+
+  const scenarioFiles = fs.readdirSync(SCENARIOS_DIR, { withFileTypes: true })
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => path.join(SCENARIOS_DIR, entry.name, 'scenario.json'))
+    .filter((filePath) => fs.existsSync(filePath));
+
+  scenarioFiles.forEach((filePath) => {
+    try {
+      const raw = fs.readFileSync(filePath, 'utf8');
+      const scenario = JSON.parse(raw);
+      collectScenarioPointLabels(scenario.routeMap?.points || scenario.points || [], labels);
+    } catch (error) {
+      console.warn(`Failed to load scenario labels from ${filePath}:`, error.message);
+    }
+  });
+
+  return labels;
+}
+
+const SCENARIO_POINT_LABELS = buildScenarioPointLabels();
 
 function setNoCacheHeaders(res) {
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
@@ -601,7 +662,8 @@ function ensureUniquePush(items, value) {
 }
 
 function pointLabel(pointId) {
-  return POINT_LABELS[pointId] || pointId || '';
+  const key = String(pointId || '').trim();
+  return POINT_LABELS[key] || SCENARIO_POINT_LABELS[key] || key || '';
 }
 
 function describeRouteEvent(eventType, pointId, meta = {}) {
