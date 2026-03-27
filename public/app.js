@@ -1,4 +1,5 @@
-const tg = window.Telegram?.WebApp;
+﻿const tg = window.Telegram?.WebApp;
+const APP_ASSET_VERSION = Date.now().toString(36);
 
 function compareTelegramVersions(current = '0', target = '0') {
   const currentParts = String(current || '0').split('.').map((part) => Number(part) || 0);
@@ -976,6 +977,8 @@ const mapState = {
   matchActiveFacts: new Map(),
   scannerStates: new Map(),
   anagramInputs: new Map(),
+  symbolInputs: new Map(),
+  symbolMeaningInputs: new Map(),
   decoderOffsets: new Map(),
   decoderInputs: new Map(),
   decoderClues: new Map(),
@@ -1706,29 +1709,41 @@ function useAutoTourAgentPoints() {
   return featureFlag === true;
 }
 
+function appendLocalAssetVersion(rawPath = '') {
+  const prepared = String(rawPath || '').trim();
+  if (!prepared) {
+    return '';
+  }
+
+  if (/^(?:https?:|data:|blob:)/i.test(prepared)) {
+    return prepared;
+  }
+
+  const version = encodeURIComponent(APP_ASSET_VERSION);
+  const separator = prepared.includes('?') ? '&' : '?';
+  return `${prepared}${separator}v=${version}`;
+}
+
 function normalizeScenarioAssetPath(rawPath = '') {
   const trimmed = String(rawPath || '').trim();
   if (!trimmed) {
     return '';
   }
 
+  let normalizedPath = '';
   if (trimmed.startsWith('./') || trimmed.startsWith('../') || /^https?:\/\//i.test(trimmed)) {
-    return trimmed;
+    normalizedPath = trimmed;
+  } else if (trimmed.startsWith('/public/')) {
+    normalizedPath = `./${trimmed.slice('/public/'.length)}`;
+  } else if (trimmed.startsWith('public/')) {
+    normalizedPath = `./${trimmed.slice('public/'.length)}`;
+  } else if (trimmed.startsWith('/')) {
+    normalizedPath = trimmed;
+  } else {
+    normalizedPath = `./${trimmed}`;
   }
 
-  if (trimmed.startsWith('/public/')) {
-    return `./${trimmed.slice('/public/'.length)}`;
-  }
-
-  if (trimmed.startsWith('public/')) {
-    return `./${trimmed.slice('public/'.length)}`;
-  }
-
-  if (trimmed.startsWith('/')) {
-    return trimmed;
-  }
-
-  return `./${trimmed}`;
+  return appendLocalAssetVersion(normalizedPath);
 }
 
 function buildSyntheticCityImageMap(point, syntheticSrc = '') {
@@ -1775,6 +1790,10 @@ function getPointInlineCityImageMap(point) {
   }
 
   if (point.parentCityId) {
+    return null;
+  }
+
+  if (point.task?.disableSyntheticCityImageMap === true) {
     return null;
   }
 
@@ -2351,7 +2370,7 @@ function getImageCityPoints(point) {
 function getTaskMediaItems(point) {
   const items = Array.isArray(point.task?.media) ? point.task.media : [];
   const cityImage = getPointInlineCityImageMap(point);
-  const normalizedItems = items.map((item) => {
+  let normalizedItems = items.map((item) => {
     if (!item || typeof item !== 'object') {
       return item;
     }
@@ -2363,6 +2382,22 @@ function getTaskMediaItems(point) {
       src: normalizeScenarioAssetPath(item.src || '')
     };
   });
+
+  if (normalizedItems.length === 0 && isTourAgentPointRuntime(point)) {
+    const parentCityId = String(point?.parentCityId || '').trim();
+    const parentPoint = (parentCityId && pointsById.get(parentCityId)) || null;
+    const mediaSrc = getTourAgentMediaSrc(parentPoint);
+    if (mediaSrc) {
+      normalizedItems = [
+        {
+          type: 'image',
+          title: 'Tour agent',
+          src: mediaSrc,
+          alt: 'Tour agent photo'
+        }
+      ];
+    }
+  }
 
   if (!cityImage?.src) {
     return normalizedItems;
@@ -2386,7 +2421,7 @@ function normalizeScenarioPoint(rawPoint = {}) {
   };
 }
 
-function setPointRouteLock(point, requiredPointIds = [], hintText = '') {
+function setPointRouteLock(point, requiredPointIds = [], hintText = '', requirementKey = 'requireVisitedAny') {
   if (!point || !point.task || typeof point.task !== 'object') {
     return;
   }
@@ -2402,9 +2437,10 @@ function setPointRouteLock(point, requiredPointIds = [], hintText = '') {
     return;
   }
 
+  const normalizedRequirementKey = String(requirementKey || 'requireVisitedAny').trim();
   point.task.lock = {
     visible: false,
-    requireVisitedAny: required,
+    [normalizedRequirementKey]: required,
     hint: String(hintText || 'Сначала откройте предыдущий город по маршруту.').trim()
   };
 }
@@ -2439,7 +2475,12 @@ function applyRuntimeRouteLocks(nextPoints = []) {
 
   const pointMap = new Map(nextPoints.map((point) => [String(point?.id || '').trim(), point]));
 
-  const applyPandoriaLocks = () => {
+  const applyPandoriaLocks = (options = {}) => {
+    const lakeshireRequires = Array.isArray(options.lakeshireRequires) && options.lakeshireRequires.length
+      ? options.lakeshireRequires
+      : ['stormport'];
+    const lakeshireHint = String(options.lakeshireHint || 'Сначала посетите Стормпорт.').trim();
+    const lakeshireRequirementKey = String(options.lakeshireRequirementKey || 'requireVisitedAny').trim();
     const lockPlan = [
       ['new_london', [], ''],
       ['northbridge', ['new_london'], 'Сначала посетите Нью-Лондон.'],
@@ -2450,11 +2491,11 @@ function applyRuntimeRouteLocks(nextPoints = []) {
       ['greyston', ['stormport'], 'Сначала посетите Стормпорт.'],
       ['ironport', ['stormport'], 'Сначала посетите Стормпорт.'],
       ['duncaster', ['stormport'], 'Сначала посетите Стормпорт.'],
-      ['lakeshire', ['stormport'], 'Сначала посетите Стормпорт.']
+      ['lakeshire', lakeshireRequires, lakeshireHint, lakeshireRequirementKey]
     ];
 
-    lockPlan.forEach(([pointId, requires, hint]) => {
-      setPointRouteLock(pointMap.get(pointId), requires, hint);
+    lockPlan.forEach(([pointId, requires, hint, requirementKey]) => {
+      setPointRouteLock(pointMap.get(pointId), requires, hint, requirementKey);
     });
   };
 
@@ -2472,7 +2513,11 @@ function applyRuntimeRouteLocks(nextPoints = []) {
       'gradimir'
     ]);
 
-    applyPandoriaLocks();
+    applyPandoriaLocks({
+      lakeshireRequires: ['neutral_gorodok.police_ambassador'],
+      lakeshireHint: 'Сначала пройдите точку «Участок — посол».',
+      lakeshireRequirementKey: 'requireSolvedAny'
+    });
   }
 
   if (scenarioId === 'pandoria') {
@@ -2932,6 +2977,8 @@ function resetClientRouteProgress() {
   mapState.matchActiveFacts.clear();
   mapState.scannerStates.clear();
   mapState.anagramInputs.clear();
+  mapState.symbolInputs.clear();
+  mapState.symbolMeaningInputs.clear();
   mapState.decoderOffsets.clear();
   mapState.decoderInputs.clear();
   mapState.decoderClues.clear();
@@ -3039,8 +3086,10 @@ function showTriggerNotice(triggers = []) {
         || rawText.includes('улик')
         || rawText.includes('можно готовить')
       );
+      const isBatchReadyNoise = rawText.includes('команда прошла 3 города')
+        || rawText.includes('готовьте новый пакет улик');
 
-      return !isMoveProgressNoise;
+      return !isMoveProgressNoise && !isBatchReadyNoise;
     });
 
   if (!latest) {
@@ -3452,12 +3501,14 @@ const SUPPORTED_TASK_KINDS = new Set([
   'sort',
   'slider',
   'jigsaw',
+  'spotdiff',
   'caesar',
   'match',
   'hotspot',
   'scanner',
   'rotor',
   'decoder',
+  'symbol_input',
   'anagram',
   'chess'
 ]);
@@ -3588,17 +3639,36 @@ function getPointLock(point) {
   return point.task.lock;
 }
 
+function normalizePointLockIds(values = []) {
+  return Array.isArray(values)
+    ? values
+        .map((value) => String(value || '').trim())
+        .filter(Boolean)
+    : [];
+}
+
 function isPointUnlocked(point) {
   const lock = getPointLock(point);
   if (!lock) {
     return true;
   }
 
-  const requireVisitedAny = Array.isArray(lock.requireVisitedAny)
-    ? lock.requireVisitedAny
-        .map((value) => String(value || '').trim())
-        .filter(Boolean)
-    : [];
+  const requireSolvedAll = normalizePointLockIds(lock.requireSolvedAll);
+  if (requireSolvedAll.length && !requireSolvedAll.every((pointId) => mapState.solved.has(pointId))) {
+    return false;
+  }
+
+  const requireSolvedAny = normalizePointLockIds(lock.requireSolvedAny);
+  if (requireSolvedAny.length && !requireSolvedAny.some((pointId) => mapState.solved.has(pointId))) {
+    return false;
+  }
+
+  const requireVisitedAll = normalizePointLockIds(lock.requireVisitedAll);
+  if (requireVisitedAll.length && !requireVisitedAll.every((pointId) => mapState.visited.has(pointId))) {
+    return false;
+  }
+
+  const requireVisitedAny = normalizePointLockIds(lock.requireVisitedAny);
 
   if (!requireVisitedAny.length) {
     return true;
@@ -3656,15 +3726,16 @@ function markPointVisited(point) {
 
   mapState.visited.add(point.id);
 
+  const visitNoticeText = String(point.task?.visitNoticeText || '').trim();
   const unlockedTargets = getUnlockTargetPoints(point).filter((targetPoint) => isPointUnlocked(targetPoint));
-  if (!unlockedTargets.length) {
+  if (!unlockedTargets.length && !visitNoticeText) {
     return {
       firstVisit: true,
       unlockNoticeText: ''
     };
   }
 
-  const baseText = String(point.task?.unlockSuccessText || '').trim();
+  const baseText = visitNoticeText || String(point.task?.unlockSuccessText || '').trim();
 
   return {
     firstVisit: true,
@@ -3812,6 +3883,9 @@ function setCityMode(enabled) {
   state.cityMode = enabled;
 
   cardMap.classList.toggle('has-task', enabled);
+  if (!enabled) {
+    cardMap.classList.remove('has-sort-task');
+  }
   const selectedPoint = pointsById.get(state.selectedPointId);
   const keepMapInteractive = !enabled
     || Boolean(selectedPoint?.task?.cityMap)
@@ -4094,7 +4168,13 @@ function getSortItems(point) {
         label: String(rawItem?.label || rawItem?.title || `Элемент ${index + 1}`).trim() || `Элемент ${index + 1}`,
         alt: String(rawItem?.alt || rawItem?.label || rawItem?.title || id).trim() || id,
         src: normalizeScenarioAssetPath(String(rawItem?.src || '').trim()),
-        rank: Number(rawItem?.height ?? rawItem?.rank ?? rawItem?.order),
+        height: Number.isFinite(Number(rawItem?.height)) && Number(rawItem?.height) > 0
+          ? Number(rawItem?.height)
+          : null,
+        rank: Number.isFinite(Number(rawItem?.height ?? rawItem?.rank ?? rawItem?.order))
+          && Number(rawItem?.height ?? rawItem?.rank ?? rawItem?.order) > 0
+          ? Number(rawItem?.height ?? rawItem?.rank ?? rawItem?.order)
+          : null,
         hint: String(rawItem?.hint || '').trim()
       };
     })
@@ -4699,156 +4779,553 @@ function renderJigsawPuzzle(point) {
   }
 }
 
-function renderSortTask(point) {
-  const config = getSortConfig(point);
-  const items = getSortItems(point);
-  const showLabels = config.showLabels !== false;
-
-  if (items.length < 2) {
-    setTaskResult('Для этой механики нужно минимум два элемента в task.sort.items.', 'info');
+function renderSpotDiffTask(point) {
+  const spotdiff = point.task?.spotdiff || {};
+  const imageBefore = spotdiff.imageBefore?.src ? normalizeScenarioAssetPath(String(spotdiff.imageBefore.src).trim()) : '';
+  const imageAfter = spotdiff.imageAfter?.src ? normalizeScenarioAssetPath(String(spotdiff.imageAfter.src).trim()) : '';
+  const spots = Array.isArray(spotdiff.spots) ? spotdiff.spots : [];
+  const totalSpots = spots.length;
+  const note = String(spotdiff.note || '').trim() || 'Найдите все отличия на картинке.';
+  
+  if (!imageBefore || !imageAfter) {
+    setTaskResult('Не указаны изображения для поиска отличий.', 'info');
     return;
   }
 
-  const itemIds = items.map((item) => item.id);
-  const targetOrder = getSortTargetOrder(point, items);
-  const currentOrder = normalizeSortOrder(getSortOrder(point, items, targetOrder), itemIds);
-  mapState.sortOrders.set(point.id, currentOrder);
+  if (totalSpots === 0) {
+    setTaskResult('Не указаны зоны отличий (spotdiff.spots).', 'info');
+    return;
+  }
 
-  const itemById = new Map(items.map((item) => [item.id, item]));
   const isSolved = mapState.solved.has(point.id);
+  
+  // Инициализируем состояние
+  if (!mapState.spotdiffStates) {
+    mapState.spotdiffStates = new Map();
+  }
+  
+  if (!mapState.spotdiffStates.has(point.id)) {
+    mapState.spotdiffStates.set(point.id, { found: new Set() });
+  }
+
+  const state = mapState.spotdiffStates.get(point.id);
+  const foundCount = state.found.size;
+
+  const wrap = document.createElement('div');
+  wrap.className = 'spotdiff-wrap';
+
+  const noteNode = document.createElement('p');
+  noteNode.className = 'task-mini-note';
+  noteNode.textContent = isSolved ? `Все отличия найдены!` : `${note} (${foundCount}/${totalSpots})`;
+  wrap.appendChild(noteNode);
+
+  const imagesWrap = document.createElement('div');
+  imagesWrap.className = 'spotdiff-images';
+
+  // Картинка "после" с кликабельными зонами
+  const afterWrap = document.createElement('div');
+  afterWrap.className = 'spotdiff-image-wrap';
+
+  const afterImg = document.createElement('img');
+  afterImg.src = imageAfter;
+  afterImg.alt = spotdiff.imageAfter?.alt || 'Найдите отличия';
+  afterImg.className = 'spotdiff-image';
+  afterWrap.appendChild(afterImg);
+
+  // Добавляем кликабельные зоны
+  if (!isSolved) {
+    spots.forEach((spot, index) => {
+      const zone = document.createElement('button');
+      zone.type = 'button';
+      zone.className = 'spotdiff-zone';
+      zone.style.left = `${spot.x}%`;
+      zone.style.top = `${spot.y}%`;
+      zone.style.width = `${spot.width || 8}%`;
+      zone.style.height = `${spot.height || 8}%`;
+      zone.dataset.spotIndex = index;
+
+      if (state.found.has(index)) {
+        zone.classList.add('is-found');
+        zone.disabled = true;
+      }
+
+      zone.addEventListener('click', () => {
+        if (!state.found.has(index)) {
+          state.found.add(index);
+          
+          // Проверяем решение
+          if (state.found.size === totalSpots) {
+            completeTask(point, {
+              successText: point.task.success || 'Все отличия найдены!',
+              answerText: point.task.answerText || '',
+              answerLabel: point.task.answerLabel || 'Ключ'
+            });
+          }
+          
+          renderTask(point);
+        }
+      });
+
+      afterWrap.appendChild(zone);
+    });
+  } else {
+    // Показываем все найденные зоны
+    spots.forEach((spot, index) => {
+      const zone = document.createElement('div');
+      zone.className = 'spotdiff-zone is-found';
+      zone.style.left = `${spot.x}%`;
+      zone.style.top = `${spot.y}%`;
+      zone.style.width = `${spot.width || 8}%`;
+      zone.style.height = `${spot.height || 8}%`;
+      afterWrap.appendChild(zone);
+    });
+  }
+
+  imagesWrap.appendChild(afterWrap);
+  wrap.appendChild(imagesWrap);
+  taskOptionsNode.appendChild(wrap);
+  
+  // Показываем результат если решено
+  if (isSolved) {
+    const outcome = getTaskOutcome(point.id) || {};
+    setTaskResult(outcome.successText || point.task.success || 'Все отличия найдены!', 'ok');
+    setTaskAnswer(
+      outcome.answerText || point.task.answerText || '',
+      outcome.answerLabel || point.task.answerLabel || 'Ключ'
+    );
+  }
+}
+
+function renderSortTask(point) {
+  const config = getSortConfig(point);
+  const items = getSortItems(point);
+  if (items.length < 2) {
+    setTaskResult('Нужно минимум два элемента.', 'info');
+    return;
+  }
+
+  const itemIds = items.map((i) => i.id);
+  const targetOrder = getSortTargetOrder(point, items);
+  const isSolved = mapState.solved.has(point.id);
+  const itemById = new Map(items.map((i) => [i.id, i]));
+  const showGallery = config.showGallery === true;
+  const resolveLampHeight = (item, fallbackHeight = 120) => {
+    const explicitHeight = Number(item?.height);
+    if (Number.isFinite(explicitHeight) && explicitHeight > 0) {
+      return explicitHeight;
+    }
+
+    const rankedHeight = Number(item?.rank);
+    if (Number.isFinite(rankedHeight) && rankedHeight > 0) {
+      return 64 + Math.round(rankedHeight * 32);
+    }
+
+    return fallbackHeight;
+  };
+  const rawLampHeights = items
+    .map((item) => resolveLampHeight(item, 120))
+    .filter((value) => Number.isFinite(value) && value > 0);
+  const rawMinLampHeight = rawLampHeights.length ? Math.min(...rawLampHeights) : 120;
+  const rawMaxLampHeight = rawLampHeights.length ? Math.max(...rawLampHeights) : 240;
+  const isNarrowScreen = window.innerWidth <= 640;
+  const isVeryNarrowScreen = window.innerWidth <= 420;
+  const baseVisualMin = isNarrowScreen ? 168 : 144;
+  const visualSpread = isNarrowScreen ? 178 : 138;
+  const resolveVisualLampHeight = (item, fallbackHeight = 120) => {
+    const rawHeight = resolveLampHeight(item, fallbackHeight);
+    if (rawMaxLampHeight <= rawMinLampHeight + 1) {
+      return Math.max(baseVisualMin, Math.round(rawHeight));
+    }
+    const normalized = (rawHeight - rawMinLampHeight) / (rawMaxLampHeight - rawMinLampHeight);
+    return Math.round(baseVisualMin + (normalized * visualSpread));
+  };
+  const LAMP_VISUAL_SCALE = isVeryNarrowScreen ? 1.34 : (isNarrowScreen ? 1.26 : 1.16);
+  const resolveDisplayLampHeight = (item, fallbackHeight = baseVisualMin) => {
+    const visualHeight = resolveVisualLampHeight(item, fallbackHeight);
+    return Math.round(visualHeight * LAMP_VISUAL_SCALE);
+  };
+  const maxLampHeight = items.reduce(
+    (maxHeight, item) => Math.max(maxHeight, resolveDisplayLampHeight(item, baseVisualMin)),
+    baseVisualMin
+  );
+  const emptySlotHeight = Math.max(baseVisualMin, Math.round(maxLampHeight * 0.6));
+  const slotWidthPx = Math.max(
+    isNarrowScreen ? 74 : 66,
+    Math.min(isNarrowScreen ? 98 : 88, Math.round(maxLampHeight * (isNarrowScreen ? 0.34 : 0.29)))
+  );
+  const lampWidthPx = Math.max(isNarrowScreen ? 54 : 48, slotWidthPx - 8);
+  const createLampVisualNode = (item, lampHeight) => {
+    const rawHeight = resolveLampHeight(item, lampHeight);
+    const isTallestLamp = rawHeight >= (rawMaxLampHeight - 1);
+    const frameWidth = isTallestLamp ? Math.min(slotWidthPx, lampWidthPx + 10) : lampWidthPx;
+    const frame = document.createElement('div');
+    frame.style.cssText = `width:${frameWidth}px;height:${lampHeight}px;overflow:hidden;display:flex;align-items:flex-end;justify-content:center;pointer-events:none;`;
+
+    const visual = document.createElement('div');
+    visual.setAttribute('role', 'img');
+    visual.setAttribute('aria-label', item?.alt || item?.label || 'Фонарь');
+    visual.style.cssText = [
+      'width:100%',
+      'height:100%',
+      'background-repeat:no-repeat',
+      'background-position:center bottom',
+      `background-size:${isTallestLamp ? 'auto 100%' : 'cover'}`,
+      `background-image:url("${normalizeScenarioAssetPath(item?.src || '')}")`
+    ].join(';');
+
+    frame.appendChild(visual);
+    return frame;
+  };
+
+  // Галерея для просмотра фонарей
+  if (showGallery) {
+    const galleryWrap = document.createElement('div');
+    galleryWrap.className = 'lamp-gallery-wrap';
+    galleryWrap.style.cssText = 'margin:0 0 20px;padding:16px;background:#f8f9fa;border-radius:12px;';
+
+    const galleryTitle = document.createElement('h3');
+    galleryTitle.textContent = 'Фонари улицы Аль-Лайла';
+    galleryTitle.style.cssText = 'margin:0 0 12px;font-size:15px;font-weight:600;color:#4a5a54;text-align:center;';
+    galleryWrap.appendChild(galleryTitle);
+
+    const galleryState = { currentIndex: 0 };
+
+    const imageContainer = document.createElement('div');
+    imageContainer.style.cssText = 'position:relative;display:flex;align-items:center;justify-content:center;min-height:280px;background:#ffffff;border-radius:10px;padding:20px;';
+
+    const currentImage = document.createElement('img');
+    currentImage.style.cssText = 'max-width:100%;max-height:350px;width:auto;height:auto;display:block;object-fit:contain;';
+    currentImage.loading = 'lazy';
+
+    const caption = document.createElement('p');
+    caption.style.cssText = 'text-align:center;margin:12px 0 0;font-size:13px;color:#6f7f7a;font-weight:500;';
+
+    const updateGallery = () => {
+      const current = items[galleryState.currentIndex];
+      currentImage.src = normalizeScenarioAssetPath(current.src);
+      currentImage.alt = current.alt || current.label || 'Фонарь';
+      caption.textContent = `Фонарь ${galleryState.currentIndex + 1} из ${items.length}`;
+      counter.textContent = `${galleryState.currentIndex + 1} / ${items.length}`;
+      prevBtn.disabled = galleryState.currentIndex === 0;
+      nextBtn.disabled = galleryState.currentIndex === items.length - 1;
+      prevBtn.style.opacity = prevBtn.disabled ? '0.4' : '1';
+      nextBtn.style.opacity = nextBtn.disabled ? '0.4' : '1';
+    };
+
+    imageContainer.appendChild(currentImage);
+    galleryWrap.appendChild(imageContainer);
+    galleryWrap.appendChild(caption);
+
+    const controls = document.createElement('div');
+    controls.style.cssText = 'display:flex;align-items:center;justify-content:center;gap:12px;margin-top:12px;';
+
+    const prevBtn = document.createElement('button');
+    prevBtn.type = 'button';
+    prevBtn.className = 'match-btn ghost';
+    prevBtn.textContent = '← Предыдущий';
+    prevBtn.style.cssText = 'min-width:120px;padding:8px 16px;font-size:14px;font-weight:600;';
+    prevBtn.addEventListener('click', () => {
+      if (galleryState.currentIndex > 0) {
+        galleryState.currentIndex--;
+        updateGallery();
+        triggerHaptic('light');
+      }
+    });
+
+    const nextBtn = document.createElement('button');
+    nextBtn.type = 'button';
+    nextBtn.className = 'match-btn ghost';
+    nextBtn.textContent = 'Следующий →';
+    nextBtn.style.cssText = 'min-width:120px;padding:8px 16px;font-size:14px;font-weight:600;';
+    nextBtn.addEventListener('click', () => {
+      if (galleryState.currentIndex < items.length - 1) {
+        galleryState.currentIndex++;
+        updateGallery();
+        triggerHaptic('light');
+      }
+    });
+
+    const counter = document.createElement('span');
+    counter.style.cssText = 'font-size:13px;color:#6f7f7a;font-weight:600;min-width:60px;text-align:center;';
+
+    controls.appendChild(prevBtn);
+    controls.appendChild(counter);
+    controls.appendChild(nextBtn);
+    galleryWrap.appendChild(controls);
+
+    updateGallery();
+
+    // Поддержка свайпов
+    let touchStartX = 0;
+    imageContainer.addEventListener('touchstart', (e) => {
+      touchStartX = e.touches[0].clientX;
+    }, { passive: true });
+    
+    imageContainer.addEventListener('touchend', (e) => {
+      const touchEndX = e.changedTouches[0].clientX;
+      const diff = touchStartX - touchEndX;
+      if (Math.abs(diff) > 50) {
+        if (diff > 0 && galleryState.currentIndex < items.length - 1) {
+          galleryState.currentIndex++;
+          updateGallery();
+          triggerHaptic('light');
+        } else if (diff < 0 && galleryState.currentIndex > 0) {
+          galleryState.currentIndex--;
+          updateGallery();
+          triggerHaptic('light');
+        }
+      }
+    }, { passive: true });
+
+    taskOptionsNode.appendChild(galleryWrap);
+  }
+
+  // Состояние: slotMap = { slotIndex: itemId | null }
+  const stateKey = 'sortSlots_' + point.id;
+  if (!mapState[stateKey] || mapState[stateKey].slots.length !== itemIds.length) {
+    // Перемешиваем фонари в пуле
+    const shuffled = createShuffledSortOrder(itemIds, targetOrder);
+    mapState[stateKey] = { pool: [...shuffled], slots: new Array(itemIds.length).fill(null) };
+  }
+  const state = mapState[stateKey];
 
   const wrap = document.createElement('div');
   wrap.className = 'sort-wrap';
 
   const note = document.createElement('p');
   note.className = 'task-mini-note';
-  note.textContent = String(config.note || '').trim() || 'Перетащите карточки и выстройте фонари по возрастанию высоты (слева направо).';
+  note.textContent = 'Перетащите фонари в слоты от самого низкого (1) до самого высокого (' + itemIds.length + '). Используйте кнопки или свайп для прокрутки.';
   wrap.appendChild(note);
 
-  const listNode = document.createElement('div');
-  listNode.className = 'sort-list';
-  if (!showLabels) {
-    listNode.classList.add('is-visual-only');
-  }
+  // Пул фонарей сверху
+  const poolEl = document.createElement('div');
+  poolEl.className = 'sort-horizontal-strip sort-horizontal-strip--pool';
 
-  const declaredHeights = items
-    .map((it) => Number(it.height))
-    .filter((n) => Number.isFinite(n) && n > 0);
-  const minDeclH = declaredHeights.length ? Math.min(...declaredHeights) : 0;
-  const maxDeclH = declaredHeights.length ? Math.max(...declaredHeights) : 1;
+  // Слоты снизу
+  const slotsEl = document.createElement('div');
+  slotsEl.className = 'sort-horizontal-strip sort-horizontal-strip--slots';
 
-  currentOrder.forEach((itemId) => {
-    const item = itemById.get(itemId);
-    if (!item) {
-      return;
-    }
-
-    const itemNode = document.createElement('button');
-    itemNode.type = 'button';
-    itemNode.className = 'sort-item';
-    itemNode.dataset.itemId = item.id;
-    itemNode.disabled = isSolved;
-    itemNode.setAttribute('aria-label', item.label);
-
-    if (item.src) {
-      const thumbWrap = document.createElement('div');
-      thumbWrap.className = 'sort-item-thumb-wrap';
-
-      const image = document.createElement('img');
-      image.className = 'sort-item-thumb';
-      image.src = normalizeScenarioAssetPath(item.src);
-      image.alt = item.alt || item.label;
-      image.loading = 'lazy';
-      image.draggable = false;
-      image.style.pointerEvents = 'none';
-
-      const rawH = Number(item.height);
-      if (declaredHeights.length && Number.isFinite(rawH) && rawH > 0) {
-        const t = (rawH - minDeclH) / (maxDeclH - minDeclH || 1);
-        const px = Math.round(48 + t * 168);
-        image.style.height = `${px}px`;
-        image.style.width = 'auto';
-        image.style.maxWidth = '100%';
-        image.style.objectFit = 'contain';
-        image.style.objectPosition = 'bottom center';
-
+  const bindHorizontalWheel = (scrollerNode) => {
+    scrollerNode.addEventListener('wheel', (event) => {
+      if (Math.abs(event.deltaY) <= Math.abs(event.deltaX)) {
+        return;
       }
 
-      image.addEventListener('error', () => {
-        thumbWrap.remove();
-      });
-      thumbWrap.appendChild(image);
-
-      if (!showLabels && declaredHeights.length && Number.isFinite(rawH) && rawH > 0) {
-        const t = (rawH - minDeclH) / (maxDeclH - minDeclH || 1);
-        const meter = document.createElement('div');
-        meter.className = 'sort-item-height-meter';
-        meter.setAttribute('role', 'presentation');
-        meter.style.setProperty('--fill-pct', `${Math.round(t * 100)}%`);
-        thumbWrap.appendChild(meter);
-      }
-      itemNode.appendChild(thumbWrap);
-    }
-
-    const shouldRenderText = showLabels || !item.src;
-    if (shouldRenderText) {
-      const textBlock = document.createElement('span');
-      textBlock.className = 'sort-item-text';
-
-      const label = document.createElement('span');
-      label.className = 'sort-item-label';
-      label.textContent = item.label;
-      textBlock.appendChild(label);
-
-      if (item.hint) {
-        const hint = document.createElement('span');
-        hint.className = 'sort-item-hint';
-        hint.textContent = item.hint;
-        textBlock.appendChild(hint);
+      if (scrollerNode.scrollWidth <= (scrollerNode.clientWidth + 1)) {
+        return;
       }
 
-      itemNode.appendChild(textBlock);
+      scrollerNode.scrollLeft += event.deltaY;
+      event.preventDefault();
+    }, { passive: false });
+  };
+  bindHorizontalWheel(poolEl);
+  bindHorizontalWheel(slotsEl);
+
+  const createHorizontalScrollControls = (scrollerNode, titleText) => {
+    const controlsNode = document.createElement('div');
+    controlsNode.className = 'sort-scroll-controls';
+
+    const titleNode = document.createElement('span');
+    titleNode.className = 'sort-scroll-title';
+    titleNode.textContent = titleText;
+    controlsNode.appendChild(titleNode);
+
+    const buttonsNode = document.createElement('div');
+    buttonsNode.className = 'sort-scroll-buttons';
+
+    const leftBtn = document.createElement('button');
+    leftBtn.type = 'button';
+    leftBtn.className = 'match-btn ghost sort-scroll-btn';
+    leftBtn.textContent = '← Влево';
+    leftBtn.setAttribute('aria-label', 'Прокрутить влево');
+
+    const rightBtn = document.createElement('button');
+    rightBtn.type = 'button';
+    rightBtn.className = 'match-btn ghost sort-scroll-btn';
+    rightBtn.textContent = 'Вправо →';
+    rightBtn.setAttribute('aria-label', 'Прокрутить вправо');
+
+    const SCROLL_STEP = 200;
+
+    const updateButtons = () => {
+      const maxScroll = Math.max(0, scrollerNode.scrollWidth - scrollerNode.clientWidth);
+      const canScroll = maxScroll > 2;
+      leftBtn.disabled = !canScroll || scrollerNode.scrollLeft <= 1;
+      rightBtn.disabled = !canScroll || scrollerNode.scrollLeft >= (maxScroll - 1);
+      leftBtn.style.opacity = leftBtn.disabled ? '0.4' : '1';
+      rightBtn.style.opacity = rightBtn.disabled ? '0.4' : '1';
+    };
+
+    leftBtn.addEventListener('click', () => {
+      triggerHaptic('light');
+      scrollerNode.scrollBy({ left: -SCROLL_STEP, behavior: 'smooth' });
+      window.setTimeout(updateButtons, 200);
+    });
+    rightBtn.addEventListener('click', () => {
+      triggerHaptic('light');
+      scrollerNode.scrollBy({ left: SCROLL_STEP, behavior: 'smooth' });
+      window.setTimeout(updateButtons, 200);
+    });
+
+    scrollerNode.addEventListener('scroll', updateButtons, { passive: true });
+    window.setTimeout(updateButtons, 100);
+
+    buttonsNode.appendChild(leftBtn);
+    buttonsNode.appendChild(rightBtn);
+    controlsNode.appendChild(buttonsNode);
+
+    return { controlsNode, updateButtons };
+  };
+
+  const poolScrollUi = createHorizontalScrollControls(poolEl, 'Фонари');
+  const slotsScrollUi = createHorizontalScrollControls(slotsEl, 'Слоты');
+
+  const render = () => {
+    poolEl.innerHTML = '';
+    slotsEl.innerHTML = '';
+
+    // Рендер пула
+    state.pool.forEach((itemId) => {
+      const item = itemById.get(itemId);
+      const piece = document.createElement('div');
+      piece.draggable = !isSolved;
+      piece.dataset.itemId = itemId;
+      piece.dataset.from = 'pool';
+      const ph = resolveDisplayLampHeight(item, emptySlotHeight);
+      piece.style.cssText = 'cursor:grab;padding:4px;border-radius:8px;border:1px dashed #c7d4ca;background:#ffffff;touch-action:pan-x;display:flex;align-items:flex-end;flex:0 0 auto;';
+      piece.appendChild(createLampVisualNode(item, ph));
+
+      if (!isSolved) {
+        piece.addEventListener('dragstart', (e) => {
+          e.dataTransfer.setData('itemId', itemId);
+          e.dataTransfer.setData('from', 'pool');
+          e.dataTransfer.setData('fromSlot', '');
+        });
+      }
+      poolEl.appendChild(piece);
+    });
+
+    // Рендер слотов
+    state.slots.forEach((slotItemId, idx) => {
+      const slot = document.createElement('div');
+      slot.dataset.slotIdx = idx;
+      const slotNum = idx + 1;
+
+      const expectedItemId = targetOrder[idx];
+      const expectedItem = expectedItemId ? itemById.get(expectedItemId) : null;
+      const expectedHeight = resolveDisplayLampHeight(expectedItem, emptySlotHeight);
+      const h = slotItemId
+        ? resolveDisplayLampHeight(itemById.get(slotItemId), expectedHeight)
+        : expectedHeight;
+      slot.style.cssText = `display:flex;flex-direction:column;align-items:center;justify-content:flex-end;width:${slotWidthPx}px;min-height:${h + 40}px;border:2px dashed #c7d4ca;border-radius:10px;background:${slotItemId ? '#e8f5ee' : '#fff'};padding:4px 2px 2px;position:relative;flex:0 0 auto;`;
+
+      // Номер слота
+      const numEl = document.createElement('span');
+      numEl.textContent = slotNum;
+      numEl.style.cssText = 'position:absolute;top:4px;left:50%;transform:translateX(-50%);font-size:11px;font-weight:700;color:#7a9a82;';
+      slot.appendChild(numEl);
+
+      if (slotItemId) {
+        const item = itemById.get(slotItemId);
+        const piece = document.createElement('div');
+        piece.draggable = !isSolved;
+        piece.dataset.itemId = slotItemId;
+        piece.dataset.from = 'slot';
+        piece.dataset.fromSlot = idx;
+        piece.style.cssText = 'cursor:grab;touch-action:pan-x;';
+        const ph = resolveDisplayLampHeight(item, expectedHeight);
+        piece.appendChild(createLampVisualNode(item, ph));
+
+        if (!isSolved) {
+          piece.addEventListener('dragstart', (e) => {
+            e.dataTransfer.setData('itemId', slotItemId);
+            e.dataTransfer.setData('from', 'slot');
+            e.dataTransfer.setData('fromSlot', idx);
+          });
+        }
+        slot.appendChild(piece);
+      }
+
+      if (!isSolved) {
+        slot.addEventListener('dragover', (e) => { e.preventDefault(); slot.style.background = '#d4edda'; });
+        slot.addEventListener('dragleave', () => { slot.style.background = slotItemId ? '#e8f5ee' : '#fff'; });
+        slot.addEventListener('drop', (e) => {
+          e.preventDefault();
+          const draggedId = e.dataTransfer.getData('itemId');
+          const from = e.dataTransfer.getData('from');
+          const fromSlot = e.dataTransfer.getData('fromSlot');
+          const toIdx = Number(slot.dataset.slotIdx);
+
+          // Если в целевом слоте уже есть фонарь - меняем местами или возвращаем в пул
+          const existingInSlot = state.slots[toIdx];
+
+          if (from === 'pool') {
+            // Убираем из пула
+            state.pool = state.pool.filter((id) => id !== draggedId);
+            if (existingInSlot) state.pool.push(existingInSlot);
+          } else {
+            // Убираем из старого слота
+            state.slots[Number(fromSlot)] = existingInSlot || null;
+            if (existingInSlot) state.slots[Number(fromSlot)] = existingInSlot;
+            else state.slots[Number(fromSlot)] = null;
+          }
+          state.slots[toIdx] = draggedId;
+          render();
+        });
+      }
+
+      slotsEl.appendChild(slot);
+    });
+
+    poolScrollUi.updateButtons();
+    slotsScrollUi.updateButtons();
+  };
+
+  // Drag из слота обратно в пул
+  poolEl.addEventListener('dragover', (e) => { e.preventDefault(); });
+  poolEl.addEventListener('drop', (e) => {
+    e.preventDefault();
+    const draggedId = e.dataTransfer.getData('itemId');
+    const from = e.dataTransfer.getData('from');
+    const fromSlot = e.dataTransfer.getData('fromSlot');
+    if (from === 'slot') {
+      state.slots[Number(fromSlot)] = null;
+      if (!state.pool.includes(draggedId)) state.pool.push(draggedId);
+      render();
     }
-
-    const handle = document.createElement('span');
-    handle.className = 'sort-item-handle';
-    handle.setAttribute('aria-hidden', 'true');
-    handle.textContent = '⋮⋮';
-    itemNode.appendChild(handle);
-
-    if (!isSolved) {
-      attachSortDrag(itemNode, point, listNode, item.id);
-    } else {
-      itemNode.classList.add('is-solved');
-    }
-
-    listNode.appendChild(itemNode);
   });
 
-  wrap.appendChild(listNode);
+  render();
+  wrap.appendChild(poolScrollUi.controlsNode);
+  wrap.appendChild(poolEl);
+  wrap.appendChild(slotsScrollUi.controlsNode);
+  wrap.appendChild(slotsEl);
 
+  // Кнопки
   const actions = document.createElement('div');
   actions.className = 'sort-actions';
 
   const checkBtn = document.createElement('button');
   checkBtn.type = 'button';
   checkBtn.className = 'anagram-confirm';
-  checkBtn.textContent = isSolved ? 'Порядок подтвержден' : 'Проверить порядок';
+  checkBtn.textContent = isSolved ? 'Порядок подтверждён' : 'Проверить порядок';
   checkBtn.disabled = isSolved;
   checkBtn.addEventListener('click', () => {
-    const nextOrder = normalizeSortOrder(mapState.sortOrders.get(point.id), itemIds);
-    mapState.sortOrders.set(point.id, nextOrder);
-
-    if (areArraysEqual(nextOrder, targetOrder)) {
+    if (state.pool.length > 0) {
+      setTaskResult('Сначала расставьте все фонари по слотам.', 'bad');
+      return;
+    }
+    const isCorrect = state.slots.every((id, i) => id === targetOrder[i]);
+    if (isCorrect) {
       completeTask(point);
       setTaskResult(point.task.success || 'Порядок верный.', 'ok');
       setTaskAnswer(point.task.answerText, point.task.answerLabel || 'Ключ');
       renderTask(point);
-      return;
+    } else {
+      setTaskResult(point.task.wrongResultText || 'Пока неверно. Попробуй ещё раз.', 'bad');
+      triggerHaptic('error');
     }
-
-    setTaskResult(point.task.wrongResultText || 'Пока неверно. Расставьте фонари от низкого к высокому.', 'bad');
-    triggerHaptic('error');
   });
   actions.appendChild(checkBtn);
 
@@ -4858,10 +5335,9 @@ function renderSortTask(point) {
   reshuffleBtn.textContent = 'Перемешать';
   reshuffleBtn.disabled = isSolved;
   reshuffleBtn.addEventListener('click', () => {
-    const mixedOrder = createShuffledSortOrder(itemIds, targetOrder);
-    mapState.sortOrders.set(point.id, mixedOrder);
+    mapState[stateKey] = { pool: createShuffledSortOrder(itemIds, targetOrder), slots: new Array(itemIds.length).fill(null) };
     setTaskResult('', 'info');
-    renderTask(point);
+    render();
     triggerHaptic('light');
   });
   actions.appendChild(reshuffleBtn);
@@ -4869,9 +5345,7 @@ function renderSortTask(point) {
   wrap.appendChild(actions);
   taskOptionsNode.appendChild(wrap);
 
-  if (isSolved) {
-    showSolvedTaskState(point);
-  }
+  if (isSolved) showSolvedTaskState(point);
 }
 
 function getCaesarInput(point) {
@@ -5287,21 +5761,24 @@ function renderHotspotTask(point) {
   image.alt = config.image?.alt || point.title;
   scene.appendChild(image);
 
-  const placeMarkers = () => {
-    targets.forEach((target, idx) => {
-      const found = isSolved || (requireAll && hits.has(idx));
-      if (!found) {
-        return;
-      }
-      const marker = document.createElement('span');
-      marker.className = 'hotspot-hit';
-      marker.style.left = `${Number(target.x) || 50}%`;
-      marker.style.top = `${Number(target.y) || 50}%`;
-      marker.style.width = `${(Number(target.radius) || 8) * 2}%`;
-      marker.style.height = `${(Number(target.radius) || 8) * 2}%`;
-      scene.appendChild(marker);
-    });
-  };
+    const placeMarkers = () => {
+      targets.forEach((target, idx) => {
+        const found = isSolved || (requireAll && hits.has(idx));
+        if (!found) {
+          return;
+        }
+        const radius = Number(target.radius) || 8;
+        const markerWidth = Number(target.width) > 0 ? Number(target.width) : (radius * 2);
+        const markerHeight = Number(target.height) > 0 ? Number(target.height) : (radius * 2);
+        const marker = document.createElement('span');
+        marker.className = 'hotspot-hit';
+        marker.style.left = `${Number(target.x) || 50}%`;
+        marker.style.top = `${Number(target.y) || 50}%`;
+        marker.style.width = `${markerWidth}%`;
+        marker.style.height = `${markerHeight}%`;
+        scene.appendChild(marker);
+      });
+    };
 
   placeMarkers();
 
@@ -5316,6 +5793,16 @@ function renderHotspotTask(point) {
     const matchedIdx = targets.findIndex((target) => {
       const dx = x - (Number(target.x) || 50);
       const dy = y - (Number(target.y) || 50);
+      const targetWidth = Number(target.width);
+      const targetHeight = Number(target.height);
+      if (targetWidth > 0 || targetHeight > 0) {
+        const radius = Number(target.radius) || 8;
+        const halfWidth = (targetWidth > 0 ? targetWidth : radius * 2) / 2;
+        const halfHeight = (targetHeight > 0 ? targetHeight : radius * 2) / 2;
+        const normalizedDx = dx / Math.max(halfWidth, 0.01);
+        const normalizedDy = dy / Math.max(halfHeight, 0.01);
+        return (normalizedDx * normalizedDx) + (normalizedDy * normalizedDy) <= 1;
+      }
       const distance = Math.sqrt(dx * dx + dy * dy);
       return distance <= (Number(target.radius) || 8);
     });
@@ -6864,6 +7351,110 @@ function renderTaskMedia(point) {
   };
 
   items.forEach((item) => {
+    // Обработка галереи изображений
+    if (item.type === 'image_gallery' && Array.isArray(item.images) && item.images.length > 0) {
+      const galleryWrap = document.createElement('div');
+      galleryWrap.className = 'lamp-gallery-wrap';
+      galleryWrap.style.cssText = 'margin:16px 0;padding:16px;background:#f8f9fa;border-radius:12px;';
+
+      const galleryTitle = document.createElement('h3');
+      galleryTitle.textContent = item.title || 'Галерея';
+      galleryTitle.style.cssText = 'margin:0 0 12px;font-size:15px;font-weight:600;color:#4a5a54;text-align:center;';
+      galleryWrap.appendChild(galleryTitle);
+
+      const galleryState = { currentIndex: 0 };
+
+      const imageContainer = document.createElement('div');
+      imageContainer.style.cssText = 'position:relative;display:flex;align-items:center;justify-content:center;min-height:300px;background:#ffffff;border-radius:10px;padding:20px;';
+
+      const currentImage = document.createElement('img');
+      currentImage.style.cssText = 'max-width:100%;max-height:400px;width:auto;height:auto;display:block;object-fit:contain;';
+      currentImage.loading = 'lazy';
+
+      const caption = document.createElement('p');
+      caption.style.cssText = 'text-align:center;margin:12px 0 0;font-size:13px;color:#6f7f7a;font-weight:500;';
+
+      const updateGallery = () => {
+        const current = item.images[galleryState.currentIndex];
+        currentImage.src = normalizeScenarioAssetPath(current.src);
+        currentImage.alt = current.alt || current.caption || 'Фонарь';
+        caption.textContent = current.caption || `Изображение ${galleryState.currentIndex + 1} из ${item.images.length}`;
+        counter.textContent = `${galleryState.currentIndex + 1} / ${item.images.length}`;
+        prevBtn.disabled = galleryState.currentIndex === 0;
+        nextBtn.disabled = galleryState.currentIndex === item.images.length - 1;
+        prevBtn.style.opacity = prevBtn.disabled ? '0.4' : '1';
+        nextBtn.style.opacity = nextBtn.disabled ? '0.4' : '1';
+      };
+
+      imageContainer.appendChild(currentImage);
+      galleryWrap.appendChild(imageContainer);
+      galleryWrap.appendChild(caption);
+
+      const controls = document.createElement('div');
+      controls.style.cssText = 'display:flex;align-items:center;justify-content:center;gap:12px;margin-top:12px;';
+
+      const prevBtn = document.createElement('button');
+      prevBtn.type = 'button';
+      prevBtn.className = 'match-btn ghost';
+      prevBtn.textContent = '← Предыдущий';
+      prevBtn.style.cssText = 'min-width:120px;padding:8px 16px;font-size:14px;font-weight:600;';
+      prevBtn.addEventListener('click', () => {
+        if (galleryState.currentIndex > 0) {
+          galleryState.currentIndex--;
+          updateGallery();
+          triggerHaptic('light');
+        }
+      });
+
+      const nextBtn = document.createElement('button');
+      nextBtn.type = 'button';
+      nextBtn.className = 'match-btn ghost';
+      nextBtn.textContent = 'Следующий →';
+      nextBtn.style.cssText = 'min-width:120px;padding:8px 16px;font-size:14px;font-weight:600;';
+      nextBtn.addEventListener('click', () => {
+        if (galleryState.currentIndex < item.images.length - 1) {
+          galleryState.currentIndex++;
+          updateGallery();
+          triggerHaptic('light');
+        }
+      });
+
+      const counter = document.createElement('span');
+      counter.style.cssText = 'font-size:13px;color:#6f7f7a;font-weight:600;min-width:60px;text-align:center;';
+
+      controls.appendChild(prevBtn);
+      controls.appendChild(counter);
+      controls.appendChild(nextBtn);
+      galleryWrap.appendChild(controls);
+
+      updateGallery();
+
+      // Поддержка свайпов
+      let touchStartX = 0;
+      imageContainer.addEventListener('touchstart', (e) => {
+        touchStartX = e.touches[0].clientX;
+      }, { passive: true });
+      
+      imageContainer.addEventListener('touchend', (e) => {
+        const touchEndX = e.changedTouches[0].clientX;
+        const diff = touchStartX - touchEndX;
+        if (Math.abs(diff) > 50) {
+          if (diff > 0 && galleryState.currentIndex < item.images.length - 1) {
+            galleryState.currentIndex++;
+            updateGallery();
+            triggerHaptic('light');
+          } else if (diff < 0 && galleryState.currentIndex > 0) {
+            galleryState.currentIndex--;
+            updateGallery();
+            triggerHaptic('light');
+          }
+        }
+      }, { passive: true });
+
+      wrap.appendChild(galleryWrap);
+      return;
+    }
+
     const card = document.createElement('div');
     card.className = 'task-media-card';
     if (isTourAgentMedia) {
@@ -6929,6 +7520,426 @@ function normalizeAnagramWord(value = '') {
     .trim()
     .toLowerCase()
     .replace(/\s+/g, '');
+}
+
+function normalizeSymbolToken(value = '') {
+  return String(value || '')
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, '_');
+}
+
+function normalizeSymbolMeaning(value = '') {
+  return String(value || '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .toLowerCase()
+    .replace(/ё/g, 'е');
+}
+
+function getSymbolInputState(pointId) {
+  if (!mapState.symbolInputs.has(pointId)) {
+    mapState.symbolInputs.set(pointId, []);
+  }
+  return mapState.symbolInputs.get(pointId);
+}
+
+function rememberSymbolInputState(pointId, sequence = []) {
+  const prepared = Array.isArray(sequence)
+    ? sequence.map((value) => normalizeSymbolToken(value)).filter(Boolean)
+    : [];
+  mapState.symbolInputs.set(pointId, prepared);
+  return prepared;
+}
+
+function getSymbolMeaningState(pointId) {
+  if (!mapState.symbolMeaningInputs.has(pointId)) {
+    mapState.symbolMeaningInputs.set(pointId, {});
+  }
+  return mapState.symbolMeaningInputs.get(pointId);
+}
+
+function rememberSymbolMeaningState(pointId, entries = {}) {
+  const prepared = Object.entries(entries || {}).reduce((acc, [rawKey, rawValue]) => {
+    const key = normalizeSymbolToken(rawKey);
+    if (!key) {
+      return acc;
+    }
+    acc[key] = String(rawValue || '');
+    return acc;
+  }, {});
+  mapState.symbolMeaningInputs.set(pointId, prepared);
+  return prepared;
+}
+
+function createSymbolInputVisual(symbol = {}, options = {}) {
+  const {
+    compact = false,
+    locked = false
+  } = options;
+
+  const visual = document.createElement('div');
+  visual.className = compact ? 'symbol-input-token symbol-input-token--compact' : 'symbol-input-token';
+  if (locked) {
+    visual.classList.add('is-locked');
+  }
+
+  const src = normalizeScenarioAssetPath(String(symbol.image?.src || symbol.src || '').trim());
+  if (src) {
+    const image = document.createElement('img');
+    image.className = 'symbol-input-token-image';
+    image.src = src;
+    image.alt = String(symbol.image?.alt || symbol.alt || symbol.label || symbol.id || 'Символ').trim();
+    visual.appendChild(image);
+  } else {
+    const glyph = document.createElement('span');
+    glyph.className = 'symbol-input-token-glyph';
+    glyph.textContent = String(symbol.glyph || symbol.label || symbol.id || '?').trim();
+    visual.appendChild(glyph);
+  }
+
+  if (!compact) {
+    const label = document.createElement('span');
+    label.className = 'symbol-input-token-label';
+    label.textContent = String(symbol.label || symbol.id || 'Символ').trim();
+    visual.appendChild(label);
+  }
+
+  return visual;
+}
+
+function getSymbolInputAcceptedSequences(config = {}) {
+  const rawSequences = Array.isArray(config.acceptedSequences) && config.acceptedSequences.length
+    ? config.acceptedSequences
+    : (Array.isArray(config.correctSequence) ? [config.correctSequence] : []);
+
+  return rawSequences
+    .map((sequence) => Array.isArray(sequence)
+      ? sequence.map((value) => normalizeSymbolToken(value)).filter(Boolean)
+      : [])
+    .filter((sequence) => sequence.length > 0);
+}
+
+function renderSymbolInputTask(point) {
+  const config = point.task?.symbolInput || {};
+  const symbols = (Array.isArray(config.symbols) ? config.symbols : [])
+    .map((symbol) => ({
+      ...symbol,
+      id: normalizeSymbolToken(symbol?.id || symbol?.label || '')
+    }))
+    .filter((symbol) => symbol.id);
+  const hasMeaningAnswers = symbols.some((symbol) => Array.isArray(symbol.answers) && symbol.answers.length);
+  const mode = String(config.mode || (hasMeaningAnswers ? 'meanings' : 'sequence')).trim().toLowerCase();
+  const isSolved = mapState.solved.has(point.id);
+  const outcome = getTaskOutcome(point.id) || {};
+  const clueImageSrc = normalizeScenarioAssetPath(String(config.image?.src || '').trim());
+
+  if (!symbols.length) {
+    setTaskResult('Символьная загадка ещё не настроена.', 'info');
+    return;
+  }
+
+  const wrap = document.createElement('div');
+  wrap.className = 'symbol-input-wrap';
+
+  const lead = document.createElement('p');
+  lead.className = 'task-mini-note';
+  lead.textContent = String(
+    config.note
+    || (mode === 'meanings'
+      ? 'Под каждым символом впишите, что он означает.'
+      : 'Нажмите на символы выше и соберите правильную последовательность в четырёх ячейках.')
+  ).trim();
+  wrap.appendChild(lead);
+
+  if (clueImageSrc) {
+    const clueCard = document.createElement('div');
+    clueCard.className = 'symbol-input-clue-card';
+
+    const clueImage = document.createElement('img');
+    clueImage.className = 'symbol-input-clue-image';
+    clueImage.src = clueImageSrc;
+    clueImage.alt = String(config.image?.alt || 'Записка с символами').trim();
+    clueCard.appendChild(clueImage);
+
+    wrap.appendChild(clueCard);
+  }
+
+  if (mode === 'meanings') {
+    const persistedEntries = isSolved
+      ? rememberSymbolMeaningState(point.id, outcome.symbolMeaningEntries || {})
+      : getSymbolMeaningState(point.id);
+    const currentEntries = rememberSymbolMeaningState(point.id, persistedEntries);
+    const bank = document.createElement('div');
+    bank.className = 'symbol-input-bank symbol-input-bank--meanings';
+
+    symbols.forEach((symbol) => {
+      const card = document.createElement('div');
+      card.className = 'symbol-input-choice symbol-input-choice--meaning';
+      card.appendChild(createSymbolInputVisual(symbol));
+
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.className = 'symbol-input-meaning-field';
+      input.placeholder = String(config.inputPlaceholder || 'Введите значение').trim();
+      input.value = String(currentEntries[symbol.id] || '');
+      input.disabled = isSolved;
+      input.autocomplete = 'off';
+      input.spellcheck = false;
+      input.addEventListener('input', () => {
+        if (mapState.solved.has(point.id)) {
+          return;
+        }
+        const nextEntries = {
+          ...getSymbolMeaningState(point.id),
+          [symbol.id]: input.value
+        };
+        rememberSymbolMeaningState(point.id, nextEntries);
+        setTaskResult('');
+        setTaskAnswer('');
+      });
+      card.appendChild(input);
+      bank.appendChild(card);
+    });
+
+    wrap.appendChild(bank);
+
+    const actions = document.createElement('div');
+    actions.className = 'symbol-input-actions symbol-input-actions--dual';
+
+    const clearBtn = document.createElement('button');
+    clearBtn.type = 'button';
+    clearBtn.className = 'symbol-input-action ghost';
+    clearBtn.textContent = 'Очистить';
+    clearBtn.disabled = isSolved || !symbols.some((symbol) => String(currentEntries[symbol.id] || '').trim());
+    clearBtn.addEventListener('click', () => {
+      if (mapState.solved.has(point.id)) {
+        return;
+      }
+      rememberSymbolMeaningState(point.id, {});
+      setTaskResult('');
+      setTaskAnswer('');
+      triggerHaptic('light');
+      renderTask(point);
+    });
+    actions.appendChild(clearBtn);
+
+    const checkBtn = document.createElement('button');
+    checkBtn.type = 'button';
+    checkBtn.className = 'symbol-input-action primary';
+    checkBtn.textContent = isSolved ? 'Значения подтверждены' : 'Проверить';
+    checkBtn.disabled = isSolved;
+    checkBtn.addEventListener('click', () => {
+      const typedEntries = rememberSymbolMeaningState(point.id, getSymbolMeaningState(point.id));
+      const hasBlank = symbols.some((symbol) => !String(typedEntries[symbol.id] || '').trim());
+      if (hasBlank) {
+        setTaskResult(`Сначала заполните все ${symbols.length} поля.`, 'info');
+        triggerHaptic('light');
+        return;
+      }
+
+      const isCorrect = symbols.every((symbol) => {
+        const acceptedValues = Array.isArray(symbol.answers) && symbol.answers.length
+          ? symbol.answers
+          : [symbol.alt || symbol.meaning || ''];
+        const normalizedTyped = normalizeSymbolMeaning(typedEntries[symbol.id] || '');
+        return acceptedValues
+          .map((value) => normalizeSymbolMeaning(value))
+          .filter(Boolean)
+          .includes(normalizedTyped);
+      });
+
+      if (isCorrect) {
+        completeTask(point, {
+          symbolMeaningEntries: typedEntries,
+          answerText: point.task.answerText || '',
+          answerLabel: point.task.answerLabel || 'Улика',
+          successText: point.task.success || 'Значения символов поняты верно.'
+        });
+        renderTask(point);
+        return;
+      }
+
+      setTaskResult(
+        point.task.wrongResultText || 'Не все значения совпали. Попробуйте ещё раз.',
+        'bad'
+      );
+      setTaskAnswer('');
+      triggerHaptic('error');
+    });
+    actions.appendChild(checkBtn);
+
+    wrap.appendChild(actions);
+    taskOptionsNode.appendChild(wrap);
+
+    if (isSolved) {
+      showSolvedTaskState(point);
+    }
+    return;
+  }
+
+  const acceptedSequences = getSymbolInputAcceptedSequences(config);
+  const fallbackSequence = acceptedSequences[0] || [];
+  const slotCount = Math.max(
+    Number(config.slotCount) || 0,
+    fallbackSequence.length,
+    1
+  );
+  const stateSequence = isSolved
+    ? rememberSymbolInputState(point.id, outcome.symbolSequence || fallbackSequence)
+    : getSymbolInputState(point.id);
+  const currentSequence = Array.isArray(stateSequence) ? stateSequence.slice(0, slotCount) : [];
+  const symbolsById = new Map(symbols.map((symbol) => [symbol.id, symbol]));
+
+  if (!acceptedSequences.length) {
+    setTaskResult('Символьная загадка ещё не настроена.', 'info');
+    return;
+  }
+
+  rememberSymbolInputState(point.id, currentSequence);
+
+  const bank = document.createElement('div');
+  bank.className = 'symbol-input-bank';
+  symbols.forEach((symbol) => {
+    const choiceBtn = document.createElement('button');
+    choiceBtn.type = 'button';
+    choiceBtn.className = 'symbol-input-choice';
+    choiceBtn.disabled = isSolved || currentSequence.length >= slotCount;
+    choiceBtn.appendChild(createSymbolInputVisual(symbol));
+    choiceBtn.addEventListener('click', () => {
+      if (mapState.solved.has(point.id)) {
+        return;
+      }
+      const nextSequence = getSymbolInputState(point.id).slice(0, slotCount);
+      if (nextSequence.length >= slotCount) {
+        return;
+      }
+      nextSequence.push(symbol.id);
+      rememberSymbolInputState(point.id, nextSequence);
+      setTaskResult('');
+      setTaskAnswer('');
+      triggerHaptic('light');
+      renderTask(point);
+    });
+    bank.appendChild(choiceBtn);
+  });
+  wrap.appendChild(bank);
+
+  const slots = document.createElement('div');
+  slots.className = 'symbol-input-slots';
+  for (let index = 0; index < slotCount; index += 1) {
+    const slotBtn = document.createElement('button');
+    slotBtn.type = 'button';
+    slotBtn.className = 'symbol-input-slot';
+    const tokenId = currentSequence[index];
+
+    if (tokenId && symbolsById.has(tokenId)) {
+      slotBtn.classList.add('is-filled');
+      slotBtn.appendChild(createSymbolInputVisual(symbolsById.get(tokenId), { compact: true, locked: isSolved }));
+    } else {
+      const placeholder = document.createElement('span');
+      placeholder.className = 'symbol-input-slot-placeholder';
+      placeholder.textContent = '';
+      slotBtn.appendChild(placeholder);
+    }
+
+    slotBtn.disabled = isSolved || !tokenId;
+    slotBtn.addEventListener('click', () => {
+      if (mapState.solved.has(point.id)) {
+        return;
+      }
+      const nextSequence = getSymbolInputState(point.id).slice(0, slotCount);
+      nextSequence.splice(index, 1);
+      rememberSymbolInputState(point.id, nextSequence);
+      setTaskResult('');
+      setTaskAnswer('');
+      triggerHaptic('light');
+      renderTask(point);
+    });
+
+    slots.appendChild(slotBtn);
+  }
+  wrap.appendChild(slots);
+
+  const actions = document.createElement('div');
+  actions.className = 'symbol-input-actions';
+
+  const removeBtn = document.createElement('button');
+  removeBtn.type = 'button';
+  removeBtn.className = 'symbol-input-action ghost';
+  removeBtn.textContent = 'Удалить';
+  removeBtn.disabled = isSolved || currentSequence.length === 0;
+  removeBtn.addEventListener('click', () => {
+    if (mapState.solved.has(point.id)) {
+      return;
+    }
+    const nextSequence = getSymbolInputState(point.id).slice(0, slotCount);
+    nextSequence.pop();
+    rememberSymbolInputState(point.id, nextSequence);
+    setTaskResult('');
+    setTaskAnswer('');
+    triggerHaptic('light');
+    renderTask(point);
+  });
+  actions.appendChild(removeBtn);
+
+  const clearBtn = document.createElement('button');
+  clearBtn.type = 'button';
+  clearBtn.className = 'symbol-input-action ghost';
+  clearBtn.textContent = 'Очистить';
+  clearBtn.disabled = isSolved || currentSequence.length === 0;
+  clearBtn.addEventListener('click', () => {
+    if (mapState.solved.has(point.id)) {
+      return;
+    }
+    rememberSymbolInputState(point.id, []);
+    setTaskResult('');
+    setTaskAnswer('');
+    triggerHaptic('light');
+    renderTask(point);
+  });
+  actions.appendChild(clearBtn);
+
+  const checkBtn = document.createElement('button');
+  checkBtn.type = 'button';
+  checkBtn.className = 'symbol-input-action primary';
+  checkBtn.textContent = isSolved ? 'Последовательность подтверждена' : 'Проверить';
+  checkBtn.disabled = isSolved;
+  checkBtn.addEventListener('click', () => {
+    const typedSequence = getSymbolInputState(point.id).slice(0, slotCount);
+    if (typedSequence.length !== slotCount) {
+      setTaskResult(`Сначала заполните все ${slotCount} ячейки.`, 'info');
+      triggerHaptic('light');
+      return;
+    }
+
+    const isCorrect = acceptedSequences.some((sequence) => areArraysEqual(sequence, typedSequence));
+    if (isCorrect) {
+      completeTask(point, {
+        symbolSequence: typedSequence,
+        answerText: point.task.answerText || '',
+        answerLabel: point.task.answerLabel || 'Улика',
+        successText: point.task.success || 'Последовательность восстановлена.'
+      });
+      renderTask(point);
+      return;
+    }
+
+    setTaskResult(
+      point.task.wrongResultText || 'Последовательность пока не сходится. Проверьте порядок символов на рисунке.',
+      'bad'
+    );
+    setTaskAnswer('');
+    triggerHaptic('error');
+  });
+  actions.appendChild(checkBtn);
+
+  wrap.appendChild(actions);
+  taskOptionsNode.appendChild(wrap);
+
+  if (isSolved) {
+    showSolvedTaskState(point);
+  }
 }
 
 function renderAnagramTask(point) {
@@ -7029,6 +8040,10 @@ function appendCityPointList(container, point, leadText = '') {
 }
 
 function buildCityNarrativePanel(point, config) {
+  if (config?.hideSidebarText === true) {
+    return null;
+  }
+
   const rawText = String(
     config?.sidebarText
       || point.task?.lore
@@ -7043,7 +8058,9 @@ function buildCityNarrativePanel(point, config) {
   const panel = document.createElement('div');
   panel.className = 'city-image-copy';
 
-  const titleText = String(config?.sidebarTitle || point.title || '').trim();
+  const titleText = config?.hideSidebarTitle === true
+    ? ''
+    : String(config?.sidebarTitle || point.title || '').trim();
   if (titleText) {
     const panelTitle = document.createElement('p');
     panelTitle.className = 'city-image-copy-title';
@@ -7074,11 +8091,6 @@ function renderCityImageTask(point) {
   const wrap = document.createElement('div');
   wrap.className = 'city-image-wrap';
 
-  const title = document.createElement('p');
-  title.className = 'city-image-title';
-  title.textContent = config.title || `Карта ${point.title}`;
-  wrap.appendChild(title);
-
   const scenarioKey = String(scenarioState.activeId || '').trim().toLowerCase();
   if (scenarioKey === 'eleon' || scenarioKey === 'verona') {
     const taIntro = String(scenarioState.activeConfig?.tourAgent?.introText || '').trim();
@@ -7094,7 +8106,18 @@ function renderCityImageTask(point) {
     && mapState.imageCityPointId === point.id
     && Boolean(config.src);
 
-  if (config.note) {
+  const shouldHideMapTitle = config?.hideTitle === true
+    || (isOpenedInMainMap && config?.hideTitleWhenOpenedInMainMap === true);
+  if (!shouldHideMapTitle) {
+    const title = document.createElement('p');
+    title.className = 'city-image-title';
+    title.textContent = config.title || `Карта ${point.title}`;
+    wrap.appendChild(title);
+  }
+
+  const shouldHideMapNote = config?.hideNote === true
+    || (isOpenedInMainMap && config?.hideNoteWhenOpenedInMainMap === true);
+  if (config.note && !shouldHideMapNote) {
     const note = document.createElement('p');
     note.className = 'city-image-note';
     note.textContent = isOpenedInMainMap
@@ -7104,7 +8127,13 @@ function renderCityImageTask(point) {
   }
 
   if (isOpenedInMainMap) {
-    appendCityPointList(wrap, point, 'Выберите точку на карте города или кнопку ниже.');
+    const hasPointList = appendCityPointList(wrap, point, 'Выберите точку на карте города или кнопку ниже.');
+    if (!hasPointList) {
+      const narrativePanel = buildCityNarrativePanel(point, config);
+      if (narrativePanel) {
+        wrap.appendChild(narrativePanel);
+      }
+    }
 
     taskOptionsNode.appendChild(wrap);
     return;
@@ -7236,6 +8265,7 @@ function renderReturnToCityButton(point, resolvedParentPoint = null) {
 
 function renderTask(point) {
   const taskKind = ensureTaskCompatibility(point);
+  cardMap?.classList.toggle('has-sort-task', taskKind === 'sort');
   const parentCityPoint = resolveParentCityPoint(point);
   const isTourAgentTask = Boolean(parentCityPoint && isTourAgentPointRuntime(point));
   if (isTourAgentTask) {
@@ -7314,6 +8344,14 @@ function renderTask(point) {
     renderReturnToCityButton(point);
     renderTaskMedia(point);
     renderJigsawPuzzle(point);
+    return;
+  }
+
+  if (taskKind === 'spotdiff') {
+    renderCityImageTask(point);
+    renderReturnToCityButton(point);
+    renderTaskMedia(point);
+    renderSpotDiffTask(point);
     return;
   }
 
@@ -7399,6 +8437,14 @@ function renderTask(point) {
     if (mapState.solved.has(point.id)) {
       showSolvedTaskState(point);
     }
+    return;
+  }
+
+  if (taskKind === 'symbol_input') {
+    renderCityImageTask(point);
+    renderReturnToCityButton(point);
+    renderTaskMedia(point);
+    renderSymbolInputTask(point);
     return;
   }
 
@@ -7878,7 +8924,7 @@ function initImageRouteMap(point = null) {
 
   const cityImage = point ? getPointInlineCityImageMap(point) : null;
   const useCityImage = Boolean(cityImage?.src);
-  const cityPoints = useCityImage ? getImageCityPoints(point) : [];
+  const cityPoints = useCityImage ? getImageCityPoints(point).filter((cityPoint) => isPointVisible(cityPoint)) : [];
   const imageUrl = useCityImage
     ? String(cityImage.src || '').trim()
     : (scenarioState.routeMapImageSrc || './assets/maps/team-map.png');
@@ -8171,3 +9217,4 @@ async function init() {
 }
 
 void init();
+
