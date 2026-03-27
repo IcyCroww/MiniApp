@@ -13,6 +13,12 @@ const DB_FILE = path.join(DATA_DIR, 'miniapp-db.json');
 const MAX_EVENTS = 10000;
 const DATABASE_URL = String(process.env.DATABASE_URL || '').trim();
 const DATABASE_SSL = ['1', 'true', 'yes'].includes(String(process.env.DATABASE_SSL || '').trim().toLowerCase());
+const MAINTENANCE_MODE = ['1', 'true', 'yes', 'on'].includes(String(process.env.MAINTENANCE_MODE || '').trim().toLowerCase());
+const MAINTENANCE_TITLE = String(process.env.MAINTENANCE_TITLE || '\u0422\u0435\u0445\u043d\u0438\u0447\u0435\u0441\u043a\u0438\u0435 \u0440\u0430\u0431\u043e\u0442\u044b').trim();
+const MAINTENANCE_MESSAGE = String(
+  process.env.MAINTENANCE_MESSAGE ||
+  '\u0421\u0430\u0439\u0442 \u0432\u0440\u0435\u043c\u0435\u043d\u043d\u043e \u043e\u0442\u043a\u043b\u044e\u0447\u0451\u043d. \u041f\u043e\u043f\u0440\u043e\u0431\u0443\u0439\u0442\u0435 \u0437\u0430\u0439\u0442\u0438 \u0447\u0443\u0442\u044c \u043f\u043e\u0437\u0436\u0435.'
+).trim();
 const USE_POSTGRES = Boolean(DATABASE_URL);
 const pool = USE_POSTGRES
   ? new Pool({
@@ -121,6 +127,15 @@ const LEGACY_TRIGGER_IDS = new Set(['clue_after_naples']);
 
 app.use(express.json({ limit: '1mb' }));
 
+function escapeHtml(value = '') {
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 app.use((req, res, next) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
@@ -132,6 +147,82 @@ app.use((req, res, next) => {
   }
 
   next();
+});
+
+app.use((req, res, next) => {
+  if (!MAINTENANCE_MODE) {
+    next();
+    return;
+  }
+
+  const wantsJson = req.path.startsWith('/api/') || String(req.headers.accept || '').includes('application/json');
+  const title = escapeHtml(MAINTENANCE_TITLE);
+  const message = escapeHtml(MAINTENANCE_MESSAGE);
+
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+
+  if (wantsJson) {
+    res.status(503).json({
+      ok: false,
+      error: 'maintenance_mode',
+      title: MAINTENANCE_TITLE,
+      message: MAINTENANCE_MESSAGE
+    });
+    return;
+  }
+
+  res
+    .status(503)
+    .type('html')
+    .send(`<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>${title}</title>
+  <style>
+    :root { color-scheme: dark; }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+      font-family: "Segoe UI", system-ui, sans-serif;
+      background:
+        radial-gradient(circle at top, rgba(80, 112, 255, 0.16), transparent 38%),
+        linear-gradient(180deg, #121923 0%, #0c1118 100%);
+      color: #ecf3ff;
+    }
+    .card {
+      width: min(520px, 100%);
+      padding: 28px;
+      border-radius: 20px;
+      background: rgba(19, 28, 40, 0.9);
+      border: 1px solid rgba(140, 170, 214, 0.25);
+      box-shadow: 0 22px 60px rgba(0, 0, 0, 0.35);
+    }
+    h1 {
+      margin: 0 0 12px;
+      font-size: clamp(28px, 4vw, 38px);
+      line-height: 1.05;
+    }
+    p {
+      margin: 0;
+      font-size: 16px;
+      line-height: 1.6;
+      color: #c3d3ee;
+    }
+  </style>
+</head>
+<body>
+  <main class="card">
+    <h1>${title}</h1>
+    <p>${message}</p>
+  </main>
+</body>
+</html>`);
 });
 
 const PUBLIC_DIR = path.join(__dirname, 'public');
