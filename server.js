@@ -820,28 +820,20 @@ function getIssuedTriggers(stats) {
 
 function buildItemDeliveryTrigger(item = {}) {
   const itemId = String(item.id || '').trim();
+  const itemLabel = String(item.label || itemId).trim();
   const variant = String(item.variant || '').trim();
+  const displayLabel = variant ? `${itemLabel}: ${variant}` : itemLabel;
 
-  if (itemId === 'grape_juice') {
-    return {
-      id: 'item_grape_juice',
-      text: 'После мэрии Сантарио нужно принести виноградный сок.',
-      actionLabel: 'Принести виноградный сок',
-      doneLabel: 'Виноградный сок принесён'
-    };
+  if (!itemId || !displayLabel) {
+    return null;
   }
 
-  if (itemId === 'flower_bouquet') {
-    const suffix = variant ? `: ${variant}` : '';
-    return {
-      id: 'item_flower_bouquet',
-      text: `После цветочной лавки нужно принести букет${suffix}.`,
-      actionLabel: `Принести букет${suffix}`,
-      doneLabel: `Букет${suffix} принесён`
-    };
-  }
-
-  return null;
+  return {
+    id: `item_${itemId}`,
+    text: `\u041a\u043e\u043c\u0430\u043d\u0434\u0430 \u043f\u043e\u043b\u0443\u0447\u0438\u043b\u0430 \u0443\u043b\u0438\u043a\u0443 \u00ab${displayLabel}\u00bb. \u041f\u043e\u0434\u0433\u043e\u0442\u043e\u0432\u044c\u0442\u0435 \u0435\u0451 \u043a \u0432\u044b\u0434\u0430\u0447\u0435 \u0432 \u043a\u0430\u0431\u0438\u043d\u0435\u0442\u0435 \u0414\u0432\u0438\u0436\u0435\u043d\u0438\u044f \u041f\u0435\u0440\u0432\u044b\u0445, \u043f\u0435\u0440\u0432\u044b\u0439 \u0437\u0430\u043b \u043d\u0430 \u0442\u0440\u0435\u0442\u044c\u0435\u043c \u044d\u0442\u0430\u0436\u0435.`,
+    actionLabel: `\u0412\u044b\u0434\u0430\u0442\u044c \u0443\u043b\u0438\u043a\u0443 \u00ab${displayLabel}\u00bb`,
+    doneLabel: `\u0423\u043b\u0438\u043a\u0430 \u00ab${displayLabel}\u00bb \u0432\u044b\u0434\u0430\u043d\u0430`
+  };
 }
 
 function evaluateTriggers(stats) {
